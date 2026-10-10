@@ -11,6 +11,7 @@ func _initialize() -> void:
 	_test_same_seed_same_map()
 	_test_invariants_across_seeds()
 	_test_details()
+	_test_windows_inside_buildings()
 	print("test_azotea_generator: %s" % ("OK" if _failures == 0 else "%d FALLOS" % _failures))
 	quit(1 if _failures > 0 else 0)
 
@@ -72,3 +73,31 @@ func _test_details() -> void:
 		params.detail_density = 1.0
 		_check(AzoteaGenerator.generate(params).roofs == data.roofs,
 				"seed %d: la densidad de detalles alteró las azoteas" % s)
+
+
+func _test_windows_inside_buildings() -> void:
+	var params := AzoteaParams.new()
+	params.ruin = 1.0
+	for s in range(1, 21):
+		params.seed = s
+		var data := AzoteaGenerator.generate(params)
+		for layer in [data.far, data.near]:
+			for window in layer.windows:
+				var inside := false
+				for outline in layer.buildings:
+					if _sampled_inside(window, outline):
+						inside = true
+						break
+				if not inside:
+					_check(false, "seed %d: ventana fuera de su edificio en %v" % [s, window.position])
+					break
+
+
+## Verificación independiente del generador: muestrea una rejilla de 5x5 puntos de la ventana.
+func _sampled_inside(rect: Rect2, polygon: PackedVector2Array) -> bool:
+	for i in 5:
+		for j in 5:
+			var point := rect.position + rect.size * Vector2(i / 4.0, j / 4.0)
+			if not Geometry2D.is_point_in_polygon(point, polygon):
+				return false
+	return true
