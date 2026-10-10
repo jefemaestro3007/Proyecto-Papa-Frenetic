@@ -8,6 +8,36 @@ const SNAP := 20.0
 ## La primera azotea es una zona segura: siempre ancha y a la altura base.
 const START_ROOF_WIDTH := 1400.0
 const SPAWN_OFFSET := 900.0
+## Los detalles usan su propio RNG: añadir o cambiar detalles nunca altera el trazado del mapa.
+const DETAIL_SALT := 0x0de7a11
+
+const PROP_WEIGHTS := {
+	AzoteaMapData.Prop.Type.AC_UNIT: 0.22,
+	AzoteaMapData.Prop.Type.WATER_TANK: 0.1,
+	AzoteaMapData.Prop.Type.ANTENNA: 0.14,
+	AzoteaMapData.Prop.Type.VENT: 0.2,
+	AzoteaMapData.Prop.Type.CHIMNEY: 0.1,
+	AzoteaMapData.Prop.Type.STAIR_HUT: 0.08,
+	AzoteaMapData.Prop.Type.SKYLIGHT: 0.1,
+	AzoteaMapData.Prop.Type.BILLBOARD: 0.06,
+}
+## Rangos de tamaño (ancho, alto) por tipo: [mín, máx].
+const PROP_SIZES := {
+	AzoteaMapData.Prop.Type.AC_UNIT: [Vector2(80.0, 50.0), Vector2(110.0, 64.0)],
+	AzoteaMapData.Prop.Type.WATER_TANK: [Vector2(80.0, 150.0), Vector2(110.0, 200.0)],
+	AzoteaMapData.Prop.Type.ANTENNA: [Vector2(24.0, 140.0), Vector2(24.0, 240.0)],
+	AzoteaMapData.Prop.Type.VENT: [Vector2(30.0, 40.0), Vector2(44.0, 70.0)],
+	AzoteaMapData.Prop.Type.CHIMNEY: [Vector2(40.0, 90.0), Vector2(60.0, 140.0)],
+	AzoteaMapData.Prop.Type.STAIR_HUT: [Vector2(120.0, 110.0), Vector2(160.0, 130.0)],
+	AzoteaMapData.Prop.Type.SKYLIGHT: [Vector2(90.0, 26.0), Vector2(140.0, 34.0)],
+	AzoteaMapData.Prop.Type.BILLBOARD: [Vector2(220.0, 200.0), Vector2(320.0, 260.0)],
+}
+const DECAL_WEIGHTS := {
+	AzoteaMapData.Decal.Type.BLOOD: 0.28,
+	AzoteaMapData.Decal.Type.CRACK: 0.3,
+	AzoteaMapData.Decal.Type.STAIN: 0.24,
+	AzoteaMapData.Decal.Type.RUBBLE: 0.18,
+}
 
 
 static func generate(params: AzoteaParams) -> AzoteaMapData:
@@ -25,7 +55,68 @@ static func generate(params: AzoteaParams) -> AzoteaMapData:
 	_build_roofs(data, params, rng, field)
 	data.far = _build_skyline(params, rng, field, 690.0, Vector2(160.0, 470.0), Vector2(90.0, 240.0), 0.0)
 	data.near = _build_skyline(params, rng, field, 760.0, Vector2(90.0, 330.0), Vector2(140.0, 320.0), 5000.0)
+	_build_details(data, params)
 	return data
+
+
+static func _build_details(data: AzoteaMapData, params: AzoteaParams) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = params.seed ^ DETAIL_SALT
+	for r in data.roofs.size():
+		var roof := data.roofs[r]
+		_place_props(data, rng, roof, r, params.detail_density)
+		_place_decals(data, rng, roof, params.decals_per_roof)
+	for r in range(1, data.roofs.size()):
+		var a := data.roofs[r - 1]
+		var b := data.roofs[r]
+		if b.position.x - a.end.x > 10.0 and rng.randf() < params.cable_chance:
+			var from := Vector2(a.end.x - rng.randf_range(30.0, 120.0), a.position.y - rng.randf_range(150.0, 230.0))
+			var to := Vector2(b.position.x + rng.randf_range(30.0, 120.0), b.position.y - rng.randf_range(150.0, 230.0))
+			data.cables.append(AzoteaMapData.Cable.new(from, to, rng.randf_range(30.0, 90.0),
+					a.position.y, b.position.y))
+
+
+## Objetos de izquierda a derecha sin solaparse, dentro de la azotea.
+static func _place_props(data: AzoteaMapData, rng: RandomNumberGenerator, roof: Rect2, roof_index: int,
+		density: float) -> void:
+	var x := roof.position.x + 40.0
+	var right := roof.end.x - 40.0
+	while x < right:
+		if rng.randf() >= density:
+			x += rng.randf_range(60.0, 160.0)
+			continue
+		var type: AzoteaMapData.Prop.Type = _weighted_pick(rng, PROP_WEIGHTS)
+		var sizes: Array = PROP_SIZES[type]
+		var size := Vector2(rng.randf_range(sizes[0].x, sizes[1].x), rng.randf_range(sizes[0].y, sizes[1].y))
+		if x + size.x > right:
+			break
+		data.props.append(AzoteaMapData.Prop.new(type, Rect2(x, roof.position.y - size.y, size.x, size.y),
+				rng.randi(), roof_index))
+		x += size.x + rng.randf_range(20.0, 90.0)
+
+
+## Marcas: escombros sobre el techo; sangre, grietas y manchas en la fachada.
+static func _place_decals(data: AzoteaMapData, rng: RandomNumberGenerator, roof: Rect2, max_count: int) -> void:
+	for i in rng.randi_range(max_count / 3, max_count):
+		var type: AzoteaMapData.Decal.Type = _weighted_pick(rng, DECAL_WEIGHTS)
+		var x := rng.randf_range(roof.position.x + 30.0, roof.end.x - 30.0)
+		var y := roof.position.y
+		if type != AzoteaMapData.Decal.Type.RUBBLE:
+			y += rng.randf_range(60.0, 480.0)
+		data.decals.append(AzoteaMapData.Decal.new(type, Vector2(x, y), rng.randf_range(0.6, 1.4),
+				rng.randf(), rng.randi()))
+
+
+static func _weighted_pick(rng: RandomNumberGenerator, weights: Dictionary) -> Variant:
+	var total := 0.0
+	for key in weights:
+		total += weights[key]
+	var roll := rng.randf() * total
+	for key in weights:
+		roll -= weights[key]
+		if roll <= 0.0:
+			return key
+	return weights.keys().back()
 
 
 static func _build_roofs(data: AzoteaMapData, params: AzoteaParams, rng: RandomNumberGenerator,
