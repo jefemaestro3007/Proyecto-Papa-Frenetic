@@ -23,6 +23,8 @@ const CHEEK_COLOR := Color("d85b4b")
 @export var body_radius := 34.0
 @export var body_color := Color("b77a42")
 @export var enemy_type := &"normal"
+## Multiplica el calor que suma tocar al jugador (la embestidora pega más fuerte).
+@export var contact_heat_scale := 1.0
 
 var active := true
 var health := 1
@@ -96,8 +98,13 @@ func receive_hit(direction: float, strong: bool, damage := 1) -> bool:
 		return true
 	_flash = 1.0
 	scale = Vector2(1.3, 0.75)
-	position.x = clampf(position.x + signf(direction) * SURVIVED_HIT_PUSH, lane_left, lane_right)
+	_apply_survived_hit_push(direction)
 	return false
+
+
+## Retroceso al aguantar un golpe (por defecto, por su carril).
+func _apply_survived_hit_push(direction: float) -> void:
+	position.x = clampf(position.x + signf(direction) * SURVIVED_HIT_PUSH, lane_left, lane_right)
 
 
 func defeat(direction := 0.0, strong := false) -> void:
