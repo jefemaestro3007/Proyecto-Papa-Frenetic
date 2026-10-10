@@ -1,189 +1,188 @@
 class_name Elevator
-extends AnimatableBody2D
-## Plataforma de ascensor. Es de un solo sentido (se atraviesa desde abajo), así nunca aplasta.
-## El movimiento se mide en beats del Conductor y depende del tipo:
-## - LOCAL: sube y baja solo, parando en cada piso.
-## - EXPRESS: igual pero solo para en los extremos.
-## - CALL: espera quieto; al subirse alguien viaja al otro extremo (y no vuelve a salir hasta
-##   que esa persona se baje y suba de nuevo); vacío, vuelve a su base.
-## - FAULTY: local con tirones y temblor.
+extends Node2D
+## Ascensor de fondo, cerrado. Se llama con ↑ frente a su puerta: la cabina llega (como mucho
+## en `call_seconds`) y las puertas se abren en el beat. Adentro, ↑/↓ eligen hacia dónde ir
+## (mantener sigue de piso en piso; el expreso va directo al otro extremo). El viaje completo
+## dura como mucho `trip_seconds`. El personaje viaja como pasajero (lo mueve la zona).
+## Tipos: local, expreso, de servicio (tarda más en llegar) y averiado (sacudidas, luz que falla).
 
-const THICKNESS := 24.0
-const CABIN_HEIGHT := 200.0
-const CALL_IDLE_BEATS := 6.0
-const RIDER_TOLERANCE := 10.0
+signal arrived(floor: int)
+
+const DOOR_WIDTH := 130.0
+const DOOR_HEIGHT := 200.0
+const CABIN_WIDTH := 150.0
+const CABIN_HEIGHT := 220.0
+const OPEN_SECONDS := 0.18
 
 var spec: OficinasMapData.ElevatorSpec
 var style: ArtStyle
-## Quien puede viajar (el jugador); lo usan los ascensores a demanda.
-var rider: CharacterBody2D
-var wait_beats := 4.0
-var beats_per_floor := 1.5
+var data: OficinasMapData
+var call_seconds := 1.2
+var trip_seconds := 1.2
 var sync_to_beat := true
-var floor_height := 420.0
 
-var _legs := []
-var _cycle := 1.0
-var _clock := 0.0
-var _call_at := 0
-var _call_to := 0
-var _call_start := -1.0
-var _call_pending := -1.0
-var _call_idle := 0.0
-## Tras llegar con alguien encima, no vuelve a salir hasta que se baje y se vuelva a subir.
-var _needs_reboard := false
-var _speed := 0.0
+## Piso donde está (o hacia donde va) la cabina.
+var cabin_floor := 0
+## Y de la superficie de la cabina (para dibujarla y mover al pasajero).
+var cabin_y := 0.0
+var riding := false
+
+var _from_y := 0.0
+var _to_y := 0.0
+var _move_time := 0.0
+var _move_duration := 0.0
+var _open_floor := -1
+var _open_amount := 0.0
+var _open_at_beat := -1
+var _pending_open := -1
 
 
-func setup(p_spec: OficinasMapData.ElevatorSpec, p_style: ArtStyle, params: OficinasParams,
-		p_floor_height: float) -> void:
+func setup(p_spec: OficinasMapData.ElevatorSpec, p_data: OficinasMapData, p_style: ArtStyle, params: OficinasParams) -> void:
 	spec = p_spec
+	data = p_data
 	style = p_style
-	wait_beats = params.elevator_wait_beats
-	beats_per_floor = params.elevator_beats_per_floor
+	call_seconds = params.elevator_call_seconds
+	trip_seconds = params.elevator_trip_seconds
 	sync_to_beat = params.elevator_sync_to_beat
-	floor_height = p_floor_height
-	sync_to_physics = true
-	var shape := RectangleShape2D.new()
-	shape.size = Vector2(spec.width, THICKNESS)
-	var collision := CollisionShape2D.new()
-	collision.shape = shape
-	collision.position = shape.size * 0.5
-	collision.one_way_collision = true
-	add_child(collision)
-	position = Vector2(spec.x, spec.stop_ys[0])
-	_build_legs()
-
-
-## Recorrido de ida y vuelta por las paradas como tramos [desde, hasta, espera, viaje].
-func _build_legs() -> void:
-	var order := range(spec.stop_ys.size())
-	for i in range(spec.stop_ys.size() - 2, 0, -1):
-		order.append(i)
-	_legs.clear()
-	_cycle = 0.0
-	for i in order.size():
-		var from: float = spec.stop_ys[order[i]]
-		var to: float = spec.stop_ys[order[(i + 1) % order.size()]]
-		var travel := _travel_beats(from, to)
-		_legs.append([from, to, wait_beats, travel])
-		_cycle += wait_beats + travel
-	_cycle = maxf(_cycle, 0.001)
-
-
-func _travel_beats(from: float, to: float) -> float:
-	var beats := beats_per_floor * absf(to - from) / floor_height
-	# Sincronizado: cada viaje dura beats enteros, así también llega en el beat.
-	return maxf(1.0, roundf(beats)) if sync_to_beat else maxf(beats, 0.25)
-
-
-func _beats() -> float:
-	return Conductor.beat_position() + spec.phase if sync_to_beat else _clock
+	cabin_floor = spec.stops[0]
+	cabin_y = data.surface_y(cabin_floor)
+	_from_y = cabin_y
+	_to_y = cabin_y
 
 
 func is_moving() -> bool:
-	return absf(_speed) > 1.0 or _call_start >= 0.0
+	return _move_time < _move_duration
 
 
-func _physics_process(delta: float) -> void:
-	_clock += delta * Conductor.params.bpm / 60.0
-	var y: float
+func is_open_at(floor: int) -> bool:
+	return _open_floor == floor and _open_amount > 0.9
+
+
+func door_x() -> float:
+	return spec.x
+
+
+## Siguiente parada en la dirección dada (o -1). El expreso va al otro extremo.
+func next_stop(from_floor: int, direction: int) -> int:
+	var best := -1
+	for stop in spec.stops:
+		if direction > 0 and stop > from_floor and (best < 0 or stop < best):
+			best = stop
+		elif direction < 0 and stop < from_floor and (best < 0 or stop > best):
+			best = stop
+	return best
+
+
+## Llamada desde un piso: la cabina viene (si no está) y abre las puertas en el beat.
+func call_to(floor: int) -> void:
+	if not spec.stops.has(floor):
+		return
+	if cabin_floor == floor and not is_moving():
+		_schedule_open(floor)
+		return
+	_close()
+	var floors := absi(floor - cabin_floor)
+	var duration := minf(call_seconds, 0.25 + floors * 0.2)
 	if spec.kind == OficinasLayout.Lift.CALL:
-		y = _call_y(delta)
-	else:
-		y = _cycle_y(_beats())
-	if spec.kind == OficinasLayout.Lift.FAULTY and absf(y - position.y) > 0.5:
-		y += sin(_clock * 40.0) * 2.0
-	# No usar constant_linear_velocity: se le sumaría a quien viaja encima.
-	_speed = (y - position.y) / maxf(delta, 0.0001)
-	position.y = y
+		duration = call_seconds
+	_move(floor, duration)
+	_pending_open = floor
+
+
+## Viaje con pasajero hacia `floor`; dura lo proporcional dentro de `trip_seconds`.
+func ride_to(floor: int) -> float:
+	_close()
+	var span := maxi(1, spec.high - spec.low)
+	var duration := maxf(0.25, trip_seconds * absi(floor - cabin_floor) / span)
+	_move(floor, duration)
+	_pending_open = -1
+	return duration
+
+
+func open_here() -> void:
+	_schedule_open(cabin_floor)
+
+
+func close_doors() -> void:
+	_close()
+
+
+func _move(floor: int, duration: float) -> void:
+	_from_y = cabin_y
+	_to_y = data.surface_y(floor)
+	cabin_floor = floor
+	_move_time = 0.0
+	_move_duration = duration
+
+
+func _schedule_open(floor: int) -> void:
+	# Ya pedida para este piso: no reprogramar (si no, nunca llegaría el beat).
+	if _open_floor == floor:
+		return
+	_open_floor = floor
+	_open_at_beat = Conductor.beat_index() + 1 if sync_to_beat else -1
+
+
+func _close() -> void:
+	_open_floor = -1
+	_open_at_beat = -1
+
+
+func _process(delta: float) -> void:
+	if is_moving():
+		_move_time += delta
+		var p := clampf(_move_time / _move_duration, 0.0, 1.0)
+		cabin_y = lerpf(_from_y, _to_y, p * p * (3.0 - 2.0 * p))
+		if spec.kind == OficinasLayout.Lift.FAULTY and p < 1.0:
+			cabin_y += sin(_move_time * 70.0) * 3.0
+		if p >= 1.0:
+			cabin_y = _to_y
+			arrived.emit(cabin_floor)
+			if _pending_open >= 0:
+				_schedule_open(_pending_open)
+				_pending_open = -1
+	var opening := _open_floor >= 0 and (_open_at_beat < 0 or Conductor.beat_index() >= _open_at_beat)
+	_open_amount = move_toward(_open_amount, 1.0 if opening else 0.0, delta / OPEN_SECONDS)
 	queue_redraw()
 
 
-func _cycle_y(t: float) -> float:
-	var local := fposmod(t, _cycle)
-	for leg in _legs:
-		if local < leg[2]:
-			return leg[0]
-		local -= leg[2]
-		if local < leg[3]:
-			var p: float = local / leg[3]
-			if spec.kind == OficinasLayout.Lift.FAULTY:
-				# Avance a tirones: acelera y se frena varias veces por tramo.
-				p = clampf(p + 0.07 * sin(p * PI * 7.0), 0.0, 1.0)
-			return lerpf(leg[0], leg[1], smoothstep(0.0, 1.0, p))
-		local -= leg[3]
-	return _legs[0][0]
-
-
-func _call_y(delta: float) -> float:
-	var beats := _beats()
-	var stops := spec.stop_ys
-	if _call_start >= 0.0:
-		var travel := _travel_beats(stops[_call_at], stops[_call_to])
-		var p := (beats - _call_start) / travel
-		if p >= 1.0:
-			_call_start = -1.0
-			_call_at = _call_to
-			_call_idle = 0.0
-			_needs_reboard = _rider_on()
-			return stops[_call_at]
-		return lerpf(stops[_call_at], stops[_call_to], smoothstep(0.0, 1.0, p))
-	if _needs_reboard:
-		if not _rider_on():
-			_needs_reboard = false
-		return stops[_call_at]
-	if _rider_on():
-		_call_idle = 0.0
-		if _call_pending < 0.0:
-			_call_pending = ceilf(beats) if sync_to_beat else beats + 0.5
-		if beats >= _call_pending:
-			_depart(1 - _call_at if stops.size() == 2 else (0 if _call_at > 0 else stops.size() - 1), beats)
-	else:
-		_call_pending = -1.0
-		_call_idle += delta * Conductor.params.bpm / 60.0
-		if _call_at != 0 and _call_idle > CALL_IDLE_BEATS:
-			_depart(0, beats)
-	return stops[_call_at]
-
-
-func _depart(target: int, beats: float) -> void:
-	_call_to = target
-	_call_start = beats
-	_call_pending = -1.0
-
-
-func _rider_on() -> bool:
-	if rider == null or not rider.is_on_floor():
-		return false
-	var feet := rider.global_position
-	return absf(feet.y - global_position.y) < RIDER_TOLERANCE and feet.x > global_position.x \
-			and feet.x < global_position.x + spec.width
-
-
 func _draw() -> void:
-	if style == null:
+	if style == null or spec == null:
 		return
-	var w := spec.width
-	var outline := maxf(style.outline_width, 2.0)
-	# Cable hasta lo alto del hueco.
-	draw_line(Vector2(w * 0.5, -CABIN_HEIGHT), Vector2(w * 0.5, spec.shaft_top - position.y), style.outline, 4.0)
-	# Cabina: postes y viga superior (sin colisión), luego la plataforma.
-	for x in [6.0, w - 18.0]:
-		draw_rect(Rect2(x, -CABIN_HEIGHT, 12.0, CABIN_HEIGHT), style.structure_light)
-		draw_rect(Rect2(x, -CABIN_HEIGHT, 12.0, CABIN_HEIGHT), style.outline, false, outline * 0.5)
-	draw_rect(Rect2(0.0, -CABIN_HEIGHT - 16.0, w, 18.0), style.structure_light)
-	draw_rect(Rect2(0.0, -CABIN_HEIGHT - 16.0, w, 18.0), style.outline, false, outline)
-	draw_rect(Rect2(0.0, 0.0, w, THICKNESS), style.structure_light)
-	draw_rect(Rect2(0.0, 0.0, w, 6.0), style.edge)
-	draw_rect(Rect2(0.0, 0.0, w, THICKNESS), style.outline, false, outline)
-	# Luz indicadora: color según el tipo; late con el beat mientras viaja.
-	var light := _kind_color()
-	var glow := Conductor.pulse(6.0) if is_moving() else 0.3
-	if spec.kind == OficinasLayout.Lift.FAULTY and fmod(_clock, 1.7) < 0.2:
-		glow = 0.0
-	draw_circle(Vector2(w * 0.5, -CABIN_HEIGHT - 7.0), 7.0, light.lerp(Color.WHITE, glow * 0.6))
-	draw_circle(Vector2(w * 0.5, -CABIN_HEIGHT - 7.0), 16.0 * glow, Color(light, 0.3 * glow))
+	var outline := maxf(style.outline_width * 0.7, 2.0)
+	var faulty_dark := spec.kind == OficinasLayout.Lift.FAULTY and fmod(Time.get_ticks_msec() / 1000.0, 1.7) < 0.15
+	for stop in spec.stops:
+		var floor_y := data.surface_y(stop)
+		var door := Rect2(spec.x - DOOR_WIDTH * 0.5, floor_y - DOOR_HEIGHT, DOOR_WIDTH, DOOR_HEIGHT)
+		var open := _open_amount if stop == _open_floor else 0.0
+		draw_rect(door.grow(12.0), style.structure_light)
+		draw_rect(door, style.window_lit.darkened(0.5) if not faulty_dark else style.outline)
+		var half := door.size.x * 0.5 * (1.0 - open)
+		for side in [0, 1]:
+			var panel := Rect2(door.position.x if side == 0 else door.end.x - half, door.position.y, half, door.size.y)
+			if panel.size.x > 0.5:
+				draw_rect(panel, style.furniture.lightened(0.15))
+				draw_rect(panel, style.outline, false, outline * 0.6)
+		draw_rect(door.grow(12.0), style.outline, false, outline)
+		# Indicador: encendido si la cabina está en ese piso; botón de llamada al costado.
+		var light := Rect2(spec.x - 26.0, door.position.y - 40.0, 52.0, 20.0)
+		var here := cabin_floor == stop and not is_moving()
+		draw_rect(light, style.outline)
+		draw_rect(light.grow(-4.0), _kind_color() if here else style.structure_dark)
+		draw_rect(Rect2(door.end.x + 18.0, floor_y - 110.0, 12.0, 22.0), style.structure_dark)
+		draw_circle(Vector2(door.end.x + 24.0, floor_y - 99.0), 4.0, _kind_color())
+	if riding:
+		# Cabina cerrada alrededor del pasajero.
+		var cabin := Rect2(spec.x - CABIN_WIDTH * 0.5, cabin_y - CABIN_HEIGHT, CABIN_WIDTH, CABIN_HEIGHT)
+		draw_rect(cabin.grow(10.0), style.structure_light)
+		draw_rect(cabin, style.wall_paper.darkened(0.25) if not faulty_dark else style.outline)
+		draw_rect(Rect2(cabin.position.x, cabin.end.y - 8.0, cabin.size.x, 8.0), style.edge)
+		draw_rect(Rect2(cabin.get_center().x - 30.0, cabin.position.y + 6.0, 60.0, 6.0), style.window_lit)
+		draw_rect(cabin.grow(10.0), style.outline, false, outline)
+
+
+func cabin_rect() -> Rect2:
+	return Rect2(spec.x - CABIN_WIDTH * 0.5, cabin_y - CABIN_HEIGHT, CABIN_WIDTH, CABIN_HEIGHT).grow(14.0)
 
 
 func _kind_color() -> Color:

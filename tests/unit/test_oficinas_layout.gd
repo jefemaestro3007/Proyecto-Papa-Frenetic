@@ -6,7 +6,7 @@ const SEEDS := 60
 
 var _failures := 0
 var _fail_groups := {}
-var _stats := {"layouts": 0, "repairs": 0, "isolated": 0, "nodes": 0, "with_choices": 0, "choice_cases": 0, "sealed": 0}
+var _stats := {"layouts": 0, "repairs": 0, "isolated": 0, "nodes": 0, "with_choices": 0, "choice_cases": 0, "sealed": 0, "keys": 0, "corridors": 0}
 
 
 func _initialize() -> void:
@@ -20,6 +20,8 @@ func _initialize() -> void:
 		"OK" if _failures == 0 else "%d FALLOS" % _failures, _stats.layouts,
 		float(_stats.repairs) / maxi(_stats.layouts, 1), float(_stats.sealed) / maxi(_stats.layouts, 1),
 		100.0 * _stats.isolated / maxi(_stats.nodes, 1), _stats.with_choices, _stats.choice_cases])
+	print("  llaves por edificio %.2f · pasillos al fondo por edificio %.2f" % [
+		float(_stats.keys) / maxi(_stats.layouts, 1), float(_stats.corridors) / maxi(_stats.layouts, 1)])
 	quit(1 if _failures > 0 else 0)
 
 
@@ -82,6 +84,11 @@ func _test_config(params: OficinasParams) -> void:
 		_check(layout.reachable_from(layout.start).has(layout.end), "%s: salida inalcanzable" % tag)
 		# Sin trampas en NINGÚN lugar del edificio (aunque se llegue con un salto potenciado).
 		_check(layout.traps().is_empty(), "%s: trampas %s" % [tag, layout.traps()])
+		# Con llaves: ningún estado (lugar × llaves) alcanzable se queda sin salida.
+		_check(layout.state_traps().is_empty(), "%s: atasco por llaves" % tag)
+		_check_depth_and_keys(layout, tag)
+		_stats.keys += layout.keys.size()
+		_stats.corridors += layout.depth_doors.filter(func(d) -> bool: return d.kind == OficinasLayout.Depth.CORRIDOR).size() / 2
 		for node in [layout.start, layout.end]:
 			_check(layout.cell(node.x, node.y) == OficinasLayout.Cell.NORMAL, "%s: inicio/fin no normal" % tag)
 		for c in layout.modules:
@@ -123,6 +130,25 @@ func _test_random_configs(count: int) -> void:
 		_check(layout.valid, "%s: inválido" % tag)
 		_check(layout.reachable_from(layout.start).has(layout.end), "%s: salida inalcanzable" % tag)
 		_check(layout.traps().is_empty(), "%s: trampas" % tag)
+		_check(layout.state_traps().is_empty(), "%s: atasco por llaves" % tag)
+		_check_depth_and_keys(layout, tag)
+
+
+## Pasillos al fondo enlazados en ambos sentidos; llaves en nodos válidos y, si están en una
+## habitación, esa habitación existe en su módulo.
+func _check_depth_and_keys(layout: OficinasLayout, tag: String) -> void:
+	for i in layout.depth_doors.size():
+		var door: OficinasLayout.DepthDoor = layout.depth_doors[i]
+		if door.kind == OficinasLayout.Depth.CORRIDOR:
+			_check(door.partner >= 0 and layout.depth_doors[door.partner].partner == i, "%s: pasillo mal enlazado" % tag)
+		if door.kind != OficinasLayout.Depth.NONE:
+			_check(layout.depth_at[layout.index(door.floor, door.module)] == i, "%s: puerta al fondo perdida" % tag)
+	for key in layout.keys:
+		_check(layout.is_node(key.node.x, key.node.y), "%s: llave fuera del mapa" % tag)
+		if key.door >= 0:
+			var room: OficinasLayout.DepthDoor = layout.depth_doors[key.door]
+			_check(room.kind == OficinasLayout.Depth.ROOM and Vector2i(room.floor, room.module) == key.node,
+					"%s: habitación de la llave" % tag)
 
 
 func _test_determinism() -> void:
@@ -130,5 +156,5 @@ func _test_determinism() -> void:
 	params.seed = 77
 	var a := OficinasLayout.build(params)
 	var b := OficinasLayout.build(params)
-	_check(a.cells == b.cells and a.walls == b.walls and a.stair_dirs == b.stair_dirs,
-			"misma seed => mismo edificio")
+	_check(a.cells == b.cells and a.walls == b.walls and a.stair_up == b.stair_up and a.depth_at == b.depth_at
+			and a.wall_key == b.wall_key, "misma seed => mismo edificio")

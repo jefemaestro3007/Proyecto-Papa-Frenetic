@@ -2,13 +2,14 @@
 class_name OficinasGraphView
 extends Node2D
 ## Vista de depuración del grafo de recorrido: nodos (verde = llega a la salida),
-## conexiones verticales por tipo (escalera amarilla, ascensor celeste, caída roja),
+## conexiones por tipo (escalera amarilla, ascensor celeste, caída roja, pasillo al fondo violeta),
 ## y la ruta más corta de la entrada a la salida.
 
 const STAIRS_COLOR := Color("ffd400")
 const LIFT_COLOR := Color("4fd8ff")
 const FALL_COLOR := Color("ff4a4a")
 const PATH_COLOR := Color("3ddc84")
+const DEPTH_COLOR := Color("c77dff")
 
 var _data: OficinasMapData
 
@@ -32,8 +33,14 @@ func _draw() -> void:
 			var link: int = pair[1]
 			if link == OficinasLayout.Link.WALK:
 				continue
-			var color := STAIRS_COLOR if link == OficinasLayout.Link.STAIRS else (
-					LIFT_COLOR if link == OficinasLayout.Link.LIFT else FALL_COLOR)
+			var color := FALL_COLOR
+			match link:
+				OficinasLayout.Link.STAIRS:
+					color = STAIRS_COLOR
+				OficinasLayout.Link.LIFT:
+					color = LIFT_COLOR
+				OficinasLayout.Link.DEPTH:
+					color = DEPTH_COLOR
 			_arrow(_point(node), _point(pair[0]), color)
 	var path := layout.shortest_path(layout.start, layout.end)
 	for i in range(1, path.size()):
