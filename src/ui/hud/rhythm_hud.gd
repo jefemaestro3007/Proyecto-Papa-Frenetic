@@ -52,9 +52,14 @@ func _draw() -> void:
 
 ## Texto de juicio que sube y se desvanece desde una posición de pantalla.
 func popup(judgment: int, screen_position: Vector2, points: int) -> void:
+	say(JUDGMENT_TEXT[judgment] + ("  +%d" % points if points > 0 else ""), screen_position, JUDGMENT_COLOR[judgment])
+
+
+## Texto flotante cualquiera sobre una posición de pantalla.
+func say(text: String, screen_position: Vector2, color: Color) -> void:
 	var label := _make_label(34)
-	label.text = JUDGMENT_TEXT[judgment] + ("  +%d" % points if points > 0 else "")
-	label.add_theme_color_override("font_color", JUDGMENT_COLOR[judgment])
+	label.text = text
+	label.add_theme_color_override("font_color", color)
 	label.position = screen_position + Vector2(-80.0, -200.0)
 	label.rotation = randf_range(-0.12, 0.12)
 	var tween := label.create_tween().set_parallel()

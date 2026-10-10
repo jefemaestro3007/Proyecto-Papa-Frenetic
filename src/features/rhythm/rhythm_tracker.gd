@@ -39,6 +39,14 @@ func register(action: StringName, can_break: bool = true,
 	return judgment
 
 
+## Pierde el combo por un motivo ajeno a una acción juzgada (p. ej. recibir un golpe).
+func break_combo(action: StringName) -> void:
+	if combo > 0:
+		var lost := combo
+		combo = 0
+		combo_broken.emit(action, lost)
+
+
 func multiplier() -> int:
 	return 1 + mini(combo / 8, 3)
 
