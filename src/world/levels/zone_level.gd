@@ -22,9 +22,10 @@ const NEAR_SCROLL := Vector2(0.4, 0.22)
 const LAND_MIN_SPEED := 400.0
 ## Nombre de cada acción en los textos de juicio.
 const ACTION_LABELS := {&"air_attack": "AÉREO ", &"slam": "STOMP ", &"dash": "DASH "}
-## Acciones de combate: pesan 1 en el calor y sus fallos siempre se anuncian.
+## Acciones de combate: sus fallos siempre se anuncian con el calor que suman.
 const COMBAT_ACTIONS: Array[StringName] = [&"attack", &"air_attack", &"slam", &"dash"]
-## Acciones de movimiento: pesan `movement_heat_scale` en el calor.
+## Movimientos intencionales: fallarlos calienta `movement_heat_scale` (aterrizar, escaleras,
+## ascensores y puertas nunca castigan).
 const MOVE_ACTIONS: Array[StringName] = [&"jump", &"turn"]
 
 ## Estado de la partida (del prototipo, adaptado): jugando, llegó a la salida o explotó la papa.
@@ -672,7 +673,11 @@ func _build_combat_section(section: DebugSection) -> void:
 	section.add_slider(combat, &"perfect_cooling", "Enfría PERFECTO", 0.0, 30.0, 0.5)
 	section.add_slider(combat, &"good_cooling", "Enfría BIEN", 0.0, 30.0, 0.5)
 	section.add_slider(combat, &"miss_heating", "Calienta FUERA", 0.0, 40.0, 0.5)
-	section.add_slider(combat, &"movement_heat_scale", "Peso de saltos y giros (×)", 0.0, 1.0, 0.05)
+	section.add_slider(combat, &"movement_heat_scale", "Fallar salto o giro (× fallo)", 0.0, 1.0, 0.05)
+	section.add_slider(combat, &"movement_cooling_perfect", "Moverse PERFECTO enfría", 0.0, 5.0, 0.1)
+	section.add_slider(combat, &"movement_cooling_good", "Moverse BIEN enfría", 0.0, 5.0, 0.1)
+	section.add_slider(combat, &"movement_cooling_share", "Tope: parte del calor pasivo", 0.0, 0.95, 0.05)
+	section.add_slider(combat, &"slam_miss_heat", "Caída forzada fuera de ritmo", 0.0, 40.0, 0.5)
 	section.add_slider(combat, &"whiff_heat", "Tajo al aire fuera de ritmo", 0.0, 20.0, 0.5)
 	section.add_slider(combat, &"contact_heat", "Tocar una papa", 0.0, 40.0, 0.5)
 	section.add_slider(combat, &"projectile_heat", "Papa frita", 0.0, 40.0, 0.5)
@@ -920,7 +925,7 @@ func _end_match() -> void:
 # --- Ritmo y recompensas -------------------------------------------------------------
 
 func _on_player_jumped() -> void:
-	var judgment := _tracker.register(&"jump")
+	var judgment := _tracker.register_move(&"jump")
 	match judgment:
 		ConductorClock.Judgment.PERFECT:
 			_player.boost_jump(player_params.jump_boost_perfect)
@@ -931,7 +936,7 @@ func _on_player_jumped() -> void:
 
 
 func _on_player_turned(_direction: float) -> void:
-	match _tracker.register(&"turn"):
+	match _tracker.register_move(&"turn"):
 		ConductorClock.Judgment.PERFECT:
 			_player.spin(player_params.turn_boost_perfect)
 		ConductorClock.Judgment.GOOD:
@@ -946,7 +951,7 @@ func _on_player_landed(impact_speed: float, forced: bool, fall_height: float) ->
 	if impact_speed < LAND_MIN_SPEED and not attacks:
 		return
 	# Aterrizar a tiempo siempre suma, pero solo una caída alta produce el ataque.
-	var judgment := _tracker.register(&"land", false)
+	var judgment := _tracker.register_move(&"land", false)
 	if not attacks:
 		return
 	match judgment:
@@ -958,10 +963,15 @@ func _on_player_landed(impact_speed: float, forced: bool, fall_height: float) ->
 			_impact(impact_fx.hard_landing_miss)
 
 
-## Aterrizaje de caída forzada: es intencional, así que se premia fuerte o se castiga.
-## Además es el stomp: golpea a las papas cerca de los pies con el mismo juicio.
+## Aterrizaje de caída forzada: es el stomp, golpea a las papas cerca de los pies con su juicio.
+## Con papas debajo cuenta como golpe; sin papas es un movimiento. Fallada castiga fuerte
+## (`slam_miss_heat`) para que no se abuse de ella.
 func _on_slam() -> void:
-	var judgment := _tracker.register(&"slam", true, player_params.slam_points_multiplier)
+	var judgment := Conductor.judge()
+	if _combat.stomp(judgment):
+		_tracker.register_judgment(&"slam", judgment, true, player_params.slam_points_multiplier)
+	else:
+		_tracker.register_move_judgment(&"slam", judgment)
 	match judgment:
 		ConductorClock.Judgment.PERFECT:
 			_impact(impact_fx.slam_perfect)
@@ -970,7 +980,6 @@ func _on_slam() -> void:
 		_:
 			_player.stumble()
 			_impact(impact_fx.slam_miss)
-	_combat.stomp(judgment)
 
 
 ## Ataque de caída: estallido + glitch y temblor proporcionales a la intensidad.
@@ -1077,14 +1086,20 @@ func _spawn_burst(strength: float) -> void:
 	add_child(burst)
 
 
-func _on_judged(action: StringName, judgment: int, _combo: int, points: int) -> void:
+func _on_judged(action: StringName, judgment: int, _combo: int, points: int, hit: bool) -> void:
 	var heat := 0.0
 	if is_playing() and combat.heat_enabled:
-		# Combate pesa 1 y moverse menos; lo demás (aterrizar, escaleras, puertas) solo enfría.
-		var is_combat := action in COMBAT_ACTIONS
-		var scale := 1.0 if is_combat else combat.movement_heat_scale
 		var before := _heat.heat
-		_heat.apply_judgment(judgment, scale, is_combat or action in MOVE_ACTIONS)
+		if judgment == ConductorClock.Judgment.MISS and action == &"slam":
+			_heat.change(combat.slam_miss_heat)
+		elif hit:
+			# Golpes: la fuente principal para enfriar (y fallarlos calienta de lleno).
+			_heat.apply_judgment(judgment)
+		elif judgment != ConductorClock.Judgment.MISS:
+			# Movimientos a tiempo: enfrían poco y con tope, nunca más que el calor pasivo.
+			_heat.cool_movement(judgment)
+		elif action in MOVE_ACTIONS:
+			_heat.apply_judgment(judgment, combat.movement_heat_scale)
 		heat = _heat.heat - before
 	# Los fallos de combate siempre se anuncian (son el castigo visible).
 	if judgment != ConductorClock.Judgment.MISS or action in COMBAT_ACTIONS:

@@ -5,6 +5,9 @@ extends Node
 ## Al llegar a 100 no explota de inmediato: se enciende una mecha. Un acierto que enfríe por
 ## debajo de 100 la apaga, pero la mecha no se recarga: la próxima vez sigue donde quedó.
 ## Si la mecha llega a 0, la papa explota (game over).
+## Moverse a tiempo enfría muy poco y con tope: como mucho cancela una parte del calor pasivo
+## (`movement_cooling_share`), así que solo moviéndose el calor igual sube. Enfriar de verdad
+## es golpear papas.
 
 signal heat_changed(heat: float)
 signal overheat_started(fuse_left: float)
@@ -18,6 +21,12 @@ var heat := 0.0
 var fuse_left := 10.0
 var overheated := false
 var finished := false
+## Enfriamiento por movimiento disponible: se recarga con el tiempo hasta MOVE_BUDGET_SECONDS.
+var _move_budget := 0.0
+
+## Cuántos segundos de recarga acumula el tope de enfriamiento por movimiento (permite un par de
+## movimientos seguidos sin que el tope se note, pero no ahorrar para después).
+const MOVE_BUDGET_SECONDS := 2.0
 
 
 func _ready() -> void:
@@ -29,6 +38,7 @@ func reset() -> void:
 	fuse_left = params.fuse_seconds
 	overheated = false
 	finished = false
+	_move_budget = 0.0
 	heat_changed.emit(heat)
 
 
@@ -36,6 +46,8 @@ func reset() -> void:
 func advance(delta: float) -> void:
 	if finished or delta <= 0.0 or not params.heat_enabled:
 		return
+	_move_budget = minf(_move_budget + _move_budget_rate() * delta,
+			_move_budget_rate() * MOVE_BUDGET_SECONDS)
 	var remaining := delta
 	if not overheated:
 		var rate := params.passive_heating
@@ -66,6 +78,28 @@ func apply_judgment(judgment: int, scale := 1.0, can_heat := true) -> float:
 			amount = params.miss_heating * scale if can_heat else 0.0
 	change(amount)
 	return amount
+
+
+## Movimiento a tiempo: enfría poco y nunca más que el tope. Devuelve lo que enfrió (≤ 0).
+func cool_movement(judgment: int) -> float:
+	var amount := 0.0
+	match judgment:
+		ConductorClock.Judgment.PERFECT:
+			amount = params.movement_cooling_perfect
+		ConductorClock.Judgment.GOOD:
+			amount = params.movement_cooling_good
+	if finished or not params.heat_enabled:
+		return 0.0
+	amount = minf(minf(amount, _move_budget), heat)
+	if amount <= 0.0:
+		return 0.0
+	_move_budget -= amount
+	_set_heat(heat - amount)
+	return -amount
+
+
+func _move_budget_rate() -> float:
+	return params.passive_heating * params.movement_cooling_share
 
 
 ## Suma (o resta) calor directo: golpes, proyectiles, caídas al vacío.

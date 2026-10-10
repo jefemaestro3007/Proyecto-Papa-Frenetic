@@ -12,8 +12,15 @@ extends Resource
 @export_range(0.0, 30.0) var perfect_cooling: float = 8.0
 @export_range(0.0, 30.0) var good_cooling: float = 4.0
 @export_range(0.0, 40.0) var miss_heating: float = 10.0
-## Peso del calor en saltos y giros (atacar, caída forzada y dash pesan 1).
+## Calor al fallar un movimiento (saltar, girar), como fracción del de fallar un golpe.
 @export_range(0.0, 1.0) var movement_heat_scale: float = 0.25
+## Moverse a tiempo enfría poco (PERFECTO / BIEN)...
+@export_range(0.0, 5.0) var movement_cooling_perfect: float = 1.0
+@export_range(0.0, 5.0) var movement_cooling_good: float = 0.5
+## ...y como mucho cancela esta parte del calor pasivo (< 1: moverse solo no salva a nadie).
+@export_range(0.0, 0.95) var movement_cooling_share: float = 0.75
+## Caída forzada fuera de ritmo: el ataque de caída no se limita, pero fallarlo castiga fuerte.
+@export_range(0.0, 40.0) var slam_miss_heat: float = 20.0
 @export_range(0.0, 40.0) var contact_heat: float = 10.0
 @export_range(0.0, 40.0) var projectile_heat: float = 5.0
 @export_range(0.0, 40.0) var fall_heat: float = 15.0
