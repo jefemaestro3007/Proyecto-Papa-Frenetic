@@ -128,20 +128,20 @@ func _physics_process(delta: float) -> void:
 
 	_coyote_left = params.coyote_time if on_floor else maxf(_coyote_left - delta, 0.0)
 	_buffer_left = maxf(_buffer_left - delta, 0.0)
-	# Solo Espacio salta: ↑ y ↓ quedan libres para escaleras, puertas y ascensores.
-	if not blocked and Input.is_action_just_pressed("ui_accept"):
+	# Solo Espacio salta: W y S quedan libres para escaleras, puertas y ascensores.
+	if not blocked and Input.is_action_just_pressed("jump"):
 		_buffer_left = maxf(params.jump_buffer, delta)
 
 	if not on_floor:
 		var gravity := params.gravity * (params.fall_gravity_multiplier if velocity.y > 0.0 else 1.0)
 		velocity.y += gravity * delta
-		var jump_held := Input.is_action_pressed("ui_accept")
+		var jump_held := Input.is_action_pressed("jump")
 		# Salto variable: soltar mientras sube recorta el impulso una sola vez.
 		if velocity.y < 0.0 and not jump_held and not _jump_cut_done:
 			velocity.y *= params.jump_cut
 			_jump_cut_done = true
 		if params.fast_fall_enabled and not blocked and not _fast_falling \
-				and Input.is_action_just_pressed("ui_down"):
+				and Input.is_action_just_pressed("move_down"):
 			_fast_falling = true
 			velocity.y = maxf(velocity.y, params.fast_fall_speed)
 			fast_fall_started.emit()
@@ -153,7 +153,7 @@ func _physics_process(delta: float) -> void:
 		_jump_cut_done = false
 		jumped.emit()
 
-	var direction := 0.0 if blocked else Input.get_axis("ui_left", "ui_right")
+	var direction := 0.0 if blocked else Input.get_axis("move_left", "move_right")
 	if direction != 0.0 and signf(direction) != facing:
 		facing = signf(direction)
 		turned.emit(facing)

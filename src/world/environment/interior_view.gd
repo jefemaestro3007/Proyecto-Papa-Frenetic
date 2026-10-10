@@ -236,7 +236,7 @@ func _rng_for(value: int) -> RandomNumberGenerator:
 
 
 ## Escalera de fondo entre dos pisos: hueco oscuro, tramo de escalones con pasamanos y
-## chevrones en el piso que indican dónde se usa (↑ al pie, ↓ arriba).
+## chevrones en el piso que indican dónde se usa (W al pie, S arriba).
 func _draw_stair(stair: OficinasMapData.Stair) -> void:
 	var dir := float(stair.dir)
 	var rise := stair.foot.y - stair.top.y
@@ -267,7 +267,7 @@ func _draw_stair(stair: OficinasMapData.Stair) -> void:
 	_draw_chevron(stair.top + Vector2(0.0, -8.0), 1.0)
 
 
-## Pequeña flecha en el piso: -1 = "↑ sube", 1 = "↓ baja".
+## Pequeña flecha en el piso: -1 = "W sube", 1 = "S baja".
 func _draw_chevron(at: Vector2, down: float) -> void:
 	var tip := at + Vector2(0.0, 12.0 * down)
 	draw_polyline(PackedVector2Array([at + Vector2(-12.0, -6.0 * down), tip, at + Vector2(12.0, -6.0 * down)]),

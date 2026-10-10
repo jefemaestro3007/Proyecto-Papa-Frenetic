@@ -4,8 +4,8 @@ extends ZoneLevel
 ## se abren (algunas con llave), escaleras y ascensores de fondo, puertas al fondo hacia
 ## habitaciones y pasillos, huecos y derrumbes. Siempre se puede llegar a la salida y nunca hay
 ## atasco, pero el camino no es lineal. Toda la parte común vive en ZoneLevel.
-## Controles propios: ↑ al pie de una escalera sube, ↓ arriba baja; ↑ frente a un ascensor lo
-## llama y adentro ↑/↓ eligen el piso (←/→ para salir); ↑ frente a una puerta al fondo entra.
+## Controles propios: W al pie de una escalera sube, S arriba baja; W frente a un ascensor lo
+## llama y adentro W/S eligen el piso (A/D para salir); W frente a una puerta al fondo entra.
 
 enum State { FREE, STAIRS, CALLING, RIDING }
 
@@ -84,7 +84,7 @@ func _zone_default_zoom() -> float:
 
 
 func _zone_help_text() -> String:
-	return "←/→ mover · Espacio saltar · ↑/↓ escaleras, ascensor y puertas al fondo · Tab menú · F2 estilo · " \
+	return "A/D mover · Espacio saltar · J atacar · W/S escaleras, ascensor y puertas al fondo · Tab menú · F2 estilo · " \
 			+ "V vista de habitación · G grafo"
 
 
@@ -228,6 +228,9 @@ func _physics_process(delta: float) -> void:
 	super(delta)
 	if Engine.is_editor_hint() or _data == null:
 		return
+	# Escribiendo en un campo del menú (p. ej. el nombre de un preset): las teclas no son del juego.
+	if get_viewport().gui_get_focus_owner() is LineEdit:
+		return
 	match _state:
 		State.FREE:
 			_update_free()
@@ -268,8 +271,8 @@ func elevators() -> Array[Elevator]:
 func _update_free() -> void:
 	if not _player.is_on_floor() or _player.scripted:
 		return
-	var up := Input.is_action_just_pressed("ui_up")
-	var down := Input.is_action_just_pressed("ui_down")
+	var up := Input.is_action_just_pressed("move_up")
+	var down := Input.is_action_just_pressed("move_down")
 	if not up and not down:
 		return
 	var feet := _player.global_position
@@ -346,16 +349,16 @@ func _update_calling() -> void:
 		_state = State.RIDING
 
 
-## Adentro: ↑/↓ eligen hacia dónde (mantener sigue de piso en piso), ←/→ salen.
+## Adentro: W/S eligen hacia dónde (mantener sigue de piso en piso), A/D salen.
 func _update_riding() -> void:
 	_player.position = Vector2(_lift.door_x(), _lift.cabin_y - 2.0)
 	if _lift.is_moving():
 		_lift_was_moving = true
 		return
 	var held := 0
-	if Input.is_action_pressed("ui_up"):
+	if Input.is_action_pressed("move_up"):
 		held = 1
-	elif Input.is_action_pressed("ui_down"):
+	elif Input.is_action_pressed("move_down"):
 		held = -1
 	if _lift_was_moving:
 		_lift_was_moving = false
@@ -374,7 +377,7 @@ func _update_riding() -> void:
 			_lift_direction = held
 			_lift.ride_to(target)
 			return
-	var side := Input.get_axis("ui_left", "ui_right")
+	var side := Input.get_axis("move_left", "move_right")
 	if side != 0.0:
 		if _lift.is_open_at(_lift.cabin_floor):
 			_lift.riding = false
