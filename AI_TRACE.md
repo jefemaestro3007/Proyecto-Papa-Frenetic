@@ -343,3 +343,31 @@ Files: `assets_src/sprites/enemies/*` y `assets_src/sprites/fx/*` (dibujos origi
 Change: Herramienta que recorta las tres poses de cada enemigo con el mismo rectángulo, ancla los pies y escala por tipo. `Enemy` dibuja el sprite de la pose (`sprite_pose()`: base, ataque cerca del jugador, herido al recibir un golpe o al morir), espejado según hacia dónde mira, con contorno del color del estilo, latido y destello al golpe; los avisos de juego pasan a `_draw_indicators()` y se ubican sobre el sprite. Embestidora: ataque en aviso y carga, herida aturdida. Tiradora: ataque con el patrón anunciado. Voladora: ataque despierta y cerca. Flecha del stomp durante la caída forzada y nube (`ImpactSprite`) al aterrizar.
 Commit: PENDING (se commitea junto con esta entrada)
 Notes: Las dos tandas de imágenes subidas eran idénticas; se usó una. Se agregó el contorno porque sin él las papas rojas se perdían contra el cielo rojo del estilo Default (visto en capturas). La nube del stomp se suma al estallido de rayos que ya existía, no lo reemplaza. Pruebas: `test_presets`, `test_heat_meter`, `test_combat_match` en verde; recorrido automático de Oficinas sin errores. Sin push.
+
+### Experimento: variaciones de color de los enemigos
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: Experimento para ahorrar trabajo en los sprites: cambiar tonalidad y colores. Tiradora del color de la papa normal con la protuberancia roja; embestidora roja con la papa de adelante ("el muro") negra; tanque más diferenciado, negro y rojo (negro con contorno rojo o rojo con contorno negro); la voladora casi sin cambios.
+Task: Recolorear los sprites de enemigos al generarlos.
+Type: CODE (AI) / ART PIPELINE / DOCS
+Files: `tools/scripts/build_enemy_sprites.gd`, `assets/textures/sprites/enemies/{thrower,charger,tank}_*.png`, `docs/development/sprites.md`, `AI_TRACE.md`
+Change: Recoloreo en la herramienta, sobre los dibujos originales (no se modifican; `-- --original` lo desactiva). Tiradora: el rojo bajo el cuello pasa al color medio de la piel de la papa común conservando la textura, con un degradado; la cresta queda roja. El cuello se detecta por el salto del borde izquierdo del dibujo y en la pose de herido se fija a mano (36 %). Embestidora: relleno de la papa de adelante desde su interior hasta el contorno (con las líneas engrosadas 20 px para cerrar huecos del trazo a mano y sin pasar del 60 % del ancho) en negro, y sus líneas en rojo. Tanque: negro, líneas rojas y contorno rojo de 16 px.
+Commit: PENDING (sin commitear: el usuario todavía no decidió si se queda)
+Notes: Iteraciones revisadas en capturas: (1) el cuello de la tiradora se detectó mal por los dedos de la cresta; (2) el cuerpo oscurecido se confundía con las líneas y terminaba rojo; (3) el relleno de la embestidora se escapaba por huecos del contorno. Las tres se corrigieron y el resultado se revisó en el juego con los estilos Default e Isaac. `test_combat_match` en verde.
+
+### Animación del ataque en el suelo y guardia espejada
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: Cambio de planes en el ataque: primero la guardia de frente mirando a la derecha, después el efecto de ataque básico que se subió (tajo morado) y, para terminar el balanceo, el personaje de espaldas, que al siguiente frame vuelve a quedar de frente (como un giro). Al mirar a la izquierda ya no se usa el sprite de espaldas: se espeja el de frente.
+Task: Animar el ataque en el suelo y espejar la guardia.
+Type: CODE (AI) / ART PIPELINE / DOCS
+Files: `assets_src/sprites/fx/ataque_swing.png` (dibujo del equipo), `assets/textures/sprites/fx/ataque_swing.png` (+ `.import`), `assets/textures/sprites/player/{guardia,espalda}.png` (+ `.import`; reemplazan a `guardia_derecha` y `guardia_izquierda`), `tools/scripts/build_player_sprites.gd`, `tools/scripts/build_enemy_sprites.gd`, `src/features/player/scripts/player_prototype.gd`, `docs/development/sprites.md`, `AI_TRACE.md`
+Change: Ataque en el suelo de 0,3 s en tres fases (`_attack_phase()`): guardia de frente, guardia con el tajo delante a la altura de la cintura, y de espaldas; después vuelve a la guardia. El golpe se sigue juzgando al pulsar. Todas las poses se espejan al mirar a la izquierda. Frames renombrados a `guardia` y `espalda`. El tajo procedural solo se dibuja si faltan los sprites. La herramienta de efectos borra manchas sueltas (el dibujo del tajo traía un punto suelto que agrandaba el recorte).
+Commit: PENDING (sin commitear junto con el experimento de colores, a la espera del usuario)
+Notes: Se revisó en capturas las tres fases hacia ambos lados; el tajo se agrandó (96 px) y se subió a la cintura tras verlo a la altura de las rodillas. `test_combat_match` y `test_presets` en verde.

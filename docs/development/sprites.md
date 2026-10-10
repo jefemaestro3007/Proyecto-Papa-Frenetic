@@ -29,11 +29,15 @@ godot --headless --path . --import
 | `salto_aterrizaje.png` | `aire`, `aterrizaje` | En el aire (salto, caída, caída forzada) · 0,12 s al aterrizar |
 | `correr.jpg` | `correr_0`…`correr_3` | Corriendo; 4 frames por beat (el paso va al ritmo) |
 | `dash.png` | `dash` | Durante el dash |
-| `guardia.png` | `guardia_izquierda`, `guardia_derecha` | Quieto y ataque en el suelo (con el tajo dibujado encima). De espaldas mirando a la izquierda, de frente mirando a la derecha |
+| `guardia.png` | `guardia`, `espalda` | `guardia` (de frente): quieto. `espalda`: final del ataque en el suelo |
+| `assets_src/sprites/fx/ataque_swing.png` | `fx/ataque_swing` | Tajo del ataque en el suelo (lo genera la herramienta de enemigos y efectos) |
 | `ataque_aereo.png` | `ataque_aereo` | Ataque en el aire (trae su propio tajo) |
 
-Todos los frames miran a la derecha y se espejan al mirar a la izquierda, salvo la guardia, que
-tiene una pose propia para cada lado. La elección de pose está en `PlayerPrototype._pose()`
+Todos los frames miran a la derecha y se espejan al mirar a la izquierda (también la guardia).
+
+**Ataque en el suelo** (0,3 s; el golpe se juzga al pulsar): guardia de frente → tajo
+(`ataque_swing` delante del personaje, a la altura de la cintura) → de espaldas cerrando el giro →
+vuelve a la guardia de frente. Las fases están en `ATTACK_SWING_FROM` y `ATTACK_BACK_FROM`. La elección de pose está en `PlayerPrototype._pose()`
 (`src/features/player/scripts/player_prototype.gd`); el latido, el giro a tiempo, el tambaleo, las
 estelas y el parpadeo se siguen aplicando encima del sprite. Si faltan los PNG, el jugador se
 dibuja con el rectángulo provisional.
@@ -67,6 +71,16 @@ la altura que tienen en el juego (tabla `ENEMIES` de la herramienta).
 | Tiradora (`thrower`) | `tiradora_*` (con cresta) | Esperando | Brazo en alto anunciando el patrón y lanzando | Golpe o al morir |
 | Voladora (`flyer`) | `voladora_*` (pájaro) | Dormida o lejos | Despierta y cerca (pico abierto) | Golpe o al morir |
 
+**Variaciones de color (experimento):** para diferenciar a las papas sin dibujar más sprites, la
+herramienta recolorea los dibujos al generarlos (`-- --original` lo desactiva):
+
+- **Tiradora:** cuerpo del color de la papa común y cresta roja (el corte va donde el borde
+  izquierdo del dibujo salta hacia afuera; en la pose de herido está fijado a mano en
+  `THROWER_NECK`).
+- **Embestidora:** la papa de adelante en negro con su contorno y su cara en rojo; la de atrás roja.
+- **Tanque:** negro con las líneas en rojo y un contorno rojo.
+- **Voladora y común:** sin cambios.
+
 Los dibujos miran a la izquierda y se espejan al mirar a la derecha. Llevan un contorno con el
 color del estilo activo (las papas rojas se pierden contra el cielo rojo sin él), laten con el
 beat y se iluminan al recibir un golpe. Los avisos de juego (el "!" y las estrellas de la
@@ -78,3 +92,4 @@ provisional.
 |---|---|
 | `stomp_flecha` | Durante la caída forzada, detrás del jugador, latiendo con el beat |
 | `stomp_nube` | Al aterrizar la caída forzada (más grande si fue PERFECTO), encima del estallido de impacto (`ImpactSprite`) |
+| `ataque_swing` | Segunda fase del ataque en el suelo del jugador |

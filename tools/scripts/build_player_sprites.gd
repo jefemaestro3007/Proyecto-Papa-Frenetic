@@ -13,11 +13,11 @@ const SHEETS := {
 	"salto_aterrizaje.png": ["aire", "aterrizaje"],
 	"correr.jpg": ["correr_0", "correr_1", "correr_2", "correr_3"],
 	"dash.png": ["dash"],
-	"guardia.png": ["guardia_izquierda", "guardia_derecha"],
+	"guardia.png": ["espalda", "guardia"],
 	"ataque_aereo.png": ["ataque_aereo"],
 }
 ## Frame de referencia y la altura en pantalla que debe tener (el personaje mide 88 de colisión).
-const REFERENCE := "guardia_derecha"
+const REFERENCE := "guardia"
 const REFERENCE_HEIGHT := 128.0
 ## Los frames se guardan al doble para que se vean nítidos con zoom; el jugador los dibuja a 0,5.
 const SUPERSAMPLE := 2.0

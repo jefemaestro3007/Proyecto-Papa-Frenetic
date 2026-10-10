@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bk20a55u1h66f"
-path="res://.godot/imported/guardia_izquierda.png-cead80963b61e99c4329b4e123075d57.ctex"
+uid="uid://didh8dnjclakn"
+path="res://.godot/imported/espalda.png-59e039f4d4550012f029e5baadc882d4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/sprites/player/guardia_izquierda.png"
-dest_files=["res://.godot/imported/guardia_izquierda.png-cead80963b61e99c4329b4e123075d57.ctex"]
+source_file="res://assets/textures/sprites/player/espalda.png"
+dest_files=["res://.godot/imported/espalda.png-59e039f4d4550012f029e5baadc882d4.ctex"]
 
 [params]
 

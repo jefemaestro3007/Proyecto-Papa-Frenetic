@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://curmwvjyrhw7j"
-path="res://.godot/imported/guardia_derecha.png-3ecda24361f490ac8e2277978817b10c.ctex"
+uid="uid://cvr1mx1skixj8"
+path="res://.godot/imported/guardia.png-04b95b98d73f452952994457eb46a981.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/textures/sprites/player/guardia_derecha.png"
-dest_files=["res://.godot/imported/guardia_derecha.png-3ecda24361f490ac8e2277978817b10c.ctex"]
+source_file="res://assets/textures/sprites/player/guardia.png"
+dest_files=["res://.godot/imported/guardia.png-04b95b98d73f452952994457eb46a981.ctex"]
 
 [params]
 

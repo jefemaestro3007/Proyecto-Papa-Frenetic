@@ -16,12 +16,19 @@ signal dash_started(direction: float)
 
 const SIZE := Vector2(44.0, 88.0)
 const ATTACK_SECONDS := 0.16
+## Duración de la animación de ataque con sprites (guardia → tajo → espalda); el golpe se juzga al pulsar.
+const ATTACK_POSE_SECONDS := 0.3
+## Fases del ataque en el suelo (fracción de la animación): hasta aquí guardia, luego el tajo,
+## luego de espaldas cerrando el giro.
+const ATTACK_SWING_FROM := 0.2
+const ATTACK_BACK_FROM := 0.65
+const SWING_EFFECT := "res://assets/textures/sprites/fx/ataque_swing.png"
 const SPRITE_DIR := "res://assets/textures/sprites/player/"
 ## Los PNG están al doble de resolución (ver build_player_sprites.gd).
 const SPRITE_SCALE := 0.5
 const STOMP_ARROW := "res://assets/textures/sprites/fx/stomp_flecha.png"
 const SPRITE_NAMES: Array[StringName] = [
-	&"guardia_derecha", &"guardia_izquierda", &"correr_0", &"correr_1", &"correr_2", &"correr_3",
+	&"guardia", &"espalda", &"correr_0", &"correr_1", &"correr_2", &"correr_3",
 	&"aire", &"aterrizaje", &"dash", &"ataque_aereo",
 ]
 ## Cuánto dura la pose de aterrizaje.
@@ -56,6 +63,7 @@ var _dash_cooldown_left := 0.0
 var _land_left := 0.0
 var _sprites := {}
 var _stomp_arrow: Texture2D
+var _swing: Texture2D
 
 
 func _ready() -> void:
@@ -74,6 +82,8 @@ func _ready() -> void:
 			_sprites[sprite_name] = load(path)
 	if ResourceLoader.exists(STOMP_ARROW):
 		_stomp_arrow = load(STOMP_ARROW)
+	if ResourceLoader.exists(SWING_EFFECT):
+		_swing = load(SWING_EFFECT)
 
 
 ## Multiplica el impulso del salto en curso (llamar dentro de `jumped`).
@@ -96,7 +106,7 @@ func stumble() -> void:
 
 ## Tajo visible del ataque (en el suelo hacia adelante, en el aire en arco amplio).
 func play_attack(airborne: bool, connected: bool) -> void:
-	_attack_left = ATTACK_SECONDS
+	_attack_left = ATTACK_POSE_SECONDS if not _sprites.is_empty() else ATTACK_SECONDS
 	_attack_air = airborne
 	_attack_connected = connected
 
@@ -322,8 +332,8 @@ func _draw() -> void:
 						FreneticPalette.CREAM, 5.0)
 
 	var pose := _pose()
-	# El ataque aéreo trae su propio tajo dibujado en el sprite.
-	if _attack_left > 0.0 and pose != &"ataque_aereo":
+	# Con sprites, los tajos son dibujos del equipo (el aéreo viene en su pose, el del suelo es un efecto).
+	if _attack_left > 0.0 and _sprites.is_empty():
 		_draw_slash()
 	# Parpadeo mientras es invulnerable tras un golpe.
 	if _invulnerable_left > 0.0 and fmod(_invulnerable_left, 0.12) < 0.06:
@@ -333,12 +343,15 @@ func _draw() -> void:
 			* Transform2D(angle, pivot) * Transform2D(0.0, -pivot)
 	var texture: Texture2D = _sprites.get(pose)
 	if texture != null:
-		# Los sprites miran a la derecha; la guardia tiene su propia pose hacia la izquierda.
-		var flip := facing < 0.0 and not String(pose).begins_with("guardia")
-		draw_set_transform_matrix(body_transform * Transform2D(0.0, Vector2(-1.0 if flip else 1.0, 1.0),
-				0.0, Vector2.ZERO))
+		# Los sprites miran a la derecha y se espejan al mirar a la izquierda.
+		var mirror := Transform2D(0.0, Vector2(-1.0 if facing < 0.0 else 1.0, 1.0), 0.0, Vector2.ZERO)
+		draw_set_transform_matrix(body_transform * mirror)
 		var size := texture.get_size() * SPRITE_SCALE
 		draw_texture_rect(texture, Rect2(Vector2(-size.x * 0.5, -size.y), size), false)
+		if _swing != null and _attack_phase() == 1:
+			# Tajo del ataque en el suelo, delante del personaje y a la altura de la cintura.
+			var swing := _swing.get_size() * SPRITE_SCALE
+			draw_texture_rect(_swing, Rect2(Vector2(-SIZE.x * 0.1, -SIZE.y - swing.y * 0.6), swing), false)
 		draw_set_transform(Vector2.ZERO)
 		return
 
@@ -355,19 +368,34 @@ func _draw() -> void:
 	draw_rect(body, FreneticPalette.INK, false, 4.0)
 
 
-## Pose del sprite según el estado. El ataque en el suelo usa la guardia (espada en alto) más el tajo.
+## Pose del sprite según el estado. El ataque en el suelo es guardia → tajo → espalda.
 func _pose() -> StringName:
 	if is_dashing():
 		return &"dash"
 	if _attack_left > 0.0 and _attack_air:
 		return &"ataque_aereo"
+	if _attack_phase() == 2:
+		return &"espalda"
+	if _attack_phase() >= 0:
+		return &"guardia"
 	if not scripted and not is_on_floor():
 		return &"aire"
 	if _land_left > 0.0:
 		return &"aterrizaje"
 	if absf(velocity.x) > RUN_MIN_SPEED and not scripted:
 		return StringName("correr_%d" % posmod(floori(Conductor.beat_position() * RUN_FRAMES_PER_BEAT), 4))
-	return &"guardia_derecha" if facing > 0.0 else &"guardia_izquierda"
+	return &"guardia"
+
+
+## Fase del ataque en el suelo: -1 sin ataque, 0 guardia, 1 tajo, 2 de espaldas (cierra el giro;
+## al terminar vuelve a la guardia de frente).
+func _attack_phase() -> int:
+	if _attack_left <= 0.0 or _attack_air:
+		return -1
+	var t := 1.0 - _attack_left / ATTACK_POSE_SECONDS
+	if t < ATTACK_SWING_FROM:
+		return 0
+	return 1 if t < ATTACK_BACK_FROM else 2
 
 
 func _draw_slash() -> void:
