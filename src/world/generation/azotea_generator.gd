@@ -65,8 +65,10 @@ static func generate(params: AzoteaParams) -> AzoteaMapData:
 
 	var data := AzoteaMapData.new()
 	_build_roofs(data, params, rng, field)
-	data.far = _build_skyline(params, rng, field, 690.0, Vector2(160.0, 470.0), Vector2(90.0, 240.0), 0.0)
-	data.near = _build_skyline(params, rng, field, 760.0, Vector2(90.0, 330.0), Vector2(140.0, 320.0), 5000.0)
+	data.far = build_skyline(rng, field, params.skyline_width, params.ruin, params.broken_windows,
+			690.0, Vector2(160.0, 470.0), Vector2(90.0, 240.0), 0.0)
+	data.near = build_skyline(rng, field, params.skyline_width, params.ruin, params.broken_windows,
+			760.0, Vector2(90.0, 330.0), Vector2(140.0, 320.0), 5000.0)
 	_build_details(data, params)
 	return data
 
@@ -158,10 +160,12 @@ static func _build_roofs(data: AzoteaMapData, params: AzoteaParams, rng: RandomN
 	data.kill_y = lowest + 900.0
 
 
-static func _build_skyline(params: AzoteaParams, rng: RandomNumberGenerator, field: FastNoiseLite,
-		base_y: float, height_range: Vector2, width_range: Vector2, field_offset: float) -> AzoteaMapData.SkylineData:
+## Capa de skyline en ruinas; la usan todas las zonas que ven la ciudad de fondo.
+static func build_skyline(rng: RandomNumberGenerator, field: FastNoiseLite, width: float, ruin: float,
+		broken_windows: float, base_y: float, height_range: Vector2, width_range: Vector2,
+		field_offset: float) -> AzoteaMapData.SkylineData:
 	var layer := AzoteaMapData.SkylineData.new()
-	layer.width = params.skyline_width
+	layer.width = width
 	var bottom := base_y + 900.0
 	var x := 0.0
 	while x < layer.width:
@@ -171,9 +175,9 @@ static func _build_skyline(params: AzoteaParams, rng: RandomNumberGenerator, fie
 		var top := base_y - h
 		var outline := PackedVector2Array()
 		if w >= 8.0:
-			outline = _ruined_outline(rng, x, x + w, top, bottom, h, params.ruin)
+			outline = _ruined_outline(rng, x, x + w, top, bottom, h, ruin)
 			layer.buildings.append(outline)
-		_add_windows(layer, rng, outline, x, w, top, base_y, params.broken_windows)
+		_add_windows(layer, rng, outline, x, w, top, base_y, broken_windows)
 		# Edificios pegados o con un callejón estrecho.
 		x += w + (rng.randf_range(0.0, 30.0) if rng.randf() < 0.3 else 0.0)
 	return layer
