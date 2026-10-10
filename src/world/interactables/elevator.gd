@@ -35,6 +35,8 @@ var _open_floor := -1
 var _open_amount := 0.0
 var _open_at_beat := -1
 var _pending_open := -1
+## Lo que se vio en el último dibujo (para redibujar solo si cambia).
+var _look := []
 
 
 func setup(p_spec: OficinasMapData.ElevatorSpec, p_data: OficinasMapData, p_style: ArtStyle, params: OficinasParams) -> void:
@@ -143,14 +145,24 @@ func _process(delta: float) -> void:
 				_pending_open = -1
 	var opening := _open_floor >= 0 and (_open_at_beat < 0 or Conductor.beat_index() >= _open_at_beat)
 	_open_amount = move_toward(_open_amount, 1.0 if opening else 0.0, delta / OPEN_SECONDS)
-	queue_redraw()
+	# Dibuja todas sus paradas (de punta a punta del edificio): solo se redibuja si cambió algo.
+	var look := [cabin_floor, is_moving(), _open_floor, _open_amount, riding, cabin_y if riding else 0.0,
+			_faulty_dark()]
+	if look != _look:
+		_look = look
+		queue_redraw()
+
+
+## La luz del averiado falla un rato cada 1,7 s.
+func _faulty_dark() -> bool:
+	return spec.kind == OficinasLayout.Lift.FAULTY and fmod(Time.get_ticks_msec() / 1000.0, 1.7) < 0.15
 
 
 func _draw() -> void:
 	if style == null or spec == null:
 		return
 	var outline := maxf(style.outline_width * 0.7, 2.0)
-	var faulty_dark := spec.kind == OficinasLayout.Lift.FAULTY and fmod(Time.get_ticks_msec() / 1000.0, 1.7) < 0.15
+	var faulty_dark := _faulty_dark()
 	for stop in spec.stops:
 		var floor_y := data.surface_y(stop)
 		var door := Rect2(spec.x - DOOR_WIDTH * 0.5, floor_y - DOOR_HEIGHT, DOOR_WIDTH, DOOR_HEIGHT)

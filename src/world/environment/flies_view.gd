@@ -3,6 +3,7 @@ class_name FliesView
 extends Node2D
 ## Moscas que orbitan de forma errática alrededor de anclas (sangre, huesos, escombros, basura).
 ## Cada ancla recuerda qué marca la atrae: solo hay moscas donde el estilo muestra esa marca.
+## Solo dibuja las anclas cercanas a la pantalla (SpatialIndex).
 
 const MAX_ANCHORS := 200
 
@@ -12,6 +13,7 @@ var _phases := PackedFloat32Array()
 ## Tipo de MapMark que atrae a cada grupo (-1 = siempre visible) y su peso.
 var _kinds := PackedInt32Array()
 var _weights := PackedFloat32Array()
+var _index := SpatialIndex.new()
 
 
 func setup(style: ArtStyle) -> void:
@@ -20,10 +22,12 @@ func setup(style: ArtStyle) -> void:
 	_phases.clear()
 	_kinds.clear()
 	_weights.clear()
+	_index.clear()
 
 
 func add_anchor(point: Vector2, variant: int, kind: int = -1, weight: float = 0.0) -> void:
 	if _anchors.size() < MAX_ANCHORS:
+		_index.add(_anchors.size(), point)
 		_anchors.append(point)
 		_phases.append(float(variant % 1000))
 		_kinds.append(kind)
@@ -58,7 +62,7 @@ func _draw() -> void:
 		return
 	var time := Time.get_ticks_msec() / 1000.0
 	var per_anchor := maxi(1, roundi(_style.flies * 4.0))
-	for a in _anchors.size():
+	for a in _index.query(SpatialIndex.screen_rect(self)):
 		if not _visible_anchor(a):
 			continue
 		for f in per_anchor:

@@ -24,6 +24,7 @@ src/
 │   │   ├── styled_canvas.gd           # primitivas con ArtStyle (contorno, trazo a mano...)
 │   │   ├── rooftop_view.gd, interior_view.gd, area_view.gd, skyline_view.gd
 │   │   ├── *_live_view.gd, flies_view.gd, vision_mask.gd
+│   │   ├── chunk_canvas.gd, chunked_view.gd, spatial_index.gd   # dibujar solo lo visible
 │   │   ├── art_style.gd, sky_params.gd, lighting_params.gd
 │   │   └── shaders/                   # sky, ruin_grunge, frenetic_post
 │   ├── interactables/                 # Elevator, WallDoorNode, KeyPickup
@@ -52,6 +53,24 @@ src/
 4. **Zona** (`ZoneLevel` + subclase): arma todo, maneja la cámara, el jugador, el ritmo, el
    post-proceso y el menú de debug. Cada zona solo implementa los ganchos `_zone_*`
    (generar, controles del mapa, spawn, cámara, recorrido automático).
+
+## Rendimiento
+
+El costo por frame depende de lo que se ve, no del tamaño del mapa:
+
+- **Vistas estáticas** (`RooftopView`, `InteriorView`): `ChunkedView` las parte en una grilla de
+  celdas de 2048 px × capas de dibujo. Cada trozo es una instancia de la vista que solo dibuja los
+  elementos cuyo ancla cae en su celda (`ChunkCanvas._owns`) y de su capa (`_in_layer`); Godot
+  descarta solo los trozos fuera de pantalla. Las capas conservan el orden de dibujo aunque un
+  elemento cruce el borde de una celda. Para agregar un elemento a estas vistas: dibujarlo dentro
+  del `if _in_layer(n)` que corresponda y filtrarlo con `_owns(ancla)`.
+- **Vistas animadas** (balizas, fuego, lámparas, carteles, moscas): un `SpatialIndex` por celdas
+  devuelve solo lo cercano a la pantalla (`SpatialIndex.screen_rect`).
+- **Enemigos**: `CombatController` duerme (`PROCESS_MODE_DISABLED`) a las papas a más de
+  `WAKE_MARGIN` de la pantalla y las despierta al acercarse.
+- **Ascensores y puertas**: se redibujan solo cuando cambia lo que muestran (y al cambiar el estilo).
+
+`tests/test_scenes/benchmark.tscn` mide el tiempo por frame (ver `docs/development/testing.md`).
 
 ## Ritmo
 

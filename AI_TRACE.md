@@ -599,6 +599,24 @@ Notes: Los efectos suenan desde un `SfxPlayer` hijo del nivel, así que también
 
 ---
 
+Rama `feature/optimizacion` (nace de `develop`). Misma sesión de trabajo del 2026-10-10.
+
+### Rendimiento independiente del tamaño del mapa
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (autor de Git: 14mn0t4b0t)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "Perfecto, vas a crear otra rama desde dev que sea de optimizacion del juego, vamos a revisar todos los problemas de optimizacion y todo lo que se puede mejorar". Luego: "la idea es que el rendimiento sea el mismo independiente del tamaño del mapa".
+Task: Medir el rendimiento de las zonas y quitar todo lo que escala con el tamaño del mapa.
+Type: CODE (AI) / PERFORMANCE / DOCS / TESTING
+Files: `src/world/environment/{chunk_canvas.gd,chunked_view.gd,spatial_index.gd}` (nuevos), `src/world/environment/{styled_canvas.gd,rooftop_view.gd,interior_view.gd,live_details_view.gd,interior_live_view.gd,flies_view.gd}`, `src/world/levels/azotea/azotea.gd`, `src/world/levels/oficinas/{oficinas.gd,oficinas_bot.gd}`, `src/world/generation/oficinas/oficinas_layout.gd`, `src/world/interactables/{elevator.gd,wall_door.gd}`, `src/features/combat/combat_controller.gd`, `tests/perf/benchmark.gd`, `tests/test_scenes/benchmark.tscn` (nuevos), `docs/architecture/overview.md`, `docs/development/testing.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: Benchmark con ventana (tiempo por frame, draw calls, nodos). Diagnóstico: `RooftopView` e `InteriorView` dibujaban el mapa entero en un solo canvas item (20 000 draw calls con 64 azoteas); las vistas animadas, los ascensores (todas sus paradas) y las puertas se redibujaban enteras cada frame; todas las papas procesaban aunque estuvieran lejos; la guía sonora de Oficinas buscaba el camino a la salida en cada beat (15 ms en un edificio 24×16) y el bot en cada frame. Arreglos: `ChunkedView` (grilla de trozos × capas, Godot descarta los que no se ven), `SpatialIndex` para las vistas animadas y para dormir/despertar papas en `CombatController`, ascensores y puertas que se redibujan solo al cambiar, plan de la guía guardado (solo replanea al salirse del camino), planes del bot memorizados, BFS con cursor en lugar de `pop_front()`. Resultado (frame promedio, sin vsync): Azotea 6 azoteas 5,7 → 4,3 ms, 64 azoteas 33,5 → 4,7 ms; Oficinas 4×4 3,9 → 3,5 ms, 24×16 quieto 54,8 → 3,9 ms, 24×16 con bot 46,6 → 6,5 ms (p99 197 → 12 ms).
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Render comparado con `develop` (mismos frames de Azotea y Oficinas): se dibuja lo mismo, sin cortes en los bordes de los trozos. Importación sin errores; 7 tests unitarios, `test_combat_match`, `test_rhythm_rewards`, `test_sfx` y `test_oficinas_traversal` (48/48) en verde. Queda pendiente: `OficinasLayout.plan()` cuesta ~15 ms en edificios grandes (ya no se llama por frame); la generación de Oficinas 24×16 tarda ~420 ms al cargar; el menú de debug crea ~975 controles ocultos al abrir cada zona. Sin push hasta que el usuario lo autorice.
+
+---
+
 ## Herramientas y autoría del arte y el audio (declaración del equipo)
 
 Rama `feature/docs-ai-trace` (nace de `develop` en `19ea47c`). Lo que sigue es lo que cada
@@ -691,3 +709,17 @@ Files: `AI_TRACE.md`
 Change: Sección nueva al final, sin tocar las anteriores: tabla de autoría (material, autor, archivos originales y derivados) y una entrada por integrante con las herramientas, el uso declarado y el uso de IA (ChatGPT para el logo y el isotipo; ChatGPT para quitar fondos; una skill que usa IA para los terrenos procedurales del fondo y el mapa; ninguno en audio).
 Commit: PENDING (se commitea junto con esta entrada)
 Notes: Los textos se transcriben como los entregó el equipo; solo se ordenaron y se corrigieron nombres de programas (FamiStudio, LMMS). El "Xd" junto al nombre de Miguel Angel Asprilla en el documento no se tomó como parte del nombre. Confirmado por Andrés Valencia al revisar: las ayudas visuales son la papa del calor y los efectos del stomp y del golpe (de los dos autores, sin detallar quién hizo cuál); el contabilizador de tiempo de William es el manómetro; la skill de Santiago usa IA. Sin push hasta que el usuario lo autorice.
+
+### Preparar feature/docs-ai-trace para el merge a develop
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "Hacer el commit y el push a la nueva rama y ya hago yo lo de pull request para incorporarlo dentro de developer. Pero asegúrate de que esté todo listo y preparado para que podamos hacer el merge."
+Task: Integrar `origin/develop` (optimización, PR #12) en `feature/docs-ai-trace` sin rebase y dejar la rama lista para el pull request.
+Type: PROCESS / DOCS
+Files: `AI_TRACE.md`
+Change: La sección de herramientas y autoría quedó en el commit `68fa0f1`. Merge de `origin/develop` (`b323d15`): el único conflicto fue en AI_TRACE, donde las dos ramas agregaban al final; el archivo de `develop` queda intacto y la sección del equipo va después.
+Commit: PENDING (se commitea junto con esta entrada, en el commit de merge)
+Notes: Esta rama solo cambia `AI_TRACE.md`. Push autorizado por el usuario para que abra él el pull request.

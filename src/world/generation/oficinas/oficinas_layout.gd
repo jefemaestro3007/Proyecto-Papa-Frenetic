@@ -255,8 +255,10 @@ func successors(node: Vector2i, mask: int = ALL_KEYS) -> Array:
 func reachable_from(origin: Vector2i, mask: int = ALL_KEYS) -> Dictionary:
 	var seen := {origin: true}
 	var queue: Array[Vector2i] = [origin]
-	while not queue.is_empty():
-		var node: Vector2i = queue.pop_front()
+	var head := 0
+	while head < queue.size():
+		var node: Vector2i = queue[head]
+		head += 1
 		for pair in successors(node, mask):
 			if not seen.has(pair[0]):
 				seen[pair[0]] = true
@@ -274,8 +276,10 @@ func can_reach(target: Vector2i, mask: int = ALL_KEYS) -> Dictionary:
 			reverse[pair[0]].append(node)
 	var seen := {target: true}
 	var queue: Array[Vector2i] = [target]
-	while not queue.is_empty():
-		var node: Vector2i = queue.pop_front()
+	var head := 0
+	while head < queue.size():
+		var node: Vector2i = queue[head]
+		head += 1
 		for previous in reverse.get(node, []):
 			if not seen.has(previous):
 				seen[previous] = true
@@ -287,8 +291,10 @@ func can_reach(target: Vector2i, mask: int = ALL_KEYS) -> Dictionary:
 func shortest_path(origin: Vector2i, target: Vector2i, mask: int = ALL_KEYS) -> Array:
 	var came := {origin: null}
 	var queue: Array[Vector2i] = [origin]
-	while not queue.is_empty():
-		var node: Vector2i = queue.pop_front()
+	var head := 0
+	while head < queue.size():
+		var node: Vector2i = queue[head]
+		head += 1
 		if node == target:
 			break
 		for pair in successors(node, mask):
@@ -322,8 +328,10 @@ func plan(origin: Vector2i, mask: int) -> Array:
 	var came := {first: null}
 	var queue := [first]
 	var goal = null
-	while not queue.is_empty():
-		var state: Array = queue.pop_front()
+	var head := 0
+	while head < queue.size():
+		var state: Array = queue[head]
+		head += 1
 		if state[0] == end:
 			goal = state
 			break
@@ -377,8 +385,10 @@ func state_traps() -> Array:
 		if state[0] == end:
 			finished[state] = true
 			queue.append(state)
-	while not queue.is_empty():
-		var state: Array = queue.pop_front()
+	var head := 0
+	while head < queue.size():
+		var state: Array = queue[head]
+		head += 1
 		for previous in reverse.get(state, []):
 			if not finished.has(previous):
 				finished[previous] = true

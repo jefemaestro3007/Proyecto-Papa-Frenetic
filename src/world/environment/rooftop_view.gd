@@ -2,9 +2,12 @@
 class_name RooftopView
 extends StyledCanvas
 ## Dibuja las azoteas jugables y sus detalles (objetos, marcas, cables) según un ArtStyle.
-## Es estático: solo se redibuja al cambiar los datos o el estilo.
+## Es estático: solo se redibuja al cambiar los datos o el estilo. En juego va partida en trozos
+## (ChunkedView, `LAYERS` capas) para dibujar solo lo que está en pantalla.
 
 const Prop := AzoteaMapData.Prop
+## Capas de dibujo, en orden: cables, barandas, objetos, edificios, marcas.
+const LAYERS := 5
 
 const LIP := 10.0
 const RAIL_HEIGHT := 120.0
@@ -30,17 +33,27 @@ func setup(data: AzoteaMapData, seed: int, style: ArtStyle) -> void:
 func _draw() -> void:
 	if _data == null or _style == null:
 		return
-	for cable in _data.cables:
-		_draw_cable(cable)
+	if _in_layer(0):
+		for cable in _data.cables:
+			if _owns(cable.from):
+				_draw_cable(cable)
 	# La baranda va detrás de los objetos para que no los tape.
-	for roof in _data.roofs:
-		_draw_railing(roof)
-	for prop in _data.props:
-		_draw_prop(prop)
-	for i in _data.roofs.size():
-		_draw_block(_data.roofs[i], i)
-	for mark in _data.marks:
-		_draw_mark(mark)
+	if _in_layer(1):
+		for roof in _data.roofs:
+			if _owns(roof.position):
+				_draw_railing(roof)
+	if _in_layer(2):
+		for prop in _data.props:
+			if _owns(prop.rect.position):
+				_draw_prop(prop)
+	if _in_layer(3):
+		for i in _data.roofs.size():
+			if _owns(_data.roofs[i].position):
+				_draw_block(_data.roofs[i], i)
+	if _in_layer(4):
+		for mark in _data.marks:
+			if _owns(mark.position):
+				_draw_mark(mark)
 
 
 # --- Estructura ----------------------------------------------------------------------
