@@ -22,7 +22,13 @@ func _ready() -> void:
 ## (p. ej. aterrizar normal): pueden premiar pero nunca castigar.
 func register(action: StringName, can_break: bool = true,
 		points_scale: float = 1.0) -> ConductorClock.Judgment:
-	var judgment := Conductor.judge()
+	return register_judgment(action, Conductor.judge(), can_break, points_scale)
+
+
+## Como `register`, pero con un juicio ya tomado (p. ej. el dash se juzga al iniciarlo y
+## cuenta recién cuando atraviesa a una papa).
+func register_judgment(action: StringName, judgment: ConductorClock.Judgment, can_break: bool = true,
+		points_scale: float = 1.0) -> ConductorClock.Judgment:
 	var points := 0
 	if judgment == ConductorClock.Judgment.MISS:
 		if can_break and combo > 0:

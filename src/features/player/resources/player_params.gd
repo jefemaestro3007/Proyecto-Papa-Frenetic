@@ -34,6 +34,19 @@ extends Resource
 @export_range(0.0, 2.0) var stumble_time: float = 0.5
 @export_range(0.0, 1.0) var stumble_speed: float = 0.4
 
+@export_group("Dash (Shift)")
+@export var dash_enabled: bool = true
+@export_range(400.0, 4000.0) var dash_speed: float = 1500.0
+@export_range(0.05, 0.5) var dash_duration: float = 0.16
+## Espera desde que se usa hasta poder repetirlo (solo en el suelo).
+@export_range(0.0, 15.0) var dash_cooldown: float = 5.0
+
+@export_group("Rebote")
+## Impulso al rebotar contra una papa que aguanta (stomp o dash contra un tanque).
+@export_range(0.0, 1500.0) var recoil_x: float = 380.0
+@export_range(0.0, 1500.0) var recoil_y: float = 620.0
+@export_range(0.0, 2.0) var recoil_invulnerable: float = 0.35
+
 @export_group("Recompensas de ritmo")
 @export_range(1.0, 2.0) var jump_boost_perfect: float = 1.18
 @export_range(1.0, 2.0) var jump_boost_good: float = 1.08
