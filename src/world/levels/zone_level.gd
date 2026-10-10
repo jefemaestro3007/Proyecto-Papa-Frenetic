@@ -12,6 +12,7 @@ const SKY_SHADER := preload("res://src/world/environment/shaders/sky.gdshader")
 const GRUNGE_SHADER := preload("res://src/world/environment/shaders/ruin_grunge.gdshader")
 const POST_SHADER := preload("res://src/world/environment/shaders/frenetic_post.gdshader")
 const PRESETS := "res://src/shared/resources/presets/"
+const MUSIC := "res://src/shared/resources/music/"
 const DEFAULT_LOOK := "rojo_frenetico"
 const STYLES: Array[String] = ["default", "pixel", "isaac"]
 
@@ -75,6 +76,7 @@ var _style_signature := 0
 var _skyline_views: Array[SkylineView] = []
 var _grunge_materials: Array[ShaderMaterial] = []
 var _sections := {}
+var _music_text: Label
 var _zoom_override := 0.0
 ## Falso mientras _ready arma la zona: los cambios de parámetros no regeneran a mitad de camino.
 var _initialized := false
@@ -137,6 +139,11 @@ func _zone_autorun(_delta: float) -> void:
 ## Rectángulos sólidos con los que chocan las papas voladoras.
 func _zone_solids() -> Array[Rect2]:
 	return []
+
+
+## Canción de la zona (`MusicTrack`): pone el tempo del Conductor.
+func _zone_music() -> MusicTrack:
+	return null
 
 
 func _zone_help_text() -> String:
@@ -388,6 +395,12 @@ func _build_runtime() -> void:
 	_menu = DebugMenu.new()
 	ui_layer.add_child(_menu)
 	_build_debug_menu()
+	Conductor.play_track(_zone_music())
+
+
+func _exit_tree() -> void:
+	if not Engine.is_editor_hint():
+		Conductor.stop_music()
 
 
 func _build_debug_menu() -> void:
@@ -616,15 +629,35 @@ func _build_fx_section(section: DebugSection) -> void:
 func _build_rhythm_section(section: DebugSection) -> void:
 	var r := Conductor.params
 	section.add_preset_bar(r, "ritmo")
+	section.add_group("Música")
+	_music_text = section.add_text()
+	section.add_toggle(r, &"music_enabled", "Música")
+	section.add_slider(r, &"music_volume_db", "Volumen música (dB)", -40, 6, 1)
+	var songs := [["Zona", func() -> void: Conductor.play_track(_zone_music())]]
+	for track in _music_tracks():
+		songs.append([track.title.get_slice(" (", 0), Conductor.play_track.bind(track)])
+	section.add_buttons(songs)
+	section.add_buttons([["Sin música", Conductor.stop_music], ["Reiniciar canción", Conductor.restart]])
 	section.add_group("Tempo")
 	section.add_slider(r, &"bpm", "BPM", 60, 240, 1)
 	section.add_toggle(r, &"metronome_enabled", "Metrónomo")
+	section.add_toggle(r, &"metronome_over_music", "Metrónomo sobre la música")
 	section.add_slider(r, &"metronome_volume_db", "Volumen metrónomo (dB)", -40, 6, 1)
 	section.add_slider(r, &"input_offset", "Latencia (s)", -0.2, 0.2, 0.005)
 	section.add_group("Juicio")
 	section.add_slider(r, &"perfect_window", "Ventana PERFECTO (s)", 0.01, 0.2, 0.005)
 	section.add_slider(r, &"good_window", "Ventana BIEN (s)", 0.02, 0.3, 0.005)
 	section.add_slider(r, &"combo_timeout_beats", "Beats para perder combo", 1, 16, 1)
+
+
+static func _music_tracks() -> Array[MusicTrack]:
+	var out: Array[MusicTrack] = []
+	for file in ResourceLoader.list_directory(MUSIC):
+		if file.ends_with(".tres"):
+			var track := load(MUSIC + file) as MusicTrack
+			if track != null:
+				out.append(track)
+	return out
 
 
 ## Todo lo integrado desde el prototipo `feature/gameplay-prototype`, separado del resto.
@@ -756,6 +789,10 @@ func _process(delta: float) -> void:
 	_camera.zoom = Vector2.ONE * camera_zoom * _feel.zoom_factor()
 
 	if _menu.visible:
+		var track := Conductor.current_track()
+		_music_text.text = "Sonando: %s · %.0f BPM" % [
+			track.title if track != null and Conductor.is_music_playing() else "nada (metrónomo)",
+			Conductor.params.bpm]
 		_stats_text.text = "FPS %d · beat %d · combo %d (mejor %d) · %d pts\nposición %v · calor %.0f%s · %s" % [
 			Engine.get_frames_per_second(), Conductor.beat_index(), _tracker.combo,
 			_tracker.best_combo, _tracker.score, _player.position.round(), _heat.heat,
@@ -784,6 +821,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			# Fin de partida: reintentar la misma seed.
 			if not is_playing():
 				regenerate()
+				Conductor.restart()
 
 
 # --- Partida: calor, game over y victoria --------------------------------------------

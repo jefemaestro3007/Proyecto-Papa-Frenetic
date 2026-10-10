@@ -16,6 +16,10 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Added
 
+- Música real en las zonas: `MusicTrack` (canción, BPM y primer beat medidos del audio) y el
+  `Conductor` sigue la posición de reproducción para que los beats caigan sobre la música.
+  Azotea: nivel uno (177 BPM); Oficinas: industrial (175 BPM). Controles en la pestaña Ritmo.
+- Test `test_music`.
 - Papa caliente (`HeatMeter`, `HeatHud`): calor que sube con el tiempo y al fallar el ritmo,
   mecha de 10 s que no se recarga, explosión y game over; manómetro, aviso de
   sobrecalentamiento con cuenta atrás, viñeta roja y temblor de tensión.

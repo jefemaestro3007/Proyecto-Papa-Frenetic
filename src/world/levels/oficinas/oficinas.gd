@@ -71,6 +71,11 @@ func _zone_params() -> Resource:
 	return params
 
 
+## Segunda zona: la canción del nivel dos.
+func _zone_music() -> MusicTrack:
+	return load(MUSIC + "industrial.tres")
+
+
 func _zone_ensure_params() -> void:
 	if params == null:
 		params = OficinasParams.new()
