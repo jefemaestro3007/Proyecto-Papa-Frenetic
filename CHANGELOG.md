@@ -11,6 +11,8 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 - Sprites del jugador (guardia, correr al ritmo, aire, aterrizaje, dash, ataque aéreo) y la
   herramienta `tools/scripts/build_player_sprites.gd` que los recorta, escala y ancla.
+- Sprites de los cinco enemigos (base, ataque, herido) con contorno del estilo, y la flecha y la
+  nube del stomp; herramienta `tools/scripts/build_enemy_sprites.gd`.
 
 ### Fixed
 

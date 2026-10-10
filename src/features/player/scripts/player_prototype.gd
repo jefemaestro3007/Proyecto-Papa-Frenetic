@@ -19,6 +19,7 @@ const ATTACK_SECONDS := 0.16
 const SPRITE_DIR := "res://assets/textures/sprites/player/"
 ## Los PNG están al doble de resolución (ver build_player_sprites.gd).
 const SPRITE_SCALE := 0.5
+const STOMP_ARROW := "res://assets/textures/sprites/fx/stomp_flecha.png"
 const SPRITE_NAMES: Array[StringName] = [
 	&"guardia_derecha", &"guardia_izquierda", &"correr_0", &"correr_1", &"correr_2", &"correr_3",
 	&"aire", &"aterrizaje", &"dash", &"ataque_aereo",
@@ -54,6 +55,7 @@ var _dash_direction := 1.0
 var _dash_cooldown_left := 0.0
 var _land_left := 0.0
 var _sprites := {}
+var _stomp_arrow: Texture2D
 
 
 func _ready() -> void:
@@ -70,6 +72,8 @@ func _ready() -> void:
 		var path := SPRITE_DIR + sprite_name + ".png"
 		if ResourceLoader.exists(path):
 			_sprites[sprite_name] = load(path)
+	if ResourceLoader.exists(STOMP_ARROW):
+		_stomp_arrow = load(STOMP_ARROW)
 
 
 ## Multiplica el impulso del salto en curso (llamar dentro de `jumped`).
@@ -305,11 +309,17 @@ func _draw() -> void:
 	var pivot := Vector2(0.0, -SIZE.y * 0.5)
 
 	if _fast_falling:
-		# Estelas de velocidad sobre el personaje.
-		for i in 3:
-			var x := (i - 1) * 14.0
-			draw_line(Vector2(x, -SIZE.y - 20.0), Vector2(x, -SIZE.y - 90.0 - i * 20.0),
-					FreneticPalette.CREAM, 5.0)
+		if _stomp_arrow != null:
+			# Flecha del stomp (dibujo del equipo) sobre el personaje, latiendo con el beat.
+			var arrow := _stomp_arrow.get_size() * SPRITE_SCALE * (1.0 + 0.15 * Conductor.pulse(8.0))
+			draw_texture_rect(_stomp_arrow, Rect2(Vector2(-arrow.x * 0.5, -SIZE.y - arrow.y * 0.55), arrow), false,
+					Color(1.0, 1.0, 1.0, 0.85))
+		else:
+			# Estelas de velocidad sobre el personaje.
+			for i in 3:
+				var x := (i - 1) * 14.0
+				draw_line(Vector2(x, -SIZE.y - 20.0), Vector2(x, -SIZE.y - 90.0 - i * 20.0),
+						FreneticPalette.CREAM, 5.0)
 
 	var pose := _pose()
 	# El ataque aéreo trae su propio tajo dibujado en el sprite.

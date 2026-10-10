@@ -112,3 +112,13 @@ func _draw_before_body(center: Vector2) -> void:
 		])
 		draw_colored_polygon(wing, Color(0.92, 0.95, 1.0, 0.85))
 		draw_polyline(wing + PackedVector2Array([wing[0]]), _outline(), 2.0)
+
+
+## Despierta y cerca del jugador muestra la pose de ataque (pico abierto).
+func sprite_pose() -> StringName:
+	if _dying or _hurt_left > 0.0:
+		return &"herido"
+	if _awake and target != null and is_instance_valid(target) \
+			and body_center().distance_to(target.global_position) < ATTACK_POSE_DISTANCE * 2.5:
+		return &"ataque"
+	return &"base"

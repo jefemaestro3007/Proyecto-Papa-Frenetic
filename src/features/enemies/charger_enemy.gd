@@ -93,15 +93,28 @@ func _draw_after_body(center: Vector2) -> void:
 		draw_colored_polygon(horn, Color("f2e6c9"))
 		draw_polyline(horn + PackedVector2Array([horn[0]]), _outline(), 2.0)
 		draw_line(center + Vector2(side * 20.0, -18.0), center + Vector2(side * 6.0, -11.0), FACE_COLOR, 4.0)
+
+
+## Embistiendo (aviso y carga) muestra la pose de ataque; aturdida, la de herida.
+func sprite_pose() -> StringName:
+	if _dying or _hurt_left > 0.0 or state == State.RECOVER:
+		return &"herido"
+	if state == State.WINDUP or state == State.CHARGE:
+		return &"ataque"
+	return &"base"
+
+
+## "!" al prepararse y estrellas de aturdimiento: momento ideal para golpearla.
+func _draw_indicators(_center: Vector2) -> void:
 	match state:
 		State.WINDUP:
 			var font := ThemeDB.fallback_font
-			var at := center + Vector2(-9.0, -body_radius - 26.0)
+			var at := Vector2(-9.0, _top_y - 12.0)
 			draw_string_outline(font, at, "!", HORIZONTAL_ALIGNMENT_LEFT, -1, 48, 10, Color(0.1, 0.05, 0.05))
 			draw_string(font, at, "!", HORIZONTAL_ALIGNMENT_LEFT, -1, 48, Color("ff5a4a"))
 		State.RECOVER:
 			# Estrellitas de aturdimiento: momento ideal para golpearla.
 			for i in 3:
 				var angle := _visual_time * 6.0 + TAU * i / 3.0
-				draw_circle(center + Vector2(cos(angle) * 30.0, -body_radius - 12.0 + sin(angle) * 8.0), 5.0,
+				draw_circle(Vector2(cos(angle) * 30.0, _top_y - 6.0 + sin(angle) * 8.0), 5.0,
 						Color("ffd166"))

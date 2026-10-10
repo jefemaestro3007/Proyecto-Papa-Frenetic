@@ -14,6 +14,7 @@ const POST_SHADER := preload("res://src/world/environment/shaders/frenetic_post.
 const PRESETS := "res://src/shared/resources/presets/"
 const DEFAULT_LOOK := "rojo_frenetico"
 const STYLES: Array[String] = ["default", "pixel", "isaac"]
+const STOMP_CLOUD := "res://assets/textures/sprites/fx/stomp_nube.png"
 
 const FAR_SCROLL := Vector2(0.15, 0.08)
 const NEAR_SCROLL := Vector2(0.4, 0.22)
@@ -924,6 +925,7 @@ func _on_player_landed(impact_speed: float, forced: bool, fall_height: float) ->
 ## Además es el stomp: golpea a las papas cerca de los pies con el mismo juicio.
 func _on_slam() -> void:
 	var judgment := _tracker.register(&"slam", true, player_params.slam_points_multiplier)
+	_stomp_cloud(1.6 if judgment == ConductorClock.Judgment.PERFECT else 1.3)
 	match judgment:
 		ConductorClock.Judgment.PERFECT:
 			_impact(impact_fx.slam_perfect)
@@ -933,6 +935,16 @@ func _on_slam() -> void:
 			_player.stumble()
 			_impact(impact_fx.slam_miss)
 	_combat.stomp(judgment)
+
+
+## Nube del stomp (sprite del equipo) a los pies del jugador.
+func _stomp_cloud(strength: float) -> void:
+	if not ResourceLoader.exists(STOMP_CLOUD):
+		return
+	var cloud := ImpactSprite.new(load(STOMP_CLOUD), strength)
+	cloud.position = _player.position + Vector2(0.0, 6.0)
+	cloud.z_index = 55
+	add_child(cloud)
 
 
 ## Ataque de caída: estallido + glitch y temblor proporcionales a la intensidad.

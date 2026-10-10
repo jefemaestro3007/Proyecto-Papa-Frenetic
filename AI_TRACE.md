@@ -329,3 +329,17 @@ Files: `assets_src/sprites/player/*` (5 dibujos originales del equipo, sin modif
 Change: Herramienta que quita el fondo de cuadriculado pintado (relleno desde los bordes que se detiene en el contorno negro, huecos con los tonos del cuadriculado y manchas sueltas), separa las poses, las escala con la gorra roja como referencia y ancla los pies. `PlayerPrototype._pose()` elige la pose: dash, ataque aéreo, aire, aterrizaje (0,12 s), correr (4 frames por beat) o guardia según hacia dónde mira; el ataque en el suelo usa la guardia con el tajo dibujado. Si faltan los PNG, se dibuja el rectángulo provisional.
 Commit: PENDING (se commitea junto con esta entrada)
 Notes: Los dibujos son del equipo; la IA solo los procesó. Se revisó el resultado en capturas: los frames quedaron limpios sobre fondo oscuro, y el juego se probó quieto en ambas direcciones, corriendo, atacando y en el aire. La guardia (espada en alto) se usa también como pose de reposo porque no hay una pose de reposo dibujada. Pruebas: `test_controls`, `test_presets`, `test_combat_match` y `test_oficinas_traversal` (12 casos) en verde. Sin push.
+
+### Sprites de enemigos y del stomp
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "Estos son los nuevos sprites de enemigos y el ataque stomp": personaje 1 (base, golpeando, siendo golpeado) = papa normal; personaje 2 con las mismas acciones = tanque; voladora = papa voladora; tirador ("recibiendo daño", "disparando") = papa tiradora; charger = embestidora; ataque hacia abajo = stomp; nube = efecto de impacto. Al confirmar los grupos, el usuario corrigió que las dos papas juntas son la embestidora y la papa con cresta es la tiradora; las poses se eligieron por el gesto (brazo o palito = ataque/disparo).
+Task: Integrar los sprites de enemigos y del stomp.
+Type: CODE (AI) / ART PIPELINE / DOCS
+Files: `assets_src/sprites/enemies/*` y `assets_src/sprites/fx/*` (dibujos originales del equipo, sin modificar), `assets/textures/sprites/{enemies,fx}/*.png` (+ `.import`), `tools/scripts/build_enemy_sprites.gd`, `src/features/enemies/{enemy,charger_enemy,thrower_enemy,flying_enemy}.gd`, `src/features/combat/impact_sprite.gd`, `src/features/player/scripts/player_prototype.gd`, `src/world/levels/zone_level.gd`, `docs/development/sprites.md`, `docs/README.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: Herramienta que recorta las tres poses de cada enemigo con el mismo rectángulo, ancla los pies y escala por tipo. `Enemy` dibuja el sprite de la pose (`sprite_pose()`: base, ataque cerca del jugador, herido al recibir un golpe o al morir), espejado según hacia dónde mira, con contorno del color del estilo, latido y destello al golpe; los avisos de juego pasan a `_draw_indicators()` y se ubican sobre el sprite. Embestidora: ataque en aviso y carga, herida aturdida. Tiradora: ataque con el patrón anunciado. Voladora: ataque despierta y cerca. Flecha del stomp durante la caída forzada y nube (`ImpactSprite`) al aterrizar.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Las dos tandas de imágenes subidas eran idénticas; se usó una. Se agregó el contorno porque sin él las papas rojas se perdían contra el cielo rojo del estilo Default (visto en capturas). La nube del stomp se suma al estallido de rayos que ya existía, no lo reemplaza. Pruebas: `test_presets`, `test_heat_meter`, `test_combat_match` en verde; recorrido automático de Oficinas sin errores. Sin push.

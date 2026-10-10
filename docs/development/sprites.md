@@ -1,4 +1,4 @@
-# Sprites del jugador
+# Sprites
 
 Los dibujos originales están en `assets_src/sprites/player/` (Godot no los importa). La herramienta
 `tools/scripts/build_player_sprites.gd` los convierte en un PNG por frame en
@@ -43,3 +43,38 @@ herramienta, agregar el nombre a `PlayerPrototype.SPRITE_NAMES` y elegirla en `_
 
 Pendientes (sin dibujo todavía): reposo sin espada, golpe recibido, caída forzada y escaleras /
 ascensor.
+
+## Enemigos y efectos
+
+`tools/scripts/build_enemy_sprites.gd` toma `assets_src/sprites/enemies/<enemigo>_<pose>.(png|webp)`
+y `assets_src/sprites/fx/*` y genera `assets/textures/sprites/enemies/<tipo>_<pose>.png` y
+`assets/textures/sprites/fx/*.png`.
+
+```bash
+godot --headless --path . --script res://tools/scripts/build_enemy_sprites.gd
+godot --headless --path . --import
+```
+
+Las tres poses de cada enemigo vienen en el mismo lienzo: se recortan con el mismo rectángulo (no
+saltan al cambiar de pose), con los pies abajo al centro del cuerpo de la pose base, y se escalan a
+la altura que tienen en el juego (tabla `ENEMIES` de la herramienta).
+
+| Enemigo | Archivos | `base` | `ataque` | `herido` |
+|---|---|---|---|---|
+| Común (`normal`) | `normal_*` (papa de foto) | Persigue o espera | Cerca del jugador (brazo estirado) | Golpe que aguanta o al morir |
+| Tanque (`tank`) | `tanque_*` | Igual que la común | Cerca del jugador (palito) | Igual |
+| Embestidora (`charger`) | `embestidora_*` (dos papas) | Merodea | Aviso "!" y carga | Golpe y aturdida tras la carga (con estrellas) |
+| Tiradora (`thrower`) | `tiradora_*` (con cresta) | Esperando | Brazo en alto anunciando el patrón y lanzando | Golpe o al morir |
+| Voladora (`flyer`) | `voladora_*` (pájaro) | Dormida o lejos | Despierta y cerca (pico abierto) | Golpe o al morir |
+
+Los dibujos miran a la izquierda y se espejan al mirar a la derecha. Llevan un contorno con el
+color del estilo activo (las papas rojas se pierden contra el cielo rojo sin él), laten con el
+beat y se iluminan al recibir un golpe. Los avisos de juego (el "!" y las estrellas de la
+embestidora, los puntos del patrón de la tiradora, la vida del tanque) se dibujan encima. La pose
+la elige `Enemy.sprite_pose()`, que cada variante redefine; si falta el PNG se dibuja la papa
+provisional.
+
+| Efecto | Cuándo |
+|---|---|
+| `stomp_flecha` | Durante la caída forzada, detrás del jugador, latiendo con el beat |
+| `stomp_nube` | Al aterrizar la caída forzada (más grande si fue PERFECTO), encima del estallido de impacto (`ImpactSprite`) |

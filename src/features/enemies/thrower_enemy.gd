@@ -118,9 +118,21 @@ func _draw_after_body(center: Vector2) -> void:
 	var hand := center + Vector2(facing * 40.0, -48.0 if arm_up else -4.0)
 	draw_line(center + Vector2(facing * 24.0, -8.0), hand, FACE_COLOR, 5.0)
 	draw_rect(Rect2(hand + Vector2(-4.0, -14.0), Vector2(8.0, 20.0)), Color("f2c14e"))
-	if arm_up:
-		# Puntos de aviso: uno por lanzamiento del patrón anunciado.
+
+
+## Con un patrón anunciado (brazo en alto) o recién lanzado muestra la pose de disparo.
+func sprite_pose() -> StringName:
+	if _dying or _hurt_left > 0.0:
+		return &"herido"
+	if current_pattern != &"":
+		return &"ataque"
+	return &"base"
+
+
+## Puntos de aviso: uno por lanzamiento del patrón anunciado.
+func _draw_indicators(_center: Vector2) -> void:
+	if current_pattern != &"":
 		for i in _throws.size():
-			var dot := center + Vector2((i - (_throws.size() - 1) * 0.5) * 14.0, -body_radius - 46.0)
+			var dot := Vector2((i - (_throws.size() - 1) * 0.5) * 14.0, _top_y - 16.0)
 			draw_circle(dot, 6.0, _outline())
 			draw_circle(dot, 5.0, Color("ff5a4a"))
