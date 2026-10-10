@@ -1,5 +1,6 @@
 extends SceneTree
-## Genera los sprites de enemigos y del stomp a partir de los dibujos de `assets_src/sprites/`.
+## Genera los sprites de enemigos, efectos (stomp, tajo) e interfaz (papa del calor) a partir de los
+## dibujos de `assets_src/sprites/`.
 ## Cada enemigo tiene tres poses (base, ataque, herido) dibujadas en el mismo lienzo: se recortan con
 ## el mismo rectángulo para que no salten al cambiar de pose, con el ancla (los pies) abajo al
 ## centro del cuerpo de la pose base, y se escalan a la altura que tienen en el juego.
@@ -9,6 +10,10 @@ extends SceneTree
 const SOURCE := "res://assets_src/sprites/"
 const OUTPUT := "res://assets/textures/sprites/enemies/"
 const FX_OUTPUT := "res://assets/textures/sprites/fx/"
+const UI_OUTPUT := "res://assets/textures/ui/"
+## Secuencias de la interfaz: nombre → (cantidad de frames, altura en pantalla). Se recortan todos
+## con el mismo rectángulo para conservar cómo cambian de tamaño (la papa se hincha al calentarse).
+const UI_SEQUENCES := {"papa_calor": [5, 150.0]}
 const POSES: Array[String] = ["base", "ataque", "herido"]
 ## Archivo de origen (sin extensión) → id del enemigo en el juego (`Enemy.enemy_type`) y altura en
 ## pantalla en px.
@@ -60,6 +65,21 @@ func _initialize() -> void:
 		var used := image.get_used_rect()
 		_save(_crop_anchor_scale(image, used, used.get_center().x, EFFECTS[effect] * SUPERSAMPLE / used.size.y),
 				FX_OUTPUT + effect)
+	for sequence: String in UI_SEQUENCES:
+		var count: int = UI_SEQUENCES[sequence][0]
+		var frames: Array[Image] = []
+		for i in count:
+			var image := _load(SOURCE + "ui/%s_%d" % [sequence, i + 1])
+			if image != null:
+				frames.append(image)
+		if frames.size() != count:
+			continue
+		var union := frames[0].get_used_rect()
+		for image in frames:
+			union = union.merge(image.get_used_rect())
+		var scale: float = UI_SEQUENCES[sequence][1] * SUPERSAMPLE / union.size.y
+		for i in count:
+			_save(_crop_anchor_scale(frames[i], union, union.get_center().x, scale), UI_OUTPUT + "%s_%d" % [sequence, i + 1])
 	print("build_enemy_sprites: %s" % ("OK" if _failures == 0 else "%d FALLOS" % _failures))
 	quit(1 if _failures > 0 else 0)
 

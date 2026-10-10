@@ -22,6 +22,10 @@ void fragment() {
 """
 
 var gauge: HeatGauge
+var potato: HeatPotato
+## Placa detrás de la papa y el manómetro: los separa del escenario; en alarma su borde late en rojo.
+var _plate: Panel
+var _plate_style: StyleBoxFlat
 var alert: OverheatAlert
 var dash_label: Label
 var _vignette: ColorRect
@@ -50,20 +54,44 @@ func _ready() -> void:
 	_shaken.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_shaken)
 
+	_plate_style = StyleBoxFlat.new()
+	_plate_style.bg_color = Color(FreneticPalette.INK, 0.55)
+	_plate_style.set_corner_radius_all(26)
+	_plate_style.set_border_width_all(4)
+	_plate_style.border_color = Color(FreneticPalette.INK, 0.8)
+	_plate = Panel.new()
+	_plate.add_theme_stylebox_override("panel", _plate_style)
+	_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_plate.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	_plate.offset_left = -362.0
+	_plate.offset_top = -292.0
+	_plate.offset_right = -18.0
+	_plate.offset_bottom = -50.0
+	_shaken.add_child(_plate)
+
 	gauge = HeatGauge.new()
 	gauge.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	gauge.offset_left = -250.0
-	gauge.offset_top = -312.0
-	gauge.offset_right = -40.0
-	gauge.offset_bottom = -90.0
+	gauge.offset_left = -210.0
+	gauge.offset_top = -285.0
+	gauge.offset_right = -30.0
+	gauge.offset_bottom = -105.0
 	_shaken.add_child(gauge)
+
+	# Papa caliente a la izquierda del manómetro: la etapa según el calor.
+	potato = HeatPotato.new()
+	potato.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	potato.offset_left = -350.0
+	potato.offset_top = -280.0
+	potato.offset_right = -200.0
+	potato.offset_bottom = -110.0
+	_shaken.add_child(potato)
 
 	dash_label = _make_label(24)
 	dash_label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	dash_label.offset_left = -250.0
-	dash_label.offset_right = -40.0
-	dash_label.offset_top = -80.0
-	dash_label.offset_bottom = -44.0
+	dash_label.offset_left = -350.0
+	dash_label.offset_right = -30.0
+	dash_label.offset_top = -95.0
+	dash_label.offset_bottom = -59.0
 	dash_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_shaken.add_child(dash_label)
 
@@ -97,22 +125,30 @@ func _process(delta: float) -> void:
 	# El HUD tiembla: la sensación de perder el control.
 	var strength := _intensity * (1.6 if _overheated else 1.0)
 	_shaken.position = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * SHAKE_PIXELS * strength
+	# Alarma (calor alto o mecha): el borde de la placa late en rojo con el beat.
+	var alarm := potato.alarm()
+	_plate_style.border_color = Color(FreneticPalette.INK, 0.8).lerp(HeatPotato.HALO_COLOR, alarm * (0.55 + 0.45 * _beat_pulse))
+	_plate_style.set_border_width_all(4 + roundi(4.0 * alarm * _beat_pulse))
+	_plate_style.bg_color = Color(FreneticPalette.INK, 0.55).lerp(Color(0.35, 0.02, 0.0, 0.6), alarm * 0.5 * _beat_pulse)
 	alert.set_beat_pulse(_beat_pulse)
 
 
 func set_heat(heat: float) -> void:
 	gauge.set_heat(heat)
+	potato.heat = heat
 
 
 func set_intensity(intensity: float, overheated: bool) -> void:
 	_intensity = clampf(intensity, 0.0, 1.0)
 	_overheated = overheated
 	gauge.set_intensity(_intensity, overheated)
+	potato.overheated = overheated
 
 
 func on_beat(accented: bool) -> void:
 	_beat_pulse = 1.0 if accented else 0.7
 	gauge.on_beat(_beat_pulse)
+	potato.on_beat(_beat_pulse)
 
 
 func show_overheat(active: bool, fuse_left: float) -> void:

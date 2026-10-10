@@ -9,6 +9,8 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Added (sprites)
 
+- HUD del calor: papa caliente en 5 etapas (dibujos del equipo) junto al manómetro, que es más
+  chico, sobre una placa; alarma desde 80 de calor (vibración, halos rojos, borde que late).
 - Sprites del jugador (guardia, correr al ritmo, aire, aterrizaje, dash, ataque aéreo) y la
   herramienta `tools/scripts/build_player_sprites.gd` que los recorta, escala y ancla.
 - Sprites de los cinco enemigos (base, ataque, herido) con contorno del estilo, y la flecha y la

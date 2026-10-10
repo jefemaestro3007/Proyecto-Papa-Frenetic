@@ -7,8 +7,11 @@ extends Control
 # con la mecha encendida golpea el tope, el cristal se agrieta y sale vapor.
 
 const DIAL_RADIUS := 148.0
-# Escala visual del manómetro (0.6 = 40 % más pequeño que el diseño original).
-const DIAL_SCALE := 0.6
+# Escala visual del manómetro (0.5 = la mitad del diseño original; a su lado va la papa).
+const DIAL_SCALE := 0.5
+# Desde este nivel (0-1) el manómetro entra en alarma: halo rojo que late y bisel enrojecido.
+const ALARM_LEVEL := 0.8
+const ALARM_COLOR := Color(1.0, 0.16, 0.06)
 # La escala recorre 270°: empieza abajo a la izquierda y termina abajo a la derecha.
 const START_ANGLE := 2.35619449 # 135°
 const SWEEP := 4.71238898 # 270°
@@ -54,6 +57,13 @@ func set_intensity(intensity: float, overheated: bool) -> void:
 
 func on_beat(pulse: float) -> void:
 	_beat_pulse = pulse
+
+
+## 0 por debajo de ALARM_LEVEL, 1 al tope (y con la mecha encendida).
+func alarm_amount() -> float:
+	if _overheated:
+		return 1.0
+	return clampf((displayed_level - ALARM_LEVEL) / (1.0 - ALARM_LEVEL), 0.0, 1.0)
 
 
 func get_level_color() -> Color:
@@ -119,6 +129,12 @@ func _draw() -> void:
 	# Todo el manómetro se dibuja a escala alrededor de su centro.
 	draw_set_transform(size * 0.5 + _shake_offset, 0.0, Vector2.ONE * DIAL_SCALE)
 	var center := Vector2.ZERO
+	var alarm := alarm_amount()
+	if alarm > 0.0:
+		# Halo rojo de alarma que late con el beat.
+		for i in 4:
+			var radius := DIAL_RADIUS + 26.0 + i * 16.0 + 12.0 * _beat_pulse
+			draw_circle(center, radius, Color(ALARM_COLOR, (0.16 + 0.3 * _beat_pulse) * alarm * (1.0 - i * 0.2)))
 	_draw_body(center)
 	_draw_scale(center)
 	_draw_needle(center)
@@ -132,7 +148,9 @@ func _draw_body(center: Vector2) -> void:
 	# Sombra, bisel metálico y esfera.
 	draw_circle(center + Vector2(4.0, 6.0), DIAL_RADIUS + 16.0, Color(0.0, 0.0, 0.0, 0.35))
 	draw_circle(center, DIAL_RADIUS + 16.0, BEZEL_DARK)
-	draw_circle(center, DIAL_RADIUS + 12.0, BEZEL_LIGHT)
+	# En alarma el bisel se enrojece al ritmo del beat.
+	var bezel := BEZEL_LIGHT.lerp(ALARM_COLOR, alarm_amount() * (0.45 + 0.4 * _beat_pulse))
+	draw_circle(center, DIAL_RADIUS + 12.0, bezel)
 	draw_arc(center, DIAL_RADIUS + 9.0, deg_to_rad(200.0), deg_to_rad(340.0), 32, Color(1.0, 1.0, 1.0, 0.55), 3.0)
 	draw_circle(center, DIAL_RADIUS + 6.0, BEZEL_DARK)
 	draw_circle(center, DIAL_RADIUS, FACE_COLOR)

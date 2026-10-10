@@ -371,3 +371,17 @@ Files: `assets_src/sprites/fx/ataque_swing.png` (dibujo del equipo), `assets/tex
 Change: Ataque en el suelo de 0,3 s en tres fases (`_attack_phase()`): guardia de frente, guardia con el tajo delante a la altura de la cintura, y de espaldas; después vuelve a la guardia. El golpe se sigue juzgando al pulsar. Todas las poses se espejan al mirar a la izquierda. Frames renombrados a `guardia` y `espalda`. El tajo procedural solo se dibuja si faltan los sprites. La herramienta de efectos borra manchas sueltas (el dibujo del tajo traía un punto suelto que agrandaba el recorte).
 Commit: PENDING (sin commitear junto con el experimento de colores, a la espera del usuario)
 Notes: Se revisó en capturas las tres fases hacia ambos lados; el tajo se agrandó (96 px) y se subió a la cintura tras verlo a la altura de las rodillas. `test_combat_match` y `test_presets` en verde.
+
+### Papa caliente en el HUD junto al manómetro
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: Usar las cinco papas subidas como guía visual de la papa caliente, una por cada intervalo de 20 de calor (0-20 la primera, 20-40 la segunda...), integrada con el barómetro; hacer un poco más chica esa interfaz, que sea agradable y transmita la urgencia de enfriar la papa; hacer más llamativo el barómetro, por ejemplo que se ponga rojo por encima de 80 o que la papa vibre junto a él.
+Task: Rediseñar el HUD del calor.
+Type: UX / CODE (AI) / ART PIPELINE / DOCS
+Files: `assets_src/sprites/ui/papa_calor_{1..5}` (dibujos del equipo), `assets/textures/ui/papa_calor_{1..5}.png` (+ `.import`), `tools/scripts/build_enemy_sprites.gd`, `src/ui/hud/heat_potato.gd` (nuevo), `src/ui/hud/heat_hud.gd`, `src/ui/hud/heat_gauge.gd`, `docs/development/sprites.md`, `docs/game-design/combate.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: La herramienta genera las cinco etapas con el mismo recorte (se conserva cómo se hincha la papa). `HeatPotato`: etapa según el calor, latido con el beat, golpe de escala al cambiar de etapa; desde 80 vibra, se tambalea y tiene halo rojo; con la mecha, vibración máxima, parpadeo y vapor. Manómetro al 50 % (antes 60 %) con alarma desde el 80 %: halo rojo que late y bisel enrojecido. Placa oscura detrás de ambos cuyo borde late en rojo durante la alarma.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: En la primera captura el halo rojo casi no se veía sobre el escenario rojo; por eso se agregaron la placa oscura y el borde que late, y se reforzaron los halos. Revisado en capturas con calor 10, 30, 50, 70, 90 y con la mecha. `test_combat_match` en verde.

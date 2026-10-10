@@ -41,8 +41,10 @@ Qué cuenta y cuánto pesa (todo ajustable en la pestaña Combate):
 **Tensión:** desde 50 de calor la cámara tiembla y se balancea, el HUD tiembla y una viñeta roja
 late con el beat; durante la mecha todo es más fuerte.
 
-**HUD** (`src/ui/hud/heat_hud.gd`): manómetro de presión abajo a la derecha (`HeatGauge`; con la
-mecha el cristal se agrieta y sale vapor), aviso "SOBRE / CALENTAMIENTO" letra a letra y cuenta
+**HUD** (`src/ui/hud/heat_hud.gd`): sobre una placa oscura abajo a la derecha, la papa caliente
+(`HeatPotato`, cinco dibujos, uno cada 20 de calor) y el manómetro de presión (`HeatGauge`; con la
+mecha el cristal se agrieta y sale vapor). Desde 80 de calor ambos entran en alarma (vibración,
+halos rojos y borde de la placa latiendo con el beat); aviso "SOBRE / CALENTAMIENTO" letra a letra y cuenta
 atrás en display de segmentos (`OverheatAlert`, `MenacingText`, `SegmentFont`), estado del dash y
 el panel de fin de partida. Los textos de juicio dicen la acción y el calor:
 "STOMP ¡PERFECTO! +200 / −8 calor".
