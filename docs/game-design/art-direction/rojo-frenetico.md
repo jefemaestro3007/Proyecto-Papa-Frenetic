@@ -39,6 +39,24 @@ amarillo con contorno negro, aberración cromática y bandas de glitch.
 
 Fuente de verdad en código: `src/world/generation/frenetic_palette.gd`.
 
+## Modos gráficos (ArtStyle)
+
+El mapa es el mismo en todos los modos; `ArtStyle` (`src/world/environment/art_style.gd`)
+decide cómo se dibuja. Cada modo trae su preset de cielo e iluminación.
+Se cambia con **F2** o desde la pestaña Estilo del menú de debug.
+
+| Modo | Rasgos |
+|---|---|
+| **Default** | Tintas planas, contorno limpio, franjas de peligro, rojo saturado. |
+| **Pixel** | Pantalla pixelada (×4), paleta reducida con dithering, cielo pixel-art, sin mugre. |
+| **Isaac** | Paleta terrosa, contorno grueso con trazo a mano, sombras proyectadas, mucha sangre, grietas y escombros, viñeta fuerte, foco en el jugador y haz de luz. Toma como referencia *The Binding of Isaac*, sin copiar sus assets. |
+
+**Detalles del mapa:** el generador coloca objetos sobre las azoteas (aires, tanques,
+antenas, ventilaciones, chimeneas, casetas, tragaluces, carteles), cables entre
+edificios y marcas (sangre, grietas, manchas, escombros). Cada marca tiene un
+`weight`, así que el estilo decide qué fracción se ve sin regenerar el mapa. Las
+balizas de antenas y carteles laten con el beat.
+
 ## Cielo e iluminación
 
 El cielo (`src/world/environment/shaders/sky.gdshader`) se controla con `SkyParams`
@@ -80,7 +98,7 @@ La intensidad de cada caso y la forma de las partículas viven en `ImpactFxParam
 ## Menú de debug y presets
 
 En juego, **Tab** (o F1) abre el menú de debug, con una pestaña por sección:
-Mapa, Cielo, Luz, Jugador, Efectos, Ritmo y Sistema. Cada slider tiene un campo numérico
+Estilo, Mapa, Cielo, Luz, Jugador, Efectos, Ritmo y Sistema. Cada slider tiene un campo numérico
 editable y su rango en el tooltip.
 
 Cada sección (menos Sistema) tiene su barra de presets: **Cargar** aplica un `.tres`
@@ -90,6 +108,7 @@ Ejecutando desde el editor se exporta a `src/shared/resources/presets/<sección>
 
 | Sección | Recurso | Carpeta de presets |
 |---|---|---|
+| Estilo | `ArtStyle` | `estilo/` |
 | Mapa | `AzoteaParams` | `mapa/` |
 | Cielo | `SkyParams` | `cielo/` |
 | Luz | `LightingParams` | `iluminacion/` |
