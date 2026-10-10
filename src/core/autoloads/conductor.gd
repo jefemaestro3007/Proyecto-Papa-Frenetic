@@ -5,14 +5,23 @@ extends Node
 ## Su configuración vive en `params` (RhythmParams) y se puede cambiar en caliente.
 
 signal beat(index: int)
+## Semicorchea (SUBDIVISIONS por beat): para patrones rápidos (p. ej. la tiradora).
+signal subbeat(index: int)
 
 enum Judgment { PERFECT, GOOD, MISS }
+
+const SUBDIVISIONS := 4
+const BEATS_PER_BAR := 4
 
 var params := RhythmParams.new()
 
 var _time := 0.0
 var _bpm := 0.0
 var _last_beat := -1
+var _last_subbeat := -1
+## Parte de Engine.time_scale que viene de un hitstop: el reloj la compensa para que congelar
+## la acción no desplace los beats (la escala de tiempo de debug sí ralentiza la música).
+var hitstop_scale := 1.0
 var _click: AudioStreamPlayer
 
 
@@ -35,14 +44,18 @@ func _process(delta: float) -> void:
 		var position := beat_position()
 		_bpm = clampf(params.bpm, 60.0, 240.0)
 		_time = position * beat_length()
-	_time += delta
+	_time += delta / maxf(hitstop_scale, 0.001)
+	var sub := floori(beat_position() * SUBDIVISIONS)
+	if sub != _last_subbeat:
+		_last_subbeat = sub
+		subbeat.emit(sub)
 	var index := floori(beat_position())
 	if index != _last_beat:
 		_last_beat = index
 		beat.emit(index)
 		if params.metronome_enabled:
 			_click.volume_db = params.metronome_volume_db
-			_click.pitch_scale = 1.6 if index % 4 == 0 else 1.0
+			_click.pitch_scale = 1.6 if index % BEATS_PER_BAR == 0 else 1.0
 			_click.play()
 
 
