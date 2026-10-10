@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MusicTrack" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/features/rhythm/music_track.gd" id="1_track"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/MenuSongStart.wav" id="2_stream"]
+
+[resource]
+script = ExtResource("1_track")
+title = "Menú (inicio)"
+stream = ExtResource("2_stream")
+bpm = 190.5
+first_beat = 0.03
