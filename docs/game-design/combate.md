@@ -26,17 +26,32 @@ Todo tiene su pestaña en el menú de debug: **Combate** (`CombatParams`, preset
 | Al llegar a 100 | Se enciende una **mecha de 10 s** con cuenta atrás. Un acierto que enfríe por debajo de 100 la apaga, pero **no se recarga** |
 | Mecha en 0 | La papa explota: **game over** |
 
-Qué cuenta y cuánto pesa (todo ajustable en la pestaña Combate):
+## Cómo se recompensa cada cosa
 
-| Acción | Peso |
-|---|---|
-| Atacar, stomp, dash contra una papa | 1 (enfría o calienta) |
-| Saltar, girar | 0,25 (`movement_heat_scale`) |
-| Aterrizar, escaleras, ascensor, puertas | 0,25, solo enfrían |
-| Tajo al aire fuera de ritmo | +5 sin romper el combo (castiga el spam) |
-| Tocar una papa | +10 (embestidora ×1,5) |
-| Papa frita de la tiradora | +5 |
-| Caer al vacío | +15 |
+**Golpear papas es la fuente principal**: es lo único que sube el combo, enfría de verdad y da
+puntos con multiplicador. **Moverse a tiempo es secundario**: mantiene vivo el combo (no se
+pierde por inactividad mientras te muevas al ritmo), enfría muy poco y da pocos puntos. Solo
+moviéndose no se sobrevive: lo que enfría el movimiento tiene un tope de 75 % del calor pasivo
+(`movement_cooling_share`), así que el calor igual sube aunque todo salga PERFECTO.
+
+| Acción | Combo | Calor (PERFECTO / BIEN) | Puntos |
+|---|---|---|---|
+| **Golpe**: atacar, stomp o dash contra una papa | +1 | −8 / −4 | 100 / 50 × multiplicador (stomp ×2) |
+| **Movimiento**: saltar, girar, aterrizar, escaleras, ascensor, puertas, caída forzada sin papa | Lo mantiene, no suma | −1 / −0,5, con tope | 10 / 5 fijos |
+
+Fuera de ritmo:
+
+| Acción | Combo | Calor |
+|---|---|---|
+| Golpe fallado (atacar o dash contra una papa) | Se rompe | +10 y rebota |
+| **Caída forzada** (con o sin papa) | Se rompe | **+20** (`slam_miss_heat`), tropieza; con papa además lo empuja. No se limita, pero fallarla castiga feo |
+| Saltar, girar | Se rompe | +2,5 (`movement_heat_scale` × 10) |
+| Aterrizar, escaleras, ascensor, puertas | Nada | Nada (no son del todo intencionales) |
+| Tajo al aire (sin papa al alcance) | Nada | +5 (castiga el spam) |
+
+Otros: tocar una papa +10 (embestidora ×1,5) y rompe el combo; papa frita +5; caer al vacío +15.
+El combo vence si pasan `combo_timeout_beats` beats sin ninguna acción a tiempo. El
+multiplicador (×1 a ×4, sube cada 8 de combo) solo crece golpeando.
 
 **Tensión:** desde 50 de calor la cámara tiembla y se balancea, el HUD tiembla y una viñeta roja
 late con el beat; durante la mecha todo es más fuerte.
