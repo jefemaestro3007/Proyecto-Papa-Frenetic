@@ -43,8 +43,9 @@ late con el beat; durante la mecha todo es más fuerte.
 
 **HUD** (`src/ui/hud/heat_hud.gd`): abajo a la derecha la papa bomba (`HeatPotato`, cinco dibujos,
 uno cada 20 de calor) con el manómetro de presión incrustado (`HeatGauge`; con la mecha el cristal
-se agrieta y sale vapor), y a su izquierda la tecla SHIFT del dash (`DashKey`: verde lista, roja
-en espera o en el aire, llenándose de verde al recargar). Desde 80 de calor la papa y el
+se agrieta y sale vapor), y a su izquierda el indicador del dash (`DashKey`: un cuadrado sin fondo con una flecha rellena
+hacia donde sale el dash; todo verde cuando está listo, rojo al usarlo, con el contorno que se
+recarga de verde alrededor, y verde apagado en el aire). Desde 80 de calor la papa y el
 manómetro entran en alarma (vibración y halos rojos que laten con el beat); aviso "SOBRE / CALENTAMIENTO" letra a letra y cuenta
 atrás en display de segmentos (`OverheatAlert`, `MenacingText`, `SegmentFont`) y el panel de fin de partida. Los textos de juicio dicen la acción y el calor:
 "STOMP ¡PERFECTO! +200 / −8 calor".

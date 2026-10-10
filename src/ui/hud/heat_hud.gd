@@ -64,10 +64,10 @@ func _ready() -> void:
 	# Tecla del dash a la izquierda de la papa.
 	dash_key = DashKey.new()
 	dash_key.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	dash_key.offset_left = -385.0
-	dash_key.offset_top = -125.0
+	dash_key.offset_left = -350.0
+	dash_key.offset_top = -135.0
 	dash_key.offset_right = -275.0
-	dash_key.offset_bottom = -65.0
+	dash_key.offset_bottom = -60.0
 	_shaken.add_child(dash_key)
 
 	alert = OverheatAlert.new()
@@ -133,9 +133,9 @@ func update_fuse(fuse_left: float) -> void:
 	alert.update_fuse(fuse_left)
 
 
-func update_dash(enabled: bool, cooldown_left: float, cooldown_total: float, airborne: bool) -> void:
+func update_dash(enabled: bool, cooldown_left: float, cooldown_total: float, airborne: bool, facing: float) -> void:
 	dash_key.visible = enabled
-	dash_key.set_state(cooldown_left, cooldown_total, airborne)
+	dash_key.set_state(cooldown_left, cooldown_total, airborne, facing)
 
 
 ## Panel de fin de partida.

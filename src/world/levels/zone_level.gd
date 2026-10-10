@@ -818,7 +818,7 @@ func _update_heat(delta: float) -> void:
 	_heat_hud.set_intensity(intensity, overheated)
 	_feel.set_intensity(intensity, overheated)
 	_heat_hud.update_dash(player_params.dash_enabled and is_playing(), _player.dash_cooldown_left(), player_params.dash_cooldown,
-			not _player.is_on_floor())
+			not _player.is_on_floor(), _player.facing)
 
 
 ## Suma (o resta) calor durante la partida y lo anuncia sobre el jugador.

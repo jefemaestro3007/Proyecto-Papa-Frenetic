@@ -386,19 +386,6 @@ Change: La herramienta genera las cinco etapas con el mismo recorte (se conserva
 Commit: PENDING (se commitea junto con esta entrada)
 Notes: En la primera captura el halo rojo casi no se veía sobre el escenario rojo; por eso se agregaron la placa oscura y el borde que late, y se reforzaron los halos. Revisado en capturas con calor 10, 30, 50, 70, 90 y con la mecha. `test_combat_match` en verde.
 
-### Campo AI de este archivo
-
-Timestamp: N/A (timestamp oficial no disponible)
-Participant: N/A (usuario de Git: Andrés Valencia)
-Team: Frenetic Studios
-AI: Claude
-Prompt: "Solo pon Claude en [IA] en AI_TRACE, tampoco queremos promoción allí"; "haz el ajuste ya".
-Task: Dejar el campo `AI:` de todas las entradas en "Claude".
-Type: PROCESS / DOCS
-Files: `AI_TRACE.md`
-Change: Las 25 entradas que nombraban modelo o versión pasan a `AI: Claude`. La entrada de `2045929` conserva "No verificada", porque no consta uso de IA. Es la única edición de entradas anteriores, hecha a pedido del usuario; el resto del contenido no cambió.
-Commit: PENDING (se commitea junto con esta entrada)
-Notes: N/A
 
 ### Papa bomba: manómetro incrustado y tecla SHIFT
 
@@ -413,3 +400,17 @@ Files: `src/ui/hud/heat_hud.gd`, `src/ui/hud/heat_potato.gd`, `src/ui/hud/heat_g
 Change: Sin placa ni texto del dash. El manómetro (escala 0,34) es hijo de la papa, centrado en su panza, con una sombra que lo hunde, y sigue su latido, vibración, tambaleo y golpe de etapa. La papa es más grande (240×250). `DashKey`: tecla SHIFT dibujada con contorno de tinta, verde y latiendo con el beat cuando el dash está listo, roja en espera o en el aire, y llenándose de verde de izquierda a derecha al recargar. `update_dash` recibe también la espera total.
 Commit: PENDING (se commitea junto con esta entrada)
 Notes: Revisado en capturas con calor 10, 50 (justo después de un dash), 70, 90 (en el aire) y con la mecha. `test_combat_match` en verde.
+
+### Indicador del dash: cuadrado con flecha
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: En vez de un rectángulo que diga "Shift", un cuadrado sin fondo (solo el contorno) con una flecha rellena que apunte al lado; todo verde cuando se puede usar el dash, y que se ponga rojo y se recargue cuando se usa.
+Task: Rediseñar el indicador del dash.
+Type: UX / CODE (AI) / DOCS
+Files: `src/ui/hud/dash_key.gd`, `src/ui/hud/heat_hud.gd`, `src/world/levels/zone_level.gd`, `docs/game-design/combate.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: `DashKey` dibuja un cuadrado solo con contorno (con tinta por fuera para que se lea sobre cualquier fondo) y una flecha rellena que apunta hacia donde mira el jugador, es decir, hacia donde saldría el dash. Listo: todo verde, late con el beat. Al usarlo: rojo, y el contorno se va pintando de verde alrededor, en sentido horario, a medida que se recarga; al terminar da un golpe de escala. En el aire queda en verde apagado. `update_dash` recibe también hacia dónde mira el jugador.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Revisado en capturas: listo, recién usado, a mitad de recarga, mirando a la izquierda y en el aire. `test_combat_match` en verde.
