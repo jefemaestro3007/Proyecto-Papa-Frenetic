@@ -11,6 +11,7 @@ godot --headless --path . --script res://tests/unit/test_controls.gd
 godot --headless --path . --script res://tests/unit/test_oficinas_layout.gd
 godot --headless --path . --script res://tests/unit/test_oficinas_generator.gd
 godot --headless --path . --script res://tests/unit/test_heat_meter.gd
+godot --headless --path . --script res://tests/unit/test_music.gd
 ```
 
 | Test | Qué comprueba |
@@ -21,6 +22,7 @@ godot --headless --path . --script res://tests/unit/test_heat_meter.gd
 | `test_oficinas_layout` | 1160 edificios (modos de final, tamaños extremos, configuraciones aleatorias): salida alcanzable, sin trampas desde ningún lugar, sin atascos por llaves (espacio de estados), determinismo, pasillos al fondo enlazados, llaves en lugares válidos, alternativas de ruta. |
 | `test_oficinas_generator` | Áreas al fondo fuera del edificio y sin superponerse, cada puerta al fondo con su área, llaves en su habitación o en el edificio, escaleras dentro de su módulo, puertas coherentes con la topología. |
 | `test_heat_meter` | Calor pasivo, enfriar/calentar por juicio y peso, mecha que no se recarga, explosión, modo sin game over. |
+| `test_music` | Cada canción carga con su BPM medido y dura compases enteros; el Conductor toma su tempo, reinicia el reloj y apaga la música. |
 
 ## Integración: recorrido con física
 
@@ -41,6 +43,7 @@ El bot solo recorre: el test desactiva el calor y los enemigos.
 
 ```bash
 godot --headless --path . --fixed-fps 60 res://tests/test_scenes/combat_match.tscn
+godot --headless --path . res://tests/test_scenes/rhythm_rewards.tscn
 ```
 
 Juega la Azotea real: reparto de enemigos por tramo (`EnemyRoster`), calor pasivo, stomp que

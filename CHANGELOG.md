@@ -7,22 +7,12 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
-### Added (menú)
+### Changed
 
-- Menú principal con las pantallas del equipo (START, NEW GAME, LEVEL SELECT, LOADING) como escena
-  de inicio; el nivel 1 es la Azotea. YOU LOOSE y YOU WIN reemplazan el panel de texto del fin de
-  partida (menú, reintentar, siguiente nivel). Herramienta `build_menu_screens.gd` que convierte los
-  PSD.
-
-### Added (sprites)
-
-- HUD del calor: papa bomba en 5 etapas (dibujos del equipo) con el manómetro incrustado y alarma
-  desde 80 de calor (vibración, halos rojos); indicador del dash: cuadrado con flecha, verde listo,
-  rojo recargándose.
-- Sprites del jugador (guardia, correr al ritmo, aire, aterrizaje, dash, ataque aéreo) y la
-  herramienta `tools/scripts/build_player_sprites.gd` que los recorta, escala y ancla.
-- Sprites de los cinco enemigos (base, ataque, herido) con contorno del estilo, y la flecha y la
-  nube del stomp; herramienta `tools/scripts/build_enemy_sprites.gd`.
+- Recompensas: golpear papas es la fuente principal (sube el combo, enfría −8/−4 y da puntos
+  con multiplicador). Moverse a tiempo solo mantiene el combo, da 10/5 puntos y enfría poco con
+  tope (75 % del calor pasivo): solo moviéndose no se sobrevive. Saltar o girar fuera de ritmo
+  calienta y rompe el combo; la caída forzada fallada suma +20.
 
 ### Fixed
 
@@ -33,6 +23,21 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Added
 
+- Menú principal con las pantallas del equipo (START, NEW GAME, LEVEL SELECT, LOADING) como escena
+  de inicio; el nivel 1 es la Azotea. YOU LOOSE y YOU WIN reemplazan el panel de texto del fin de
+  partida (menú, reintentar, siguiente nivel). Herramienta `build_menu_screens.gd` que convierte los
+  PSD.
+- HUD del calor: papa bomba en 5 etapas (dibujos del equipo) con el manómetro incrustado y alarma
+  desde 80 de calor (vibración, halos rojos); indicador del dash: cuadrado con flecha, verde listo,
+  rojo recargándose.
+- Sprites del jugador (guardia, correr al ritmo, aire, aterrizaje, dash, ataque aéreo) y la
+  herramienta `tools/scripts/build_player_sprites.gd` que los recorta, escala y ancla.
+- Sprites de los cinco enemigos (base, ataque, herido) con contorno del estilo, y la flecha y la
+  nube del stomp; herramienta `tools/scripts/build_enemy_sprites.gd`.
+- Música real en las zonas: `MusicTrack` (canción, BPM y primer beat medidos del audio) y el
+  `Conductor` sigue la posición de reproducción para que los beats caigan sobre la música.
+  Azotea: nivel uno (177 BPM); Oficinas: industrial (175 BPM). Controles en la pestaña Ritmo.
+- Tests `test_music` y `test_rhythm_rewards`.
 - Papa caliente (`HeatMeter`, `HeatHud`): calor que sube con el tiempo y al fallar el ritmo,
   mecha de 10 s que no se recarga, explosión y game over; manómetro, aviso de
   sobrecalentamiento con cuenta atrás, viñeta roja y temblor de tensión.

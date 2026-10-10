@@ -3,15 +3,22 @@ extends Node
 ## Reloj musical global (autoload `Conductor`). Única fuente de verdad del tempo:
 ## todo lo que late o juzga ritmo pregunta aquí, nunca a TIME por su cuenta.
 ## Su configuración vive en `params` (RhythmParams) y se puede cambiar en caliente.
+## Con una canción (`play_track`) el reloj sigue la posición de reproducción del audio, así los
+## beats caen sobre la música; sin canción (o en headless) avanza solo con el tiempo de juego.
 
 signal beat(index: int)
 ## Semicorchea (SUBDIVISIONS por beat): para patrones rápidos (p. ej. la tiradora).
 signal subbeat(index: int)
+signal track_changed(track: MusicTrack)
 
 enum Judgment { PERFECT, GOOD, MISS }
 
 const SUBDIVISIONS := 4
 const BEATS_PER_BAR := 4
+## Más desfase que esto entre el reloj y la música (inicio, salto, tirón) se corrige de golpe;
+## menos, se corrige suave para que los beats no tiemblen.
+const MUSIC_SNAP := 0.08
+const MUSIC_CORRECTION := 8.0
 
 var params := RhythmParams.new()
 
@@ -25,6 +32,11 @@ var _last_subbeat := -1
 var hitstop_scale := 1.0
 var _pending_hitstop := 1.0
 var _click: AudioStreamPlayer
+var _music: AudioStreamPlayer
+var _track: MusicTrack
+## Vueltas completas de la canción en bucle y última posición leída (para detectar la vuelta).
+var _loops := 0
+var _last_song_position := 0.0
 
 
 func _ready() -> void:
@@ -33,11 +45,56 @@ func _ready() -> void:
 	_click = AudioStreamPlayer.new()
 	_click.stream = _make_click()
 	add_child(_click)
+	_music = AudioStreamPlayer.new()
+	add_child(_music)
 
 
 func _exit_tree() -> void:
 	_click.stop()
 	_click.stream = null
+	_music.stop()
+	_music.stream = null
+
+
+## Reproduce `track` en bucle desde el principio y reinicia el reloj en el beat 0.
+## `null` (o la música desactivada) la apaga y el reloj sigue solo.
+func play_track(track: MusicTrack) -> void:
+	_track = track
+	_music.stop()
+	_music.stream = null
+	if track != null and track.stream != null and params.music_enabled:
+		# El tempo es el de la canción aunque no se pueda oír (headless): mismo juego en los tests.
+		params.bpm = track.bpm
+		_bpm = track.bpm
+		if _can_play_audio():
+			_music.stream = _looping(track.stream)
+			_update_music_mix()
+			_music.play()
+	restart()
+	track_changed.emit(track)
+
+
+func stop_music() -> void:
+	play_track(null)
+
+
+func current_track() -> MusicTrack:
+	return _track
+
+
+func is_music_playing() -> bool:
+	return _music.playing and _track != null
+
+
+## Vuelve al beat 0 (y la canción al principio).
+func restart() -> void:
+	_time = 0.0
+	_loops = 0
+	_last_song_position = 0.0
+	_last_beat = -1
+	_last_subbeat = -1
+	if is_music_playing():
+		_music.seek(0.0)
 
 
 func _process(delta: float) -> void:
@@ -46,7 +103,14 @@ func _process(delta: float) -> void:
 		var position := beat_position()
 		_bpm = clampf(params.bpm, 60.0, 240.0)
 		_time = position * beat_length()
-	_time += delta / maxf(hitstop_scale, 0.001)
+	if _track != null and _track.stream != null and _can_play_audio() \
+			and params.music_enabled != (_music.stream != null):
+		# Se activó o desactivó la música desde el menú.
+		play_track(_track)
+	if is_music_playing():
+		_follow_music(delta / maxf(hitstop_scale, 0.001))
+	else:
+		_time += delta / maxf(hitstop_scale, 0.001)
 	_apply_hitstop()
 	var sub := floori(beat_position() * SUBDIVISIONS)
 	if sub != _last_subbeat:
@@ -56,10 +120,60 @@ func _process(delta: float) -> void:
 	if index != _last_beat:
 		_last_beat = index
 		beat.emit(index)
-		if params.metronome_enabled:
+		if params.metronome_enabled and (params.metronome_over_music or not is_music_playing()):
 			_click.volume_db = params.metronome_volume_db
 			_click.pitch_scale = 1.6 if index % BEATS_PER_BAR == 0 else 1.0
 			_click.play()
+
+
+## Avanza con el tiempo de juego y corrige hacia la posición real de la música: la posición de
+## reproducción solo se actualiza por bloques de mezcla, así que no se usa sola.
+func _follow_music(step: float) -> void:
+	_update_music_mix()
+	var raw := _music.get_playback_position()
+	if raw < _last_song_position - 1.0:
+		_loops += 1
+	_last_song_position = raw
+	var song := raw + (AudioServer.get_time_since_last_mix() - AudioServer.get_output_latency()) \
+			* _music.pitch_scale
+	var length := _music.stream.get_length()
+	var beats := (_loops * length + song - _track.first_beat) * _track.bpm / 60.0
+	var target := beats * beat_length()
+	_time += step
+	var error := target - _time
+	if absf(error) > MUSIC_SNAP:
+		_time = target
+	else:
+		# Nunca hacia atrás: los beats ya emitidos no se repiten.
+		_time += maxf(error * minf(step * MUSIC_CORRECTION, 1.0), -step * 0.5)
+
+
+## Volumen y velocidad de la canción: el BPM de debug la acelera y la escala de tiempo de debug la
+## frena (el hitstop no, igual que no mueve los beats).
+func _update_music_mix() -> void:
+	if _track == null:
+		return
+	_music.volume_db = params.music_volume_db + _track.volume_db
+	var debug_scale := Engine.time_scale / maxf(hitstop_scale, 0.001)
+	_music.pitch_scale = clampf(params.bpm / _track.bpm * debug_scale, 0.05, 4.0)
+
+
+## Copia de la canción en bucle completo (el import no se versiona, así que se fija aquí).
+static func _looping(stream: AudioStream) -> AudioStream:
+	var copy := stream.duplicate() as AudioStream
+	if copy is AudioStreamWAV:
+		var wav := copy as AudioStreamWAV
+		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		wav.loop_begin = 0
+		wav.loop_end = int(wav.get_length() * wav.mix_rate)
+	elif copy is AudioStreamOggVorbis or copy is AudioStreamMP3:
+		copy.set(&"loop", true)
+	return copy
+
+
+## Sin dispositivo de audio real (headless, tests) la música no avanzaría: el reloj va solo.
+static func _can_play_audio() -> bool:
+	return DisplayServer.get_name() != "headless"
 
 
 ## Congela la acción (`scale` < 1) o la libera (1) sin mover los beats. El cambio se aplica en el
