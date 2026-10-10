@@ -24,6 +24,8 @@ var _times: Array[float] = []
 
 
 func _ready() -> void:
+	# Sin la configuración guardada del jugador (volúmenes, teclas, dificultad).
+	Settings.use_defaults()
 	Conductor.params.metronome_enabled = false
 	var limit := 1000
 	var extra := 0

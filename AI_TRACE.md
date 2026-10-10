@@ -723,3 +723,35 @@ Files: `AI_TRACE.md`
 Change: La sección de herramientas y autoría quedó en el commit `68fa0f1`. Merge de `origin/develop` (`b323d15`): el único conflicto fue en AI_TRACE, donde las dos ramas agregaban al final; el archivo de `develop` queda intacto y la sección del equipo va después.
 Commit: PENDING (se commitea junto con esta entrada, en el commit de merge)
 Notes: Esta rama solo cambia `AI_TRACE.md`. Push autorizado por el usuario para que abra él el pull request.
+
+---
+
+Rama `feature/settings-menu` (nace de `develop`). Misma sesión de trabajo del 2026-10-10.
+
+### Fuente Jersey 20 (material de terceros)
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (autor de Git: 14mn0t4b0t)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "si basjaste esa font ponlo en ai trace tambien"
+Task: Registrar el origen y la licencia de la fuente agregada al proyecto.
+Type: ASSET (terceros) / DOCS
+Files: `assets/fonts/jersey20/Jersey20-Regular.ttf`, `assets/fonts/jersey20/OFL.txt` (nuevos)
+Change: La IA identificó en los PSD del menú (`assets_src/ui/menu/*.psd`, datos de sus capas de texto) que los diseños usan la fuente Jersey 20 y la descargó del repositorio oficial de Google Fonts (`https://github.com/google/fonts`, carpeta `ofl/jersey20`), junto con su licencia. Autoría: The Soft Type Project Authors (`https://github.com/scfried/soft-type-jersey`), 2023. Licencia: SIL Open Font License 1.1 (`OFL.txt` incluido junto a la fuente), que permite usarla, incluirla y distribuirla con el juego. No es material del equipo ni fue generada por IA: no se modificó. Se usa en las pantallas dibujadas en código (configuración y pausa) para que coincidan con los diseños del equipo.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Si el equipo prefiere otra fuente o tiene el archivo con el que diseñó, basta con reemplazarlo en `MenuStyle.FONT_PATH`.
+
+### Menú de configuración
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (autor de Git: 14mn0t4b0t)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "Haz pull a dev y creas una rama que se encarga de hacer el menu de configuracion". Respuestas: opciones de Audio, Video, Controles, Juego y "Dificultad, alli te voy deciendo mas"; se abre desde el menú y la pausa; "Dibujalo en codigo, no creo que llegue PSD asi que hazlo bien".
+Task: Pantalla de configuración con guardado y aplicación inmediata, accesible desde START y PAUSE.
+Type: CODE (AI) / UI / DOCS / TESTING
+Files: `src/core/autoloads/settings.gd`, `src/ui/menus/{settings_screen.gd,settings_row.gd,drawn_button.gd,menu_style.gd}` (nuevos), `src/ui/menus/{pause_art.gd,psd_screen.gd,main_menu.gd}`, `src/world/levels/zone_level.gd`, `src/world/levels/oficinas/oficinas.gd`, `src/core/autoloads/conductor.gd`, `src/features/audio/sfx_player.gd`, `project.godot`, `tests/integration/test_settings.gd`, `tests/test_scenes/settings.tscn` (nuevos), `tests/integration/*.gd`, `tests/perf/benchmark.gd`, `docs/game-design/menu.md`, `docs/development/testing.md`, `docs/architecture/overview.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: Autoload `Settings` (guarda en `user://configuracion.cfg`): buses `Musica` y `Efectos` (música, metrónomo, efectos y guía sonora van a su bus), ventana (pantalla completa, VSync, límite de FPS), dos teclas por acción en el InputMap (intercambio si la tecla ya estaba en uso, Esc/Tab/F1 reservadas, el clic de atacar se conserva), y para la partida: dificultad (multiplicadores de calor, mecha, ventanas de juicio y velocidad de las papas sobre los valores del nivel, sin acumularse), temblor de cámara, latencia del ritmo y estilo gráfico ("Level's own" respeta el del nivel). `ZoneLevel` lo aplica al empezar y cada vez que cambia. Pantalla `SettingsScreen` en código con `MenuStyle` (colores y botones de los PSD, letra Jersey 20): pestañas AUDIO, VIDEO, CONTROLS, GAME, DIFFICULTY; filas `SettingsRow` (deslizador, ON/OFF, lista, teclas) con teclado y mouse, ayuda de la opción con foco y DEFAULTS por pestaña. SETTINGS bajo START y en PAUSE (que pasa a usar `MenuStyle`). Textos en inglés como los botones del diseño.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Los tests de integración y el benchmark llaman `Settings.use_defaults()` para no depender de la configuración guardada. Importación sin errores; 7 tests unitarios y 6 de integración (incluido el nuevo `test_settings`) en verde. Capturas con ventana de START, las cinco pestañas, la espera de tecla y la pausa revisadas. Los multiplicadores de dificultad son una propuesta: el usuario indicó que irá definiendo más. Sin push hasta que el usuario lo autorice.

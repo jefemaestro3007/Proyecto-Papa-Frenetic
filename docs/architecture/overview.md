@@ -9,6 +9,7 @@ mismo resultado.
 ```
 src/
 ├── core/autoloads/conductor.gd        # Conductor: reloj musical global (BPM, beat, juicio)
+├── core/autoloads/settings.gd         # Settings: configuración del jugador (audio, video, teclas, dificultad)
 ├── features/
 │   ├── player/                        # PlayerPrototype + PlayerParams
 │   ├── rhythm/                        # RhythmTracker (combo/puntaje) + RhythmParams + MusicTrack
@@ -35,6 +36,7 @@ src/
 ├── ui/
 │   ├── components/debug_section.gd    # pestaña del menú de debug (sliders, colores, presets)
 │   ├── menus/debug_menu.gd            # menú de debug con pestañas
+│   ├── menus/settings_screen.gd       # SETTINGS (SettingsRow, DrawnButton, MenuStyle)
 │   └── hud/                           # RhythmHud (combo, compás, avisos) + HeatHud (manómetro, mecha, fin)
 └── shared/resources/
     ├── presets/<sección>/             # presets .tres por sección del menú

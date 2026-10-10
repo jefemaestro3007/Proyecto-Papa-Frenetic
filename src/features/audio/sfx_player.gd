@@ -34,6 +34,7 @@ func _ready() -> void:
 		groups[group].append(effect)
 	for _i in VOICES:
 		var player := AudioStreamPlayer.new()
+		player.bus = GameSettings.SFX_BUS
 		add_child(player)
 		_players.append(player)
 

@@ -26,6 +26,8 @@ var _node: Node
 
 
 func _ready() -> void:
+	# Sin la configuración guardada del jugador (volúmenes, teclas, dificultad).
+	Settings.use_defaults()
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--scene="):
 			_scene = arg.get_slice("=", 1)

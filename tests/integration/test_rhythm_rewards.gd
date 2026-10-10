@@ -11,6 +11,8 @@ var _failures := 0
 
 
 func _ready() -> void:
+	# Sin la configuración guardada del jugador (volúmenes, teclas, dificultad).
+	Settings.use_defaults()
 	var tracker := RhythmTracker.new()
 	add_child(tracker)
 	var timeout := Conductor.params.combo_timeout_beats

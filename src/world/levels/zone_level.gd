@@ -92,6 +92,9 @@ var _fx_rng := RandomNumberGenerator.new()
 var _shock := 0.0
 var _initial_tab := 0
 var _style_name := "default"
+## Estilo del nivel (escena, `start_style` o `--style`) y el último que pidió la configuración.
+var _level_style := "default"
+var _settings_style := ""
 var _hide_menu := false
 var _style_signature := 0
 var _skyline_views: Array[SkylineView] = []
@@ -193,6 +196,9 @@ func _ready() -> void:
 		apply_style(start_style)
 	if not Engine.is_editor_hint():
 		_parse_args()
+		_level_style = _style_name
+		_apply_settings()
+		Settings.changed.connect(_apply_settings)
 		_build_runtime()
 	regenerate()
 	_initialized = true
@@ -995,6 +1001,18 @@ func _on_result_action(action_name: StringName) -> void:
 				Conductor.restart()
 
 
+## Configuración del jugador (Settings): dificultad, temblor y latencia van a los parámetros de
+## la partida; el estilo gráfico reemplaza al del nivel salvo con "Level's own". Se vuelve a
+## aplicar cada vez que cambia (también desde la pausa).
+func _apply_settings() -> void:
+	Settings.apply_to_match(combat, Conductor.params)
+	var wanted := Settings.style if not Settings.style.is_empty() else _level_style
+	if wanted != _settings_style:
+		_settings_style = wanted
+		if wanted != _style_name:
+			apply_style(wanted)
+
+
 ## Menú de pausa (Esc): congela el juego y la canción; CONTINUE o Esc sigue, BACK MENU vuelve al
 ## menú principal.
 func pause() -> void:
@@ -1006,10 +1024,15 @@ func pause() -> void:
 	_pause_layer.layer = 75
 	_pause_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_pause_layer)
+	_show_pause_screen()
+
+
+func _show_pause_screen() -> void:
 	var screen := PsdScreen.new("", Color(PsdScreen.BACKDROP, 0.82))
 	screen.add_art(PauseArt.new())
 	screen.add_button(PauseArt.CONTINUE_BUTTON, &"continuar")
 	screen.add_button(PauseArt.MENU_BUTTON, &"menu")
+	screen.add_button(PauseArt.SETTINGS_BUTTON, &"configuracion")
 	screen.escape_action = &"continuar"
 	screen.action.connect(_on_pause_action)
 	_pause_layer.add_child(screen)
@@ -1030,10 +1053,21 @@ func is_paused() -> bool:
 
 
 func _on_pause_action(action_name: StringName) -> void:
-	if action_name == &"menu":
-		Game.go_to_menu()
-	else:
-		resume()
+	match action_name:
+		&"menu":
+			Game.go_to_menu()
+		&"configuracion":
+			# La configuración reemplaza a la pausa; BACK o Esc vuelven a la pausa.
+			for child in _pause_layer.get_children():
+				child.queue_free()
+			var settings: SettingsScreen = SettingsScreen.new(Color(PsdScreen.BACKDROP, 0.92))
+			settings.action.connect(func(_name: StringName) -> void:
+				settings.queue_free()
+				_show_pause_screen())
+			_pause_layer.add_child(settings)
+			settings.focus_first()
+		_:
+			resume()
 
 
 ## Congela el mundo (jugador, enemigos, proyectiles) al terminar la partida.

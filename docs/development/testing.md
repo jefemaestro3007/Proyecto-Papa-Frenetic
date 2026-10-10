@@ -46,6 +46,7 @@ godot --headless --path . --fixed-fps 60 res://tests/test_scenes/combat_match.ts
 godot --headless --path . --fixed-fps 60 res://tests/test_scenes/campaign.tscn
 godot --headless --path . res://tests/test_scenes/rhythm_rewards.tscn
 godot --headless --path . --fixed-fps 60 res://tests/test_scenes/sfx.tscn
+godot --headless --path . --fixed-fps 60 res://tests/test_scenes/settings.tscn
 ```
 
 Juega la Azotea real: reparto de enemigos por tramo (`EnemyRoster`), calor pasivo, stomp que
@@ -68,6 +69,12 @@ el recorrido automático y el calor apagado, y reporta el tiempo por frame (prom
 máximo), proceso, física, draw calls, nodos y memoria. `--idle` deja al jugador quieto y
 `--set=propiedad=valor` cambia el mapa: comparar un mapa chico con uno grande muestra si algo
 escala con el tamaño (no debería).
+
+`settings` comprueba la configuración del jugador: buses de audio, teclas (con intercambio y el
+clic de atacar intacto), dificultad y temblor sin acumularse, guardar y cargar, la pantalla
+(pestañas, teclado, reasignar una tecla, DEFAULTS) y abrirla desde la pausa y desde START.
+Los tests de integración empiezan con `Settings.use_defaults()`: no leen ni escriben la
+configuración guardada del jugador.
 
 ## Capturas para revisar lo visual
 
