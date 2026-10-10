@@ -41,14 +41,14 @@ const PROP_SIZES := {
 	AzoteaMapData.Prop.Type.PIPE_RUN: [Vector2(150.0, 30.0), Vector2(300.0, 44.0)],
 }
 const MARK_WEIGHTS := {
-	AzoteaMapData.Mark.Type.BLOOD: 0.18,
-	AzoteaMapData.Mark.Type.CRACK: 0.18,
-	AzoteaMapData.Mark.Type.STAIN: 0.14,
-	AzoteaMapData.Mark.Type.RUBBLE: 0.12,
-	AzoteaMapData.Mark.Type.POSTER: 0.12,
-	AzoteaMapData.Mark.Type.GRAFFITI: 0.1,
-	AzoteaMapData.Mark.Type.WALL_UNIT: 0.08,
-	AzoteaMapData.Mark.Type.BONES: 0.08,
+	MapMark.Type.BLOOD: 0.18,
+	MapMark.Type.CRACK: 0.18,
+	MapMark.Type.STAIN: 0.14,
+	MapMark.Type.RUBBLE: 0.12,
+	MapMark.Type.POSTER: 0.12,
+	MapMark.Type.GRAFFITI: 0.1,
+	MapMark.Type.WALL_UNIT: 0.08,
+	MapMark.Type.BONES: 0.08,
 }
 
 
@@ -110,13 +110,13 @@ static func _place_props(data: AzoteaMapData, rng: RandomNumberGenerator, roof: 
 ## Marcas: escombros sobre el techo; sangre, grietas y manchas en la fachada.
 static func _place_marks(data: AzoteaMapData, rng: RandomNumberGenerator, roof: Rect2, max_count: int) -> void:
 	for i in rng.randi_range(max_count / 2, max_count):
-		var type: AzoteaMapData.Mark.Type = _weighted_pick(rng, MARK_WEIGHTS)
+		var type: MapMark.Type = _weighted_pick(rng, MARK_WEIGHTS)
 		var x := rng.randf_range(roof.position.x + 30.0, roof.end.x - 30.0)
 		var y := roof.position.y
-		if not AzoteaMapData.Mark.on_roof(type):
+		if not MapMark.on_floor(type):
 			# Franja de fachada que la cámara suele mostrar bajo el borde.
 			y += rng.randf_range(50.0, 260.0)
-		data.marks.append(AzoteaMapData.Mark.new(type, Vector2(x, y), rng.randf_range(0.6, 1.4),
+		data.marks.append(MapMark.new(type, Vector2(x, y), rng.randf_range(0.6, 1.4),
 				rng.randf(), rng.randi()))
 
 
