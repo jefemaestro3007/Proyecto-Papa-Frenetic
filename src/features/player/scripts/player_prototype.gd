@@ -28,8 +28,11 @@ var _stumble_left := 0.0
 
 
 func _ready() -> void:
-	var shape := RectangleShape2D.new()
-	shape.size = SIZE
+	# Cápsula: en suelo plano es igual a un rectángulo, pero resbala de puntas y cornisas
+	# en vez de quedarse apoyada en un vértice.
+	var shape := CapsuleShape2D.new()
+	shape.radius = SIZE.x * 0.5
+	shape.height = SIZE.y
 	var collision := CollisionShape2D.new()
 	collision.shape = shape
 	collision.position.y = -SIZE.y * 0.5
