@@ -27,3 +27,7 @@ fence_amount = 0.25
 cable_flags = true
 wall_unit_amount = 0.6
 burst_lines = 0.15
+wall_paper = Color(0.2, 0.19, 0.3, 1)
+floor_color = Color(0.14, 0.137, 0.227, 1)
+furniture = Color(0.42, 0.4, 0.55, 1)
+furniture_dark = Color(0.165, 0.16, 0.267, 1)
