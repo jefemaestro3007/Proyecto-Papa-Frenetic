@@ -93,7 +93,7 @@ nada pero el tempo es el de la canción, así los tests juegan igual.
 
 | Zona | Canción | BPM |
 |---|---|---|
-| Azotea | `nivel_uno` (DirtyLoveSongLevelOne.wav, 65 compases) | 177 |
+| Azotea | `nivel_uno` (DirtyLoveSongLevelOneRemake.wav, empieza de una: primer beat a 0,15 s, 229 beats) | 177 |
 | Oficinas | `industrial` (SecondLevelIndustrial.wav, 21 compases) | 175 |
 | (futura) | `centro_comercial` (NivelTresCentroComercial.wav, 22 compases) | 140 |
 

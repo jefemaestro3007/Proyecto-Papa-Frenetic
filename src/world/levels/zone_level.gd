@@ -44,7 +44,8 @@ enum Match { PLAYING, VICTORY, GAME_OVER }
 @export var combat: CombatParams
 
 @export_group("Subnivel")
-## Guion del tutorial con la protagonista (`azotea` en 1-1, `edificio` en 2-1; vacío = sin tutorial).
+## Guion del tutorial con la protagonista (`azotea` en 1-1, `prueba` en 1-2, `edificio` en 2-1;
+## vacío = sin tutorial).
 @export var tutorial := &""
 ## Estilo gráfico con el que arranca (`default`, `pixel`, `isaac`; vacío = default).
 @export var start_style := ""
@@ -170,6 +171,11 @@ func _zone_solids() -> Array[Rect2]:
 ## Canción de la zona (`MusicTrack`): pone el tempo del Conductor.
 func _zone_music() -> MusicTrack:
 	return null
+
+
+## Canción que se mezcla con el calor alto (la misma en todas las zonas).
+func _zone_danger_music() -> MusicTrack:
+	return load(MUSIC + "peligro.tres")
 
 
 func _zone_help_text() -> String:
@@ -430,16 +436,19 @@ func _build_runtime() -> void:
 	ui_layer.add_child(help)
 	if not tutorial.is_empty():
 		_tutorial = TutorialHints.new(tutorial)
+		_tutorial.focus = _heat_hud.potato
 		ui_layer.add_child(_tutorial)
 	_menu = DebugMenu.new()
 	ui_layer.add_child(_menu)
 	_build_debug_menu()
 	Conductor.play_track(_zone_music())
+	Conductor.set_danger_track(_zone_danger_music())
 
 
 func _exit_tree() -> void:
 	if not Engine.is_editor_hint():
 		Conductor.stop_music()
+		Conductor.set_danger_track(null)
 
 
 func _build_debug_menu() -> void:
@@ -679,6 +688,8 @@ func _build_rhythm_section(section: DebugSection) -> void:
 	_music_text = section.add_text()
 	section.add_toggle(r, &"music_enabled", "Música")
 	section.add_slider(r, &"music_volume_db", "Volumen música (dB)", -40, 6, 1)
+	section.add_toggle(r, &"danger_crossfade", "Peligro: la canción del nivel se calla (si no, suenan juntas)")
+	section.add_slider(r, &"danger_volume_db", "Volumen canción de peligro (dB)", -40, 6, 1)
 	var songs := [["Zona", func() -> void: Conductor.play_track(_zone_music())]]
 	for track in _music_tracks():
 		songs.append([track.title.get_slice(" (", 0), Conductor.play_track.bind(track)])
@@ -731,6 +742,7 @@ func _build_combat_section(section: DebugSection) -> void:
 	section.add_slider(combat, &"projectile_heat", "Papa frita", 0.0, 40.0, 0.5)
 	section.add_slider(combat, &"fall_heat", "Caer al vacío", 0.0, 40.0, 0.5)
 	section.add_slider(combat, &"intensity_threshold", "Tensión desde (calor)", 0.0, 100.0, 1)
+	section.add_slider(combat, &"danger_from", "Peligro desde (calor): canción y glitch", 0.0, 100.0, 1)
 	section.add_slider(combat, &"fuse_seconds", "Mecha (s)", 1.0, 30.0, 0.5)
 	section.add_buttons([
 		["Calor 0", func() -> void: _heat.change(-HeatMeter.MAX_HEAT)],
@@ -836,6 +848,7 @@ func _process(delta: float) -> void:
 	for uniform in ArtStyle.POST_UNIFORMS:
 		_post.set_shader_parameter(uniform, style.get(uniform))
 	_post.set_shader_parameter("shock", _shock)
+	_post.set_shader_parameter("heat_glitch", Conductor.danger)
 	_post.set_shader_parameter("spotlight_center",
 			_player_screen_position() / get_viewport().get_visible_rect().size)
 	_camera.offset = Vector2(_fx_rng.randf_range(-1.0, 1.0), _fx_rng.randf_range(-1.0, 1.0)) \
@@ -918,8 +931,20 @@ func _update_heat(delta: float) -> void:
 	_heat_hud.update_fuse(_heat.fuse_left)
 	_heat_hud.set_intensity(intensity, overheated)
 	_feel.set_intensity(intensity, overheated)
+	Conductor.set_danger(danger_amount())
 	_heat_hud.update_dash(player_params.dash_enabled and is_playing(), _player.dash_cooldown_left(), player_params.dash_cooldown,
 			not _player.is_on_floor(), _player.facing)
+
+
+## Peligro 0-1: desde `combat.danger_from` de calor hasta 100 (1 con la mecha encendida). Sube
+## la canción de peligro y el glitch leve; fuera de la partida es 0.
+func danger_amount() -> float:
+	if not combat.heat_enabled or not is_playing():
+		return 0.0
+	if _heat.overheated:
+		return 1.0
+	var from := combat.danger_from
+	return clampf((_heat.heat - from) / maxf(HeatMeter.MAX_HEAT - from, 0.001), 0.0, 1.0)
 
 
 ## Suma (o resta) calor durante la partida y lo anuncia sobre el jugador.

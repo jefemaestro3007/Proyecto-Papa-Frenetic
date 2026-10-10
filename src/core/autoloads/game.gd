@@ -6,11 +6,13 @@ extends Node
 const MENU_SCENE := "res://src/ui/menus/main_menu.tscn"
 const PROGRESS_FILE := "user://progreso.cfg"
 ## Subniveles en orden de juego. `nivel` es la tarjeta del menú que lo abre (entra por el primero
-## de cada nivel); al ganar, YOU WIN pasa al siguiente de la lista.
+## de cada nivel); al ganar, YOU WIN pasa al siguiente de la lista. `carga` (opcional) es la imagen de la
+## pantalla de carga cuando se llega a ese subnivel desde el anterior con NEXT LEVEL (p. ej. 1-2 → 2-1).
 const LEVELS: Array[Dictionary] = [
 	{"nivel": 1, "nombre": "1-1 Tutorial", "escena": "res://src/world/levels/azotea/azotea_tutorial.tscn"},
 	{"nivel": 1, "nombre": "1-2 Carullazo", "escena": "res://src/world/levels/azotea/azotea_prueba.tscn"},
-	{"nivel": 2, "nombre": "2-1 Subida", "escena": "res://src/world/levels/oficinas/oficinas_subida.tscn"},
+	{"nivel": 2, "nombre": "2-1 Subida", "escena": "res://src/world/levels/oficinas/oficinas_subida.tscn",
+			"carga": "res://assets/textures/ui/menu/carga_mundo_2.png"},
 	{"nivel": 2, "nombre": "2-2 Bajada", "escena": "res://src/world/levels/oficinas/oficinas_bajada.tscn"},
 ]
 
@@ -23,6 +25,8 @@ var menu_screen := &"inicio"
 var unlocked_level := 1
 ## Archivo del progreso (los tests usan otro para no tocar el del jugador).
 var progress_path := PROGRESS_FILE
+## Se llegó al subnivel actual con NEXT LEVEL (no desde la selección de nivel).
+var arrived_by_next := false
 
 
 func _ready() -> void:
@@ -86,6 +90,7 @@ func go_to_menu(screen: StringName = &"inicio") -> void:
 ## Juega un subnivel pasando por la pantalla de carga; llegar a él desbloquea su nivel.
 func play(index: int) -> void:
 	level_index = clampi(index, 0, LEVELS.size() - 1)
+	arrived_by_next = false
 	unlock(LEVELS[level_index]["nivel"])
 	go_to_menu(&"cargando")
 
@@ -97,6 +102,14 @@ func play_level(level: int) -> void:
 
 func next_level() -> void:
 	play(level_index + 1)
+	arrived_by_next = true
+
+
+## Imagen de la pantalla de carga del subnivel que se va a jugar (vacía = la carga normal del menú).
+func loading_image() -> String:
+	if not arrived_by_next or level_index < 0:
+		return ""
+	return LEVELS[level_index].get("carga", "")
 
 
 func level_scene() -> String:

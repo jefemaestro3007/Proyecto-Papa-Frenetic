@@ -28,6 +28,9 @@ extends Resource
 @export_range(0.0, 20.0) var whiff_heat: float = 5.0
 ## Desde este calor la partida se siente tensa (temblor, viñeta).
 @export_range(0.0, 100.0) var intensity_threshold: float = 50.0
+## Desde este calor suena la canción de peligro y la pantalla se glitchea un poco; las dos cosas
+## suben hasta el máximo en 100 (o con la mecha encendida).
+@export_range(0.0, 100.0) var danger_from: float = 70.0
 @export_range(1.0, 30.0) var fuse_seconds: float = 10.0
 
 @export_group("Ataque")

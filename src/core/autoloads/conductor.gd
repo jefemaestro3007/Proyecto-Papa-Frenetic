@@ -19,6 +19,10 @@ const BEATS_PER_BAR := 4
 ## menos, se corrige suave para que los beats no tiemblen.
 const MUSIC_SNAP := 0.08
 const MUSIC_CORRECTION := 8.0
+## Canción de peligro: cuánto sube o baja su nivel por segundo (para que no entre de golpe) y
+## cuánto queda la del nivel cuando suenan juntas al máximo (−3 dB, para no saturar).
+const DANGER_FADE_PER_SECOND := 1.5
+const TOGETHER_MAIN_GAIN := 0.7
 
 var params := RhythmParams.new()
 
@@ -33,6 +37,12 @@ var hitstop_scale := 1.0
 var _pending_hitstop := 1.0
 var _click: AudioStreamPlayer
 var _music: AudioStreamPlayer
+var _danger_player: AudioStreamPlayer
+var _danger_track: MusicTrack
+var _danger_target := 0.0
+## Nivel de peligro (0-1, suavizado) con el que suena la canción de peligro. Solo lectura: se pide
+## con `set_danger()`.
+var danger := 0.0
 var _track: MusicTrack
 ## Vueltas completas de la canción en bucle y última posición leída (para detectar la vuelta).
 var _loops := 0
@@ -51,6 +61,9 @@ func _ready() -> void:
 	_music = AudioStreamPlayer.new()
 	_music.bus = AudioBuses.MUSIC
 	add_child(_music)
+	_danger_player = AudioStreamPlayer.new()
+	_danger_player.bus = AudioBuses.MUSIC
+	add_child(_danger_player)
 
 
 func _exit_tree() -> void:
@@ -58,6 +71,7 @@ func _exit_tree() -> void:
 	_click.stream = null
 	_music.stop()
 	_music.stream = null
+	_stop_danger()
 
 
 ## Reproduce `track` en bucle desde el principio y reinicia el reloj en el beat 0.
@@ -65,6 +79,9 @@ func _exit_tree() -> void:
 func play_track(track: MusicTrack) -> void:
 	_track = track
 	set_paused(false)
+	_danger_target = 0.0
+	danger = 0.0
+	_stop_danger()
 	_music.stop()
 	_music.stream = null
 	if track != null and track.stream != null and params.music_enabled:
@@ -83,10 +100,52 @@ func play_track(track: MusicTrack) -> void:
 func set_paused(paused: bool) -> void:
 	_paused = paused
 	_music.stream_paused = paused
+	_danger_player.stream_paused = paused
 
 
 func is_paused() -> bool:
 	return _paused
+
+
+## Canción que se mezcla con el calor alto (la pone la zona; `null` la quita).
+func set_danger_track(track: MusicTrack) -> void:
+	_danger_track = track
+	_stop_danger()
+
+
+## Cuánto peligro hay (0-1): la canción de peligro sube de volumen con él y la del nivel baja
+## (hasta callarse con `params.danger_crossfade`, o un poco si suenan juntas). El cambio es gradual.
+func set_danger(amount: float) -> void:
+	_danger_target = clampf(amount, 0.0, 1.0)
+
+
+## Volumen (lineal) de la canción del nivel según el peligro.
+func main_gain() -> float:
+	return lerpf(1.0, 0.0 if params.danger_crossfade else TOGETHER_MAIN_GAIN, danger)
+
+
+func is_danger_playing() -> bool:
+	return _danger_player.playing
+
+
+func _update_danger(delta: float) -> void:
+	danger = move_toward(danger, _danger_target, delta * DANGER_FADE_PER_SECOND)
+	var audible := danger > 0.0 and _danger_track != null and _danger_track.stream != null \
+			and params.music_enabled and _can_play_audio()
+	if audible and not _danger_player.playing:
+		# Empieza desde el principio cada vez que se cruza el umbral.
+		_danger_player.stream = _looping(_danger_track.stream)
+		_danger_player.play()
+	elif not audible and _danger_player.playing:
+		_stop_danger()
+	if _danger_player.playing:
+		_danger_player.volume_db = params.music_volume_db + _danger_track.volume_db \
+				+ params.danger_volume_db + linear_to_db(danger)
+
+
+func _stop_danger() -> void:
+	_danger_player.stop()
+	_danger_player.stream = null
 
 
 func stop_music() -> void:
@@ -115,6 +174,7 @@ func restart() -> void:
 func _process(delta: float) -> void:
 	if _paused:
 		return
+	_update_danger(delta)
 	if not is_equal_approx(_bpm, params.bpm):
 		# Conserva la posición en el compás al cambiar de tempo.
 		var position := beat_position()
@@ -170,7 +230,7 @@ func _follow_music(step: float) -> void:
 func _update_music_mix() -> void:
 	if _track == null:
 		return
-	_music.volume_db = params.music_volume_db + _track.volume_db
+	_music.volume_db = params.music_volume_db + _track.volume_db + linear_to_db(maxf(main_gain(), 0.0001))
 	var debug_scale := Engine.time_scale / maxf(hitstop_scale, 0.001)
 	_music.pitch_scale = clampf(params.bpm / _track.bpm * debug_scale, 0.05, 4.0)
 

@@ -822,3 +822,71 @@ Files: `src/ui/menus/main_menu.gd`, `docs/game-design/menu.md`, `AI_TRACE.md`
 Change: START mide 21 px de alto en el diseño (medido en `inicio.png`); SETTINGS pasa de 40 px de fuente (24 px de alto, más grande que START) a 22 px (13 px de alto, 62 %, lo más cercano al 60 % que da Jersey 20). La zona clicable baja a 96×26, centrada bajo START.
 Commit: PENDING (se commitea junto con esta entrada)
 Notes: Captura con ventana revisada (sin foco y con foco en SETTINGS). `test_settings` en verde. Sin push hasta que el usuario lo autorice.
+
+---
+
+Rama `feature/heat-intensity` (nace de `develop` en `7e25048`).
+
+**Autoría y fuentes del material nuevo** (confirmadas por Andrés Valencia):
+
+| Material | Autor / fuente | Archivos |
+|---|---|---|
+| Canción de peligro: "[FREE] ambient dnb breakcore x experimental type beat" | **Recurso externo:** prod. by @1tynee (beat publicado como gratuito; no es del equipo). El crédito va en el título de `peligro.tres` y en `docs/game-design/combate.md`. Falta confirmar las condiciones de uso del productor | `assets/audio/music/IntensidadCalor.wav` |
+| Remake de la canción del nivel uno | Miguel Angel Asprilla | `assets/audio/music/DirtyLoveSongLevelOneRemake.wav` |
+| Ilustración de la pantalla de carga 1-2 → 2-1 | Juan Manuel Cuero Possu | `assets_src/ui/menu/carga_mundo_2.jpg` (original), `assets/textures/ui/menu/carga_mundo_2.png` (solo convertido a PNG) |
+
+### Calor alto: más temblor, glitch leve y canción de peligro
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: Que el efecto de intensidad cuando la papa llega a 70 % de calor sea más intenso y notorio, para que el jugador sienta que es un problema grandísimo. Subir la sacudida de cámara en un 50 % más o menos y que se vea un poquito glitcheado, levemente. Que pasado el 70 % empiece a sonar esta canción (WAV adjunto): primero probar las dos canciones a la vez y, si no funciona, que la intensa suba de volumen mientras la original baja, en todos los niveles, empezando con poquito volumen en 70 y llegando al máximo en 100, sin ser perjudicial ni muy ruidosa.
+Task: Reforzar la sensación de peligro del calor alto.
+Type: CODE (AI) / GAME FEEL / AUDIO / TESTING / DOCS
+Files: `src/features/combat/{game_feel.gd,combat_params.gd}`, `src/features/rhythm/rhythm_params.gd`, `src/core/autoloads/conductor.gd`, `src/world/environment/shaders/frenetic_post.gdshader`, `src/world/levels/zone_level.gd`, `src/shared/resources/music/peligro.tres`, `assets/audio/music/IntensidadCalor.wav` (+ `.import`), `tests/unit/test_music.gd`, `tests/integration/test_campaign.gd`, `docs/game-design/combate.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: El temblor, la vibración y el balanceo por calor son 1,5 veces más fuertes; siguen empezando en 50 de calor, el umbral de tensión que ya existía. Peligro (`danger_from` = 70 hasta 100, o 1 con la mecha): `ZoneLevel.danger_amount()` lo pasa al `Conductor` y al shader. El `Conductor` tiene un segundo reproductor para la canción de peligro: empieza desde el principio al pasar 70, su volumen es lineal con el peligro, entra y sale de a poco (1,5 por segundo), se pausa con el juego y se apaga al ganar o perder. Dos mezclas en la pestaña Ritmo: juntas (por defecto; la canción del nivel baja a 0,7 ≈ −3 dB al máximo) o cruzada (la del nivel baja hasta callarse); también hay un volumen propio. Shader: `heat_glitch` corre franjas finas y separa un poco el color, de forma intermitente y mucho más leve que el glitch de un golpe.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Análisis del audio (GDScript, borrado después): la canción de peligro va a ~137 BPM, frente a 177/175 de los niveles, así que juntas no coinciden en ritmo; el beat del juego sigue siendo el de la canción del nivel. Su RMS es ~2 dB más alto que el de la canción del nivel uno, por eso `volume_db = -6`. La mezcla y el volumen no se escucharon en la sesión (sin salida de audio): falta probarlos de oído. Capturas con ventana a 95 de calor: separación de color leve y cámara inclinada; la canción de peligro sonando al 84 % y la del nivel al 75 %. `test_music` cubre la subida gradual y las dos mezclas; `test_campaign`, el paso de calor a peligro (69 → 0, 85 → 0,5, mecha → 1, fin de partida → 0).
+
+### Tutorial: primero la premisa de la papa bomba
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: Feedback de una persona que jugó: no entendió la premisa de la papa caliente (que todo el objetivo es matar papas para mantenerla fría y que no explote); creyó que era lore. Mejorar el tutorial para dejar claro desde el inicio qué tan importante es el indicador de papa caliente y cómo funciona: empezar con que le pegaron una papa bomba y debe buscar rápido una salida de la ciudad, y ahí explicar los controles básicos (mover, golpear, saltar y golpear en el aire), que son todos los de la primera misión. En 1.2 enseñar el dash y el stomp; escaleras y ascensores cuando hagan falta, como antes. Enseñar la premisa a los novatos sin ser muy literales. Después: quitar el texto pequeño de abajo de los diálogos (que se entienda por lo que ella dice); cambiar "reventar papas" por "pelar papas"; que el aviso para continuar no parpadee.
+Task: Reescribir el tutorial alrededor de la premisa y repartir los controles entre 1-1 y 1-2.
+Type: CODE (AI) / UX / NARRATIVE / TESTING / DOCS
+Files: `src/ui/hud/{tutorial_hints.gd,tutorial_spot.gdshader}`, `src/world/levels/zone_level.gd`, `src/world/levels/azotea/azotea_prueba.tscn`, `tests/integration/test_campaign.gd`, `docs/game-design/menu.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: Los diálogos tienen páginas, con un contador "(1/3)"; cada tecla primero termina de escribir y la siguiente pasa de página. Las páginas con foco oscurecen todo menos la papa bomba del HUD (shader con un círculo abierto) y la rodean con un anillo amarillo que late; mientras tanto, la protagonista y el globo se corren a la izquierda. Guiones: `azotea` (1-1) cuenta al empezar la premisa en tres páginas (le pegaron una papa bomba; se calienta sola y más si pierde el ritmo, solo la enfría pelar papas zombi al ritmo, si llega al rojo explota; hay que salir de la ciudad y los controles: moverse, saltar, golpear y golpe aéreo). Con la primera papa: "Pélala al ritmo y mira cómo se enfría mi papa bomba", con el foco en la papa. `prueba` (1-2, nuevo): stomp y dash. `edificio` (2-1) igual que antes. Sin texto de pie; el aviso "ESPACIO / CLIC" queda fijo.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Los textos los redactó Claude en la voz de la protagonista y el usuario los ajustó ("pelar" en lugar de "reventar"; sin pies). Al quitar los pies se perdieron cuatro aclaraciones (la salida al final de las azoteas, golpear fuera de ritmo calienta, qué hace cada truco, cómo llamar el ascensor); se avisó al usuario. Capturas con ventana de todas las páginas. `test_campaign` cubre la premisa de tres páginas con foco, el paso de página, que la tecla que cierra no hace saltar, la primera papa sin fondo oscuro, 1-2 con stomp y dash, y 2-1.
+
+### Pantalla de carga 1-2 → 2-1
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: Incluir esta imagen (adjunta) como pantalla de carga del mundo 1.2 al 2.1.
+Task: Pantalla de carga propia para la transición del nivel 1 al 2.
+Type: CODE (AI) / UX / TESTING / DOCS
+Files: `src/core/autoloads/game.gd`, `src/ui/menus/main_menu.gd`, `assets_src/ui/menu/carga_mundo_2.jpg`, `assets/textures/ui/menu/carga_mundo_2.png` (+ `.import`), `tests/integration/test_campaign.gd`, `docs/game-design/menu.md`, `AI_TRACE.md`
+Change: Las entradas de `Game.LEVELS` aceptan `carga` (imagen). `Game.next_level()` marca `arrived_by_next`, y `loading_image()` devuelve la imagen del subnivel solo si se llegó con NEXT LEVEL. LOADING la muestra a pantalla completa, sin velo, durante al menos 3 s en lugar de las papas del PSD. 2-1 usa `carga_mundo_2.png`; entrando a 2-1 desde la selección de nivel sigue la carga normal.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Captura con ventana de la pantalla de carga. `test_campaign` cubre 1-2 → 2-1 con imagen, 2-1 desde el menú sin imagen y 1-1 → 1-2 sin imagen.
+
+### Remake de la canción del nivel uno
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: Reemplazar la música del mundo 1 por esta (WAV adjunto) para evitar el "tiempo muerto" del inicio y que el ritmo empiece de una.
+Task: Cambiar la canción del nivel uno por el remake y medir su primer beat.
+Type: CODE (AI) / AUDIO / TESTING / DOCS
+Files: `src/shared/resources/music/nivel_uno.tres`, `assets/audio/music/DirtyLoveSongLevelOneRemake.wav` (+ `.import`), `tests/unit/test_music.gd`, `docs/architecture/overview.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: `nivel_uno.tres` usa el remake (44,1 kHz, mono, 16 bits, 77,8 s) con 177 BPM y el primer beat a 0,15 s (el primer sonido). Dura 229 beats enteros desde el primer beat (57 compases y uno de cola), así que el bucle no se desfasa. `test_music` pasa de contar compases a contar beats: nivel uno 229, industrial 84, centro comercial 88.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Tempo medido con el mismo análisis que la versión anterior: las dos dan 176,5, con el mismo sesgo de −0,5 que ya se había validado, así que se mantiene 177. El último sonido termina en 76,65 s y el resto es cola. El WAV anterior (`DirtyLoveSongLevelOne.wav`) queda en el repo sin uso; se le preguntó al usuario si borrarlo.

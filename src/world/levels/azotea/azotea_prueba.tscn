@@ -13,3 +13,4 @@ script = ExtResource("1_azotea")
 params = SubResource("Resource_prueba")
 enemy_types = Array[StringName]([&"normal", &"flyer", &"thrower", &"charger"])
 mixed_enemies = true
+tutorial = &"prueba"
