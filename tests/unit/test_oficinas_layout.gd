@@ -13,6 +13,7 @@ func _initialize() -> void:
 	_test_determinism()
 	for config in _configs():
 		_test_config(config)
+	_test_random_configs(200)
 	for key in _fail_groups:
 		printerr("  FALLO x%d: %s" % [_fail_groups[key], key])
 	print("test_oficinas_layout: %s · %d edificios · reparaciones prom. %.1f · sellados prom. %.1f · aislados %.2f%% · con alternativas %d/%d" % [
@@ -95,6 +96,33 @@ func _test_config(params: OficinasParams) -> void:
 			_stats.choice_cases += 1
 			if layout.useful_vertical_links() > layout.main_transitions:
 				_stats.with_choices += 1
+
+
+## Configuraciones aleatorias (tamaño, modo, pesos, daño): todas deben ser válidas y sin trampas.
+func _test_random_configs(count: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2024
+	for i in count:
+		var p := OficinasParams.new()
+		p.seed = 1000 + i
+		p.floors = rng.randi_range(2, 14)
+		p.modules = rng.randi_range(3, 12)
+		p.end_mode = rng.randi_range(0, 2) as OficinasParams.EndMode
+		p.start_floor = rng.randi_range(0, p.floors - 1)
+		p.floor_distance = rng.randi_range(-p.floors, p.floors)
+		p.stairs_weight = rng.randf_range(0.0, 2.0)
+		p.elevator_weight = rng.randf_range(0.0, 2.0)
+		p.fall_weight = rng.randf_range(0.0, 2.0)
+		p.collapse_chance = rng.randf_range(0.0, 0.3)
+		p.gap_chance = rng.randf_range(0.0, 0.3)
+		p.wall_blocked_weight = rng.randf_range(0.0, 3.0)
+		p.branches = rng.randi_range(0, 4)
+		var layout := OficinasLayout.build(p)
+		_stats.layouts += 1
+		var tag := "aleatoria seed=%d" % p.seed
+		_check(layout.valid, "%s: inválido" % tag)
+		_check(layout.reachable_from(layout.start).has(layout.end), "%s: salida inalcanzable" % tag)
+		_check(layout.traps().is_empty(), "%s: trampas" % tag)
 
 
 func _test_determinism() -> void:

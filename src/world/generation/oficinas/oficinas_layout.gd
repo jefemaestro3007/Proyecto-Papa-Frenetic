@@ -17,10 +17,10 @@ enum Link { WALK, STAIRS, LIFT, FALL }
 
 const MAX_ROUTE_STEPS := 64
 const MAX_REPAIRS := 400
-const BUILD_ATTEMPTS := 8
+const BUILD_ATTEMPTS := 12
 
 
-class Elevator:
+class Shaft:
 	extends RefCounted
 	var column: int
 	var low: int
@@ -49,7 +49,7 @@ var cells := PackedInt32Array()
 var stair_dirs := PackedInt32Array()
 var shaft_of := PackedInt32Array()
 var walls := PackedInt32Array()
-var elevators: Array[Elevator] = []
+var elevators: Array[Shaft] = []
 var protected := PackedByteArray()
 var start: Vector2i
 var end: Vector2i
@@ -63,6 +63,8 @@ var _rng := RandomNumberGenerator.new()
 ## Intentos fallidos previos: se relajan las exigencias (menos cambios de piso, sin desvíos)
 ## para que configuraciones imposibles (p. ej. 2 pisos × 3 módulos con 3 cambios) igual generen.
 var _relax := 0
+## Modo seguro (último intento): sin extras, sin muros bloqueados y sin desvíos.
+var _safe := false
 
 
 static func build(params: OficinasParams) -> OficinasLayout:
@@ -72,6 +74,10 @@ static func build(params: OficinasParams) -> OficinasLayout:
 		layout._generate(params, params.seed + attempt * 7919, attempt)
 		if layout.valid:
 			return layout
+	# Último recurso: ruta directa sin desvíos, sin daño extra ni muros bloqueados.
+	layout = OficinasLayout.new()
+	layout._safe = true
+	layout._generate(params, params.seed, BUILD_ATTEMPTS)
 	return layout
 
 
@@ -98,7 +104,7 @@ func set_wall(f: int, c: int, value: Wall) -> void:
 	walls[f * (modules - 1) + c] = value
 
 
-func elevator_at(f: int, c: int) -> Elevator:
+func elevator_at(f: int, c: int) -> Shaft:
 	var id := shaft_of[index(f, c)]
 	return elevators[id] if id >= 0 else null
 
@@ -142,6 +148,9 @@ func successors(node: Vector2i) -> Array:
 		var nc: int = c + d
 		if nc < 0 or nc >= modules or wall(f, mini(c, nc)) == Wall.BLOCKED or is_sealed(f, nc):
 			continue
+		# Desde el pie de una escalera, avanzar hacia donde sube es subir (no se cruza por el piso).
+		if _climbs(f, c, d):
+			continue
 		var target := landing(f, nc)
 		if target.x >= 0:
 			out.append([target, Link.WALK if target.x == f else Link.FALL])
@@ -157,6 +166,11 @@ func successors(node: Vector2i) -> Array:
 				if stop != f:
 					out.append([Vector2i(stop, c), Link.LIFT])
 	return out
+
+
+## ¿Moverse en dirección `d` desde (f, c) obliga a subir la escalera de esa celda?
+func _climbs(f: int, c: int, d: int) -> bool:
+	return cell(f, c) == Cell.STAIR_LOW and stair_dirs[index(f, c)] == d
 
 
 func reachable_from(origin: Vector2i) -> Dictionary:
@@ -283,7 +297,8 @@ func _generate(params: OficinasParams, seed_value: int, relax: int) -> void:
 		var from: Vector2i = main_nodes[_rng.randi_range(0, maxi(main_nodes.size() - 2, 0))]
 		_route(from, _rng.randi_range(1, 2), [])
 
-	_add_extras()
+	if not _safe:
+		_add_extras()
 	_assign_free_walls()
 	valid = _repair()
 
@@ -353,7 +368,7 @@ func _can_walk(f: int, from_c: int, to_c: int) -> bool:
 			return false
 		if c == to_c:
 			return true
-		if wall(f, mini(c, c + step)) == Wall.BLOCKED:
+		if wall(f, mini(c, c + step)) == Wall.BLOCKED or _climbs(f, c, step):
 			return false
 		c += step
 	return false
@@ -411,9 +426,11 @@ func _place_stairs(cur: Vector2i, dir: int, column: int, d: int) -> Vector2i:
 
 
 ## Escalera con pie en (f, c) y rellano en (f + 1, c + d); su hueco es (f + 1, c).
+## El pie debe estar libre: si una ruta ya cruzaba ese módulo caminando hacia donde sube la
+## escalera, ese paso pasaría a ser "subir" y la ruta se rompería.
 func _stairs_fit(f: int, c: int, d: int) -> bool:
-	return in_range(f, c) and in_range(f + 1, c + d) and cell(f, c) == Cell.NORMAL \
-			and not _reserved(f, c) and _free(f + 1, c) and cell(f + 1, c + d) == Cell.NORMAL
+	return in_range(f, c) and in_range(f + 1, c + d) and _free(f, c) and not _reserved(f, c) \
+			and _free(f + 1, c) and cell(f + 1, c + d) == Cell.NORMAL
 
 
 func _apply_stairs(f: int, c: int, d: int) -> Vector2i:
@@ -455,7 +472,7 @@ func _elevator_fits(c: int, low: int, high: int) -> bool:
 
 
 func _apply_elevator(c: int, low: int, high: int, kind: Lift) -> void:
-	elevators.append(Elevator.new(c, low, high, kind))
+	elevators.append(Shaft.new(c, low, high, kind))
 	for f in range(low, high + 1):
 		cells[index(f, c)] = Cell.SHAFT
 		shaft_of[index(f, c)] = elevators.size() - 1
@@ -490,7 +507,7 @@ func _place_fall(cur: Vector2i, column: int, gap: bool) -> Vector2i:
 	else:
 		# Se llega por un vecino y se entra al derrumbe.
 		var side := column - 1 if cur.y < column else column + 1
-		if not in_range(f, side) or not _can_walk(f, cur.y, side):
+		if not in_range(f, side) or not _can_walk(f, cur.y, side) or _climbs(f, side, column - side):
 			return Vector2i(-1, -1)
 		_walk(f, cur.y, side)
 		_open_wall(f, mini(side, column))
@@ -544,7 +561,7 @@ func _assign_free_walls() -> void:
 		if walls[i] == Wall.UNSET:
 			walls[i] = _weighted({
 				Wall.OPEN: _params.wall_open_weight, Wall.DOOR: _params.wall_door_weight,
-				Wall.BLOCKED: _params.wall_blocked_weight,
+				Wall.BLOCKED: 0.0 if _safe else _params.wall_blocked_weight,
 			})
 
 
@@ -592,10 +609,12 @@ func _seal(node: Vector2i) -> void:
 func _segment(node: Vector2i) -> Vector2i:
 	var f := node.x
 	var lo := node.y
-	while lo > 0 and wall(f, lo - 1) != Wall.BLOCKED and not is_void(f, lo - 1) and not is_sealed(f, lo - 1):
+	while lo > 0 and wall(f, lo - 1) != Wall.BLOCKED and not is_void(f, lo - 1) and not is_sealed(f, lo - 1) \
+			and not _climbs(f, lo, -1) and not _climbs(f, lo - 1, 1):
 		lo -= 1
 	var hi := node.y
-	while hi < modules - 1 and wall(f, hi) != Wall.BLOCKED and not is_void(f, hi + 1) and not is_sealed(f, hi + 1):
+	while hi < modules - 1 and wall(f, hi) != Wall.BLOCKED and not is_void(f, hi + 1) and not is_sealed(f, hi + 1) \
+			and not _climbs(f, hi, 1) and not _climbs(f, hi + 1, -1):
 		hi += 1
 	return Vector2i(lo, hi)
 
