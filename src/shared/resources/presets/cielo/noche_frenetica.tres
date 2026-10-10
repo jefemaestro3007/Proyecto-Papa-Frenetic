@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="SkyParams" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/world/environment/sky_params.gd" id="1_sky"]
+
+[resource]
+script = ExtResource("1_sky")
+pixelate = true
+pixel_resolution = 256
+star_density = 0.45
+cloud_coverage = 0.35
+mountain_layers = 3
+sun_position = 0.3
+sun_elevation = 0.55
+sun_size = 18.0
+horizon_line = 0.62
+dither_strength = 0.75
+snowfall = 0.12
+sky_apex = Color(0.0902, 0.0863, 0.1647, 1)
+horizon_glow = Color(0.6588, 0.0784, 0.1216, 1)
+sun_color = Color(0.9333, 0.902, 0.8627, 1)
+water_color = Color(0.1686, 0.1647, 0.2706, 1)
+land_color = Color(0.0549, 0.051, 0.102, 1)
