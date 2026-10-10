@@ -10,15 +10,17 @@ godot --headless --path . --script res://tests/unit/test_presets.gd
 godot --headless --path . --script res://tests/unit/test_controls.gd
 godot --headless --path . --script res://tests/unit/test_oficinas_layout.gd
 godot --headless --path . --script res://tests/unit/test_oficinas_generator.gd
+godot --headless --path . --script res://tests/unit/test_heat_meter.gd
 ```
 
 | Test | Qué comprueba |
 |---|---|
 | `test_azotea_generator` | Determinismo, spawn sobre azotea, escalones saltables, siluetas válidas, detalles dentro de su azotea, ventanas del skyline dentro de su edificio (verificación independiente por muestreo). |
 | `test_presets` | Todos los presets cargan con su tipo; exportar y volver a cargar conserva los valores. |
-| `test_controls` | Mapa de controles: WASD + flechas, Espacio para saltar, J o clic izquierdo para atacar. |
+| `test_controls` | Mapa de controles: WASD + flechas, Espacio para saltar, J o clic izquierdo para atacar, Shift o K para el dash. |
 | `test_oficinas_layout` | 1160 edificios (modos de final, tamaños extremos, configuraciones aleatorias): salida alcanzable, sin trampas desde ningún lugar, sin atascos por llaves (espacio de estados), determinismo, pasillos al fondo enlazados, llaves en lugares válidos, alternativas de ruta. |
 | `test_oficinas_generator` | Áreas al fondo fuera del edificio y sin superponerse, cada puerta al fondo con su área, llaves en su habitación o en el edificio, escaleras dentro de su módulo, puertas coherentes con la topología. |
+| `test_heat_meter` | Calor pasivo, enfriar/calentar por juicio y peso, mecha que no se recarga, explosión, modo sin game over. |
 
 ## Integración: recorrido con física
 
@@ -33,6 +35,18 @@ los casos fijos y `--extra=N` agrega edificios aleatorios de estrés. Con `BOT_D
 imprime sus decisiones.
 
 Corre como escena (no con `--script`) porque necesita el autoload `Conductor`.
+El bot solo recorre: el test desactiva el calor y los enemigos.
+
+## Integración: partida con combate
+
+```bash
+godot --headless --path . --fixed-fps 60 res://tests/test_scenes/combat_match.tscn
+```
+
+Juega la Azotea real: reparto de enemigos por tramo (`EnemyRoster`), calor pasivo, stomp que
+derrota a la común y rebota sobre el tanque, dash a tiempo, papa frita, hitstop que congela la
+acción sin desplazar los beats, game over al agotarse la mecha, reintento con Enter (misma seed)
+y victoria al llegar al final de la última azotea.
 
 ## Capturas para revisar lo visual
 
