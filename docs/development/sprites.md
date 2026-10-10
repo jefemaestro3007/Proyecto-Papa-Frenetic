@@ -99,10 +99,11 @@ provisional.
 `assets_src/sprites/ui/papa_calor_1…5` (la misma herramienta de enemigos y efectos los genera en
 `assets/textures/ui/`). Las cinco etapas se recortan con el mismo rectángulo para que se note
 cómo se hincha la papa. `HeatPotato` (`src/ui/hud/heat_potato.gd`) muestra una por cada 20 de
-calor, al lado del manómetro, sobre una placa oscura:
+calor, con el manómetro incrustado en el centro (se mueve con la papa: un solo sistema, la "papa
+bomba"):
 
 | Calor | Etapa | Además |
 |---|---|---|
 | 0–20, 20–40, 40–60, 60–80 | 1 a 4 | Late con el beat; golpe de escala al cambiar de etapa |
-| 80–100 | 5 (agrietada) | Alarma: vibra y se tambalea cada vez más, halo rojo que late; el manómetro enciende su halo y enrojece el bisel; el borde de la placa late en rojo |
+| 80–100 | 5 (agrietada) | Alarma: vibra y se tambalea cada vez más, halo rojo que late; el manómetro enciende su halo y enrojece el bisel |
 | Mecha encendida | 5 | Vibración máxima, parpadeo y vapor |

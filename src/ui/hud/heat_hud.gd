@@ -1,12 +1,11 @@
 class_name HeatHud
 extends Control
-## HUD de la papa caliente (traído del prototipo): manómetro de calor abajo a la derecha, aviso
+## HUD de la papa caliente: abajo a la derecha la papa bomba (HeatPotato) con el manómetro incrustado
+## y la tecla del dash (DashKey); aviso
 ## "SOBRECALENTAMIENTO" con cuenta atrás de la mecha, viñeta roja que late con el beat, indicador
 ## del dash y el panel de fin de partida (victoria / la papa explotó).
 ## Va debajo del RhythmHud: la viñeta no tapa los textos de juicio.
 
-const READY_COLOR := Color("8ee6a2")
-const WAIT_COLOR := Color(0.6, 0.58, 0.68)
 const SHAKE_PIXELS := 6.0
 ## Viñeta roja en los bordes: crece con la intensidad y late con el beat.
 const VIGNETTE_SHADER := """
@@ -23,11 +22,8 @@ void fragment() {
 
 var gauge: HeatGauge
 var potato: HeatPotato
-## Placa detrás de la papa y el manómetro: los separa del escenario; en alarma su borde late en rojo.
-var _plate: Panel
-var _plate_style: StyleBoxFlat
 var alert: OverheatAlert
-var dash_label: Label
+var dash_key: DashKey
 var _vignette: ColorRect
 ## Lo que tiembla con la tensión (la viñeta no: dejaría un borde vacío).
 var _shaken: Control
@@ -54,46 +50,25 @@ func _ready() -> void:
 	_shaken.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_shaken)
 
-	_plate_style = StyleBoxFlat.new()
-	_plate_style.bg_color = Color(FreneticPalette.INK, 0.55)
-	_plate_style.set_corner_radius_all(26)
-	_plate_style.set_border_width_all(4)
-	_plate_style.border_color = Color(FreneticPalette.INK, 0.8)
-	_plate = Panel.new()
-	_plate.add_theme_stylebox_override("panel", _plate_style)
-	_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_plate.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	_plate.offset_left = -362.0
-	_plate.offset_top = -292.0
-	_plate.offset_right = -18.0
-	_plate.offset_bottom = -50.0
-	_shaken.add_child(_plate)
-
-	gauge = HeatGauge.new()
-	gauge.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	gauge.offset_left = -210.0
-	gauge.offset_top = -285.0
-	gauge.offset_right = -30.0
-	gauge.offset_bottom = -105.0
-	_shaken.add_child(gauge)
-
-	# Papa caliente a la izquierda del manómetro: la etapa según el calor.
+	# Papa bomba abajo a la derecha, con el manómetro incrustado.
 	potato = HeatPotato.new()
 	potato.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	potato.offset_left = -350.0
-	potato.offset_top = -280.0
-	potato.offset_right = -200.0
-	potato.offset_bottom = -110.0
+	potato.offset_left = -270.0
+	potato.offset_top = -300.0
+	potato.offset_right = -30.0
+	potato.offset_bottom = -50.0
 	_shaken.add_child(potato)
+	gauge = HeatGauge.new()
+	potato.embed(gauge)
 
-	dash_label = _make_label(24)
-	dash_label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	dash_label.offset_left = -350.0
-	dash_label.offset_right = -30.0
-	dash_label.offset_top = -95.0
-	dash_label.offset_bottom = -59.0
-	dash_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_shaken.add_child(dash_label)
+	# Tecla del dash a la izquierda de la papa.
+	dash_key = DashKey.new()
+	dash_key.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	dash_key.offset_left = -385.0
+	dash_key.offset_top = -125.0
+	dash_key.offset_right = -275.0
+	dash_key.offset_bottom = -65.0
+	_shaken.add_child(dash_key)
 
 	alert = OverheatAlert.new()
 	_shaken.add_child(alert)
@@ -125,11 +100,6 @@ func _process(delta: float) -> void:
 	# El HUD tiembla: la sensación de perder el control.
 	var strength := _intensity * (1.6 if _overheated else 1.0)
 	_shaken.position = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * SHAKE_PIXELS * strength
-	# Alarma (calor alto o mecha): el borde de la placa late en rojo con el beat.
-	var alarm := potato.alarm()
-	_plate_style.border_color = Color(FreneticPalette.INK, 0.8).lerp(HeatPotato.HALO_COLOR, alarm * (0.55 + 0.45 * _beat_pulse))
-	_plate_style.set_border_width_all(4 + roundi(4.0 * alarm * _beat_pulse))
-	_plate_style.bg_color = Color(FreneticPalette.INK, 0.55).lerp(Color(0.35, 0.02, 0.0, 0.6), alarm * 0.5 * _beat_pulse)
 	alert.set_beat_pulse(_beat_pulse)
 
 
@@ -149,6 +119,7 @@ func on_beat(accented: bool) -> void:
 	_beat_pulse = 1.0 if accented else 0.7
 	gauge.on_beat(_beat_pulse)
 	potato.on_beat(_beat_pulse)
+	dash_key.on_beat(_beat_pulse)
 
 
 func show_overheat(active: bool, fuse_left: float) -> void:
@@ -162,17 +133,9 @@ func update_fuse(fuse_left: float) -> void:
 	alert.update_fuse(fuse_left)
 
 
-func update_dash(enabled: bool, cooldown_left: float, airborne: bool) -> void:
-	dash_label.visible = enabled
-	if cooldown_left > 0.0:
-		dash_label.text = "DASH %.1f s" % cooldown_left
-		dash_label.add_theme_color_override("font_color", WAIT_COLOR)
-	elif airborne:
-		dash_label.text = "DASH: solo en suelo"
-		dash_label.add_theme_color_override("font_color", WAIT_COLOR)
-	else:
-		dash_label.text = "DASH listo (Shift)"
-		dash_label.add_theme_color_override("font_color", READY_COLOR)
+func update_dash(enabled: bool, cooldown_left: float, cooldown_total: float, airborne: bool) -> void:
+	dash_key.visible = enabled
+	dash_key.set_state(cooldown_left, cooldown_total, airborne)
 
 
 ## Panel de fin de partida.

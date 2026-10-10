@@ -817,7 +817,7 @@ func _update_heat(delta: float) -> void:
 	_heat_hud.update_fuse(_heat.fuse_left)
 	_heat_hud.set_intensity(intensity, overheated)
 	_feel.set_intensity(intensity, overheated)
-	_heat_hud.update_dash(player_params.dash_enabled and is_playing(), _player.dash_cooldown_left(),
+	_heat_hud.update_dash(player_params.dash_enabled and is_playing(), _player.dash_cooldown_left(), player_params.dash_cooldown,
 			not _player.is_on_floor())
 
 

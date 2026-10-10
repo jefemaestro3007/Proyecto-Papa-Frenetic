@@ -385,3 +385,31 @@ Files: `assets_src/sprites/ui/papa_calor_{1..5}` (dibujos del equipo), `assets/t
 Change: La herramienta genera las cinco etapas con el mismo recorte (se conserva cómo se hincha la papa). `HeatPotato`: etapa según el calor, latido con el beat, golpe de escala al cambiar de etapa; desde 80 vibra, se tambalea y tiene halo rojo; con la mecha, vibración máxima, parpadeo y vapor. Manómetro al 50 % (antes 60 %) con alarma desde el 80 %: halo rojo que late y bisel enrojecido. Placa oscura detrás de ambos cuyo borde late en rojo durante la alarma.
 Commit: PENDING (se commitea junto con esta entrada)
 Notes: En la primera captura el halo rojo casi no se veía sobre el escenario rojo; por eso se agregaron la placa oscura y el borde que late, y se reforzaron los halos. Revisado en capturas con calor 10, 30, 50, 70, 90 y con la mecha. `test_combat_match` en verde.
+
+### Campo AI de este archivo
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "Solo pon Claude en [IA] en AI_TRACE, tampoco queremos promoción allí"; "haz el ajuste ya".
+Task: Dejar el campo `AI:` de todas las entradas en "Claude".
+Type: PROCESS / DOCS
+Files: `AI_TRACE.md`
+Change: Las 25 entradas que nombraban modelo o versión pasan a `AI: Claude`. La entrada de `2045929` conserva "No verificada", porque no consta uso de IA. Es la única edición de entradas anteriores, hecha a pedido del usuario; el resto del contenido no cambió.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: N/A
+
+### Papa bomba: manómetro incrustado y tecla SHIFT
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: Quitar el cuadro negro semitransparente que encierra el texto, la papa y el barómetro ("se ve muy como IA"); quitar el texto "DASH listo" y poner un indicador al lado de la papa, como la tecla Shift, verde cuando está listo y roja cuando no; poner el barómetro encima de la papa, integrado, como una papa bomba a punto de explotar.
+Task: Rediseñar el HUD del calor y del dash.
+Type: UX / CODE (AI) / DOCS
+Files: `src/ui/hud/heat_hud.gd`, `src/ui/hud/heat_potato.gd`, `src/ui/hud/heat_gauge.gd`, `src/ui/hud/dash_key.gd` (nuevo), `src/world/levels/zone_level.gd`, `docs/game-design/combate.md`, `docs/development/sprites.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: Sin placa ni texto del dash. El manómetro (escala 0,34) es hijo de la papa, centrado en su panza, con una sombra que lo hunde, y sigue su latido, vibración, tambaleo y golpe de etapa. La papa es más grande (240×250). `DashKey`: tecla SHIFT dibujada con contorno de tinta, verde y latiendo con el beat cuando el dash está listo, roja en espera o en el aire, y llenándose de verde de izquierda a derecha al recargar. `update_dash` recibe también la espera total.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Revisado en capturas con calor 10, 50 (justo después de un dash), 70, 90 (en el aire) y con la mecha. `test_combat_match` en verde.

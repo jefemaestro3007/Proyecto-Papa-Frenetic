@@ -7,8 +7,8 @@ extends Control
 # con la mecha encendida golpea el tope, el cristal se agrieta y sale vapor.
 
 const DIAL_RADIUS := 148.0
-# Escala visual del manómetro (0.5 = la mitad del diseño original; a su lado va la papa).
-const DIAL_SCALE := 0.5
+# Escala visual del manómetro: va incrustado en la papa bomba del HUD.
+const DIAL_SCALE := 0.34
 # Desde este nivel (0-1) el manómetro entra en alarma: halo rojo que late y bisel enrojecido.
 const ALARM_LEVEL := 0.8
 const ALARM_COLOR := Color(1.0, 0.16, 0.06)

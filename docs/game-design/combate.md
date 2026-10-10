@@ -41,12 +41,12 @@ Qué cuenta y cuánto pesa (todo ajustable en la pestaña Combate):
 **Tensión:** desde 50 de calor la cámara tiembla y se balancea, el HUD tiembla y una viñeta roja
 late con el beat; durante la mecha todo es más fuerte.
 
-**HUD** (`src/ui/hud/heat_hud.gd`): sobre una placa oscura abajo a la derecha, la papa caliente
-(`HeatPotato`, cinco dibujos, uno cada 20 de calor) y el manómetro de presión (`HeatGauge`; con la
-mecha el cristal se agrieta y sale vapor). Desde 80 de calor ambos entran en alarma (vibración,
-halos rojos y borde de la placa latiendo con el beat); aviso "SOBRE / CALENTAMIENTO" letra a letra y cuenta
-atrás en display de segmentos (`OverheatAlert`, `MenacingText`, `SegmentFont`), estado del dash y
-el panel de fin de partida. Los textos de juicio dicen la acción y el calor:
+**HUD** (`src/ui/hud/heat_hud.gd`): abajo a la derecha la papa bomba (`HeatPotato`, cinco dibujos,
+uno cada 20 de calor) con el manómetro de presión incrustado (`HeatGauge`; con la mecha el cristal
+se agrieta y sale vapor), y a su izquierda la tecla SHIFT del dash (`DashKey`: verde lista, roja
+en espera o en el aire, llenándose de verde al recargar). Desde 80 de calor la papa y el
+manómetro entran en alarma (vibración y halos rojos que laten con el beat); aviso "SOBRE / CALENTAMIENTO" letra a letra y cuenta
+atrás en display de segmentos (`OverheatAlert`, `MenacingText`, `SegmentFont`) y el panel de fin de partida. Los textos de juicio dicen la acción y el calor:
 "STOMP ¡PERFECTO! +200 / −8 calor".
 
 Para probar: "Game over al explotar" desactivado deja que la papa explote sin terminar la
