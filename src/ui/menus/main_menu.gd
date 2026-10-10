@@ -2,11 +2,15 @@ class_name MainMenu
 extends Control
 ## Menú principal (escena de inicio del juego), con las pantallas del diseño:
 ## START → NEW GAME → LEVEL SELECT → LOADING → nivel. Esc vuelve a la pantalla anterior.
+## LEVEL SELECT muestra desbloqueados los niveles a los que ya se llegó (Game.unlocked_level).
 ## Las coordenadas de los botones son las de las capas de cada PSD (ver build_menu_screens.gd).
 
 const START_BUTTON := Rect2(682, 715, 84, 36)
 const NEW_GAME_BUTTON := Rect2(539, 484, 359, 57)
-const LEVEL_ENTER_BUTTONS: Array[Rect2] = [Rect2(155, 639, 319, 56)]
+## Botón ENTER de cada tarjeta (nivel 1, 2 y 3).
+const LEVEL_ENTER_BUTTONS: Array[Rect2] = [Rect2(155, 639, 319, 56), Rect2(546, 639, 319, 56), Rect2(936, 639, 319, 56)]
+## Diseño de LEVEL SELECT según hasta qué nivel se llegó (1, 2 o 3 desbloqueados).
+const LEVEL_SELECT_SCREENS: Array[String] = ["seleccion_nivel", "seleccion_nivel_2", "seleccion_nivel_3"]
 const BACK := {&"nuevo_juego": &"inicio", &"seleccion_nivel": &"nuevo_juego"}
 ## La carga dura al menos esto, para que se vean las tres papas.
 const LOADING_MIN_SECONDS := 1.5
@@ -34,9 +38,10 @@ func show_screen(screen_name: StringName) -> void:
 			_screen = PsdScreen.new("nuevo_juego")
 			_screen.add_button(NEW_GAME_BUTTON, &"nuevo_juego")
 		&"seleccion_nivel":
-			_screen = PsdScreen.new("seleccion_nivel")
-			for i in mini(LEVEL_ENTER_BUTTONS.size(), Game.LEVELS.size()):
-				_screen.add_button(LEVEL_ENTER_BUTTONS[i], StringName("nivel_%d" % i))
+			_screen = PsdScreen.new(level_select_screen())
+			for i in LEVEL_ENTER_BUTTONS.size():
+				if Game.can_play(i + 1):
+					_screen.add_button(LEVEL_ENTER_BUTTONS[i], StringName("nivel_%d" % (i + 1)))
 		&"cargando":
 			_screen = PsdScreen.new("cargando")
 			for i in 3:
@@ -53,6 +58,11 @@ func show_screen(screen_name: StringName) -> void:
 	_screen.focus_first()
 
 
+## Diseño de LEVEL SELECT con las tarjetas desbloqueadas hasta donde se llegó.
+func level_select_screen() -> String:
+	return LEVEL_SELECT_SCREENS[clampi(Game.unlocked_level, 1, LEVEL_SELECT_SCREENS.size()) - 1]
+
+
 func _on_action(action_name: StringName) -> void:
 	match action_name:
 		&"start":
@@ -61,7 +71,7 @@ func _on_action(action_name: StringName) -> void:
 			show_screen(&"seleccion_nivel")
 		_:
 			if String(action_name).begins_with("nivel_"):
-				Game.play(String(action_name).trim_prefix("nivel_").to_int())
+				Game.play_level(String(action_name).trim_prefix("nivel_").to_int())
 
 
 func _unhandled_input(event: InputEvent) -> void:

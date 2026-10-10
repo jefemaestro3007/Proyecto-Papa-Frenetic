@@ -14,6 +14,8 @@ const BACKDROP := Color("222222")
 
 var _background: ColorRect
 var _canvas: Control
+## Acción que dispara Esc (vacía = Esc no hace nada en esta pantalla).
+var escape_action := &""
 var _buttons: Array[MenuHotspot] = []
 
 
@@ -59,9 +61,23 @@ func add_button(rect: Rect2, action_name: StringName) -> MenuHotspot:
 	return button
 
 
+## Agrega algo dibujado en coordenadas del diseño (para pantallas que no tienen PSD).
+func add_art(art: Control) -> void:
+	art.size = DESIGN_SIZE
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_canvas.add_child(art)
+
+
 func focus_first() -> void:
 	if not _buttons.is_empty():
 		_buttons[0].grab_focus()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	var key := event as InputEventKey
+	if escape_action != &"" and key != null and key.pressed and not key.echo and key.keycode == KEY_ESCAPE:
+		get_viewport().set_input_as_handled()
+		action.emit(escape_action)
 
 
 func _fit() -> void:
