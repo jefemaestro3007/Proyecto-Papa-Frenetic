@@ -113,10 +113,11 @@ func attack() -> void:
 		player.velocity.x = -player.facing * params.miss_recoil
 
 
-## Aterrizaje de la caída forzada con su juicio (lo registra la zona).
-func stomp(judgment: int) -> void:
+## Aterrizaje de la caída forzada con su juicio (lo registra la zona). Devuelve true si había
+## papas debajo (entonces cuenta como golpe).
+func stomp(judgment: int) -> bool:
 	if not active:
-		return
+		return false
 	var feet := player.global_position
 	var list: Array[Enemy] = []
 	for enemy in enemies:
@@ -124,14 +125,14 @@ func stomp(judgment: int) -> void:
 				and enemy.body_center().distance_to(feet) <= params.stomp_radius + enemy.body_radius:
 			list.append(enemy)
 	if list.is_empty():
-		return
+		return false
 	_sort_by_distance(list, feet)
 	if judgment == ConductorClock.Judgment.MISS:
 		# Stomp fuera de ritmo: la papa aguanta y empuja al jugador.
 		player.hurt(list[0].global_position.x, Vector2(params.hurt_knockback_x, params.hurt_knockback_y) * 0.6,
 				params.hurt_invulnerable)
 		player_bounced.emit(list[0])
-		return
+		return true
 	var survivor: Enemy = null
 	for enemy in list:
 		if not _hit(enemy, judgment, signf(enemy.global_position.x - feet.x)):
@@ -139,6 +140,7 @@ func stomp(judgment: int) -> void:
 	if survivor != null:
 		# Una papa resistente aguanta el stomp: el jugador rebota sobre ella.
 		player.recoil(survivor.global_position.x)
+	return true
 
 
 func _on_dash_started(_direction: float) -> void:

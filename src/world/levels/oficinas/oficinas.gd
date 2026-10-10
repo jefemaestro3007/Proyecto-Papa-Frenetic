@@ -357,7 +357,7 @@ func _update_free() -> void:
 			_lift = elevator
 			_lift_floor = node.x
 			elevator.call_to(node.x)
-			_tracker.register(&"lift", false)
+			_tracker.register_move(&"lift", false)
 			return
 	for door in _data.depth_doors:
 		if door.kind != OficinasLayout.Depth.NONE and door.floor == node.x \
@@ -373,7 +373,7 @@ func _start_stairs(stair: OficinasMapData.Stair, up: bool) -> void:
 	_state = State.STAIRS
 	_player.begin_scripted()
 	_player.facing = float(stair.dir) if up else float(-stair.dir)
-	_tracker.register(&"stairs", false)
+	_tracker.register_move(&"stairs", false)
 
 
 func _update_stairs(delta: float) -> void:
@@ -448,13 +448,13 @@ func _enter_area(door: OficinasMapData.DepthDoorSpec) -> void:
 		if area_door.depth_door == door.id:
 			x = area_door.x
 	_teleport(Vector2(x, area.floor_y() - 2.0))
-	_tracker.register(&"door", false)
+	_tracker.register_move(&"door", false)
 
 
 func _exit_area(area_door: OficinasMapData.AreaDoor) -> void:
 	var door := _data.depth_doors[area_door.depth_door]
 	_teleport(Vector2(door.rect.get_center().x, _data.surface_y(door.floor) - 2.0))
-	_tracker.register(&"door", false)
+	_tracker.register_move(&"door", false)
 
 
 func _teleport(at: Vector2) -> void:
