@@ -131,6 +131,11 @@ func _parse_args() -> void:
 			autorun = true
 		elif arg.begins_with("--seed="):
 			_zone_params().seed = arg.trim_prefix("--seed=").to_int()
+		elif arg.begins_with("--set="):
+			# --set=propiedad=valor: cualquier parámetro del mapa (útil para pruebas y capturas).
+			var pair := arg.trim_prefix("--set=").split("=")
+			if pair.size() == 2:
+				_zone_params().set(pair[0], str_to_var(pair[1]))
 		elif arg.begins_with("--debug-tab="):
 			_initial_tab = arg.trim_prefix("--debug-tab=").to_int()
 		elif arg == "--hide-menu":
