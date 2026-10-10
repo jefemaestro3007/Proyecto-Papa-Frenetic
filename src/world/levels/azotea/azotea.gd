@@ -63,7 +63,7 @@ var _style_name := "default"
 var _hide_menu := false
 var _style_signature := 0
 var _roofs_view: RooftopView
-var _beacons: BeaconView
+var _live: LiveDetailsView
 var _grunge_materials: Array[ShaderMaterial] = []
 var _sections := {}
 
@@ -131,9 +131,9 @@ func regenerate() -> void:
 	_roofs_view.setup(_data, params.seed, style)
 	_roofs_view.material = _make_grunge()
 	_generated.add_child(_roofs_view)
-	_beacons = BeaconView.new()
-	_beacons.setup(_data, style.blood.lightened(0.35))
-	_generated.add_child(_beacons)
+	_live = LiveDetailsView.new()
+	_live.setup(_data, style)
+	_generated.add_child(_live)
 	_generated.add_child(_make_colliders(_data.roofs))
 	_style_signature = 0
 	_apply_style_to_world()
@@ -177,8 +177,9 @@ func _apply_style_to_world() -> void:
 		return
 	_style_signature = signature
 	_roofs_view.queue_redraw()
-	_beacons.color = style.blood.lightened(0.35)
-	(_roofs_view.material as ShaderMaterial).set_shader_parameter("dirt", style.grime)
+	var roof_material := _roofs_view.material as ShaderMaterial
+	roof_material.set_shader_parameter("dirt", style.grime)
+	roof_material.set_shader_parameter("halftone_strength", style.halftone)
 	for material in _grunge_materials:
 		material.set_shader_parameter("dirt", style.skyline_dirt)
 
@@ -299,23 +300,57 @@ func _build_style_section(section: DebugSection) -> void:
 		["Pixel", apply_style.bind("pixel")],
 		["Isaac", apply_style.bind("isaac")],
 	])
-	section.add_text("F2 alterna los modos. Cada modo trae su cielo e iluminación.")
+	section.add_text("F2 alterna los modos. Cada modo trae su cielo e iluminación; los rasgos "
+			+ "de cada uno se pueden mezclar libremente.")
 	section.add_preset_bar(style, "estilo")
 	section.preset_loaded.connect(func(_path: String) -> void: _on_style_loaded())
-	section.add_group("Trazo")
-	section.add_slider(style, &"outline_width", "Contorno (px)", 0, 12, 0.5)
+
+	section.add_group("Gráfico (Default)")
+	section.add_slider(style, &"burst_lines", "Rayos detrás del sol", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"halftone", "Trama de semitono", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"fence_amount", "Azoteas con alambrado", 0.0, 1.0, 0.01)
+	section.add_toggle(style, &"cable_flags", "Banderines en cables")
+	section.add_toggle(style, &"hazard_stripes", "Franjas de peligro")
+	section.add_slider(style, &"poster_amount", "Afiches", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"graffiti_amount", "Grafitis", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"aberration", "Aberración cromática", 0.0, 6.0, 0.1)
+
+	section.add_group("Retro (Pixel)")
+	section.add_slider(style, &"pixel_size", "Tamaño de pixel", 1, 12, 1)
+	section.add_slider(style, &"color_levels", "Niveles de color (0 = libre)", 0, 32, 1)
+	section.add_slider(style, &"dither", "Dithering", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"cel_shading", "Sombreado por caras", 0.0, 1.0, 0.01)
+	section.add_toggle(style, &"rim_light", "Borde de luz")
+	section.add_slider(style, &"scanlines", "Líneas de escaneo", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"crt_curvature", "Curvatura CRT", 0.0, 1.0, 0.01)
+
+	section.add_group("Sótano (Isaac)")
 	section.add_slider(style, &"wobble", "Trazo a mano (px)", 0, 10, 0.5)
 	section.add_toggle(style, &"drop_shadows", "Sombras proyectadas")
-	section.add_toggle(style, &"hazard_stripes", "Franjas de peligro")
+	section.add_slider(style, &"flies", "Moscas", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"cobwebs", "Telarañas", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"bones_amount", "Huesos", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"spotlight", "Foco en el jugador", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"spotlight_radius", "Radio del foco", 0.1, 1.5, 0.01)
+	section.add_slider(style, &"light_shaft", "Haz de luz", 0.0, 1.0, 0.01)
+
+	section.add_group("Detalles comunes")
+	section.add_slider(style, &"outline_width", "Contorno (px)", 0, 12, 0.5)
 	section.add_toggle(style, &"facade_windows", "Ventanas en fachadas")
+	section.add_slider(style, &"lit_windows", "Ventanas encendidas", 0.0, 1.0, 0.01)
+	section.add_toggle(style, &"drainpipes", "Bajantes de agua")
+	section.add_slider(style, &"bricks", "Ladrillos", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"fires", "Fuego en barriles", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"wall_unit_amount", "Aires en fachadas", 0.0, 1.0, 0.01)
+
 	section.add_group("Marcas")
 	section.add_slider(style, &"blood_amount", "Sangre", 0.0, 1.0, 0.01)
 	section.add_slider(style, &"crack_amount", "Grietas", 0.0, 1.0, 0.01)
 	section.add_slider(style, &"stain_amount", "Manchas", 0.0, 1.0, 0.01)
 	section.add_slider(style, &"rubble_amount", "Escombros", 0.0, 1.0, 0.01)
-	section.add_slider(style, &"lit_windows", "Ventanas encendidas", 0.0, 1.0, 0.01)
 	section.add_slider(style, &"grime", "Mugre en azoteas", 0.0, 1.0, 0.01)
 	section.add_slider(style, &"skyline_dirt", "Mugre en skyline", 0.0, 1.0, 0.01)
+
 	section.add_group("Colores")
 	section.add_color(style, &"structure", "Estructura")
 	section.add_color(style, &"structure_dark", "Estructura oscura")
@@ -328,19 +363,13 @@ func _build_style_section(section: DebugSection) -> void:
 	section.add_color(style, &"rock_light", "Brillo de roca")
 	section.add_color(style, &"window_dark", "Ventana apagada")
 	section.add_color(style, &"window_lit", "Ventana encendida")
+
 	section.add_group("Post-proceso")
-	section.add_slider(style, &"pixel_size", "Tamaño de pixel", 1, 12, 1)
-	section.add_slider(style, &"color_levels", "Niveles de color (0 = libre)", 0, 32, 1)
-	section.add_slider(style, &"dither", "Dithering", 0.0, 1.0, 0.01)
 	section.add_slider(style, &"vignette", "Viñeta", 0.0, 1.0, 0.01)
 	section.add_slider(style, &"vignette_softness", "Suavidad de viñeta", 0.0, 1.0, 0.01)
 	section.add_slider(style, &"desaturate", "Desaturar", 0.0, 1.0, 0.01)
 	section.add_color(style, &"tint", "Tinte")
 	section.add_slider(style, &"grain", "Grano", 0.0, 0.3, 0.005)
-	section.add_slider(style, &"aberration", "Aberración cromática", 0.0, 6.0, 0.1)
-	section.add_slider(style, &"spotlight", "Foco en el jugador", 0.0, 1.0, 0.01)
-	section.add_slider(style, &"spotlight_radius", "Radio del foco", 0.1, 1.5, 0.01)
-	section.add_slider(style, &"light_shaft", "Haz de luz", 0.0, 1.0, 0.01)
 
 
 func _build_map_section(section: DebugSection) -> void:
@@ -563,6 +592,8 @@ func _process(delta: float) -> void:
 		_sky_material.set_shader_parameter(uniform, sky.get(uniform))
 	for uniform in LightingParams.SHADER_UNIFORMS:
 		_sky_material.set_shader_parameter(uniform, lighting.get(uniform))
+	for uniform in ArtStyle.SKY_UNIFORMS:
+		_sky_material.set_shader_parameter(uniform, style.get(uniform))
 	_sky_material.set_shader_parameter("beat_pulse", pulse)
 	_sky_material.set_shader_parameter("combo_heat", heat)
 	_world_light.color = lighting.world_tint(sky, pulse, heat)

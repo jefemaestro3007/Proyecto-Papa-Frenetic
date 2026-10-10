@@ -8,7 +8,10 @@ extends Resource
 const POST_UNIFORMS: Array[StringName] = [
 	&"pixel_size", &"color_levels", &"dither", &"vignette", &"vignette_softness", &"desaturate",
 	&"tint", &"grain", &"aberration", &"spotlight", &"spotlight_radius", &"light_shaft",
+	&"scanlines", &"crt_curvature",
 ]
+## Los que son uniforms del shader del cielo.
+const SKY_UNIFORMS: Array[StringName] = [&"burst_lines"]
 
 ## Presets de cielo e iluminación que acompañan a este estilo (nombre de archivo sin .tres).
 @export var sky_preset: String = "rojo_frenetico"
@@ -28,11 +31,47 @@ const POST_UNIFORMS: Array[StringName] = [
 @export_range(0.0, 1.0) var crack_amount: float = 0.5
 @export_range(0.0, 1.0) var stain_amount: float = 0.3
 @export_range(0.0, 1.0) var rubble_amount: float = 0.3
+@export_range(0.0, 1.0) var poster_amount: float = 0.4
+@export_range(0.0, 1.0) var graffiti_amount: float = 0.3
+@export_range(0.0, 1.0) var wall_unit_amount: float = 0.6
+@export_range(0.0, 1.0) var bones_amount: float = 0.0
 ## Probabilidad de que una ventana de fachada esté encendida.
 @export_range(0.0, 1.0) var lit_windows: float = 0.12
 ## Mugre de las texturas (azoteas y skyline).
 @export_range(0.0, 1.0) var grime: float = 0.2
 @export_range(0.0, 1.0) var skyline_dirt: float = 0.35
+
+@export_group("Detalles comunes")
+## Bajantes de agua en las fachadas.
+@export var drainpipes: bool = true
+## Intensidad del fuego en los barriles (0 = barriles apagados).
+@export_range(0.0, 1.0) var fires: float = 0.4
+## Patrón de ladrillos en las fachadas.
+@export_range(0.0, 1.0) var bricks: float = 0.0
+
+@export_group("Gráfico (Default)")
+## Rayos radiales detrás del sol, que laten con el beat.
+@export_range(0.0, 1.0) var burst_lines: float = 0.0
+## Trama de semitono sobre las azoteas.
+@export_range(0.0, 1.0) var halftone: float = 0.0
+## Fracción de azoteas con alambrado en vez de baranda.
+@export_range(0.0, 1.0) var fence_amount: float = 0.0
+## Banderines colgados de los cables.
+@export var cable_flags: bool = false
+
+@export_group("Retro (Pixel)")
+## Cara iluminada/en sombra en cada caja (sombreado por caras).
+@export_range(0.0, 1.0) var cel_shading: float = 0.0
+## Borde de luz en la arista superior de cada caja.
+@export var rim_light: bool = false
+@export_range(0.0, 1.0) var scanlines: float = 0.0
+@export_range(0.0, 1.0) var crt_curvature: float = 0.0
+
+@export_group("Sótano (Isaac)")
+## Moscas zumbando alrededor de sangre, huesos, escombros y barriles.
+@export_range(0.0, 1.0) var flies: float = 0.0
+## Telarañas en esquinas de objetos y postes.
+@export_range(0.0, 1.0) var cobwebs: float = 0.0
 
 @export_group("Colores")
 @export var structure: Color = FreneticPalette.NAVY

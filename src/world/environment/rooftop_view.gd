@@ -15,6 +15,8 @@ const HAZARD_LENGTH := 160.0
 const HAZARD_STRIPE := 22.0
 const WOBBLE_STEP := 18.0
 const FACADE_DEPTH := 640.0
+const FENCE_HEIGHT := 150.0
+const BRICK := Vector2(46.0, 22.0)
 
 var _data: AzoteaMapData
 var _seed: int = 0
@@ -63,6 +65,20 @@ func _shape(points: PackedVector2Array, fill: Color, variant: int, outline := tr
 
 func _box(rect: Rect2, fill: Color, variant: int, outline := true) -> void:
 	_shape(_rect_points(rect), fill, variant, outline)
+	var inner := rect.grow(-_style.outline_width * 0.5)
+	if inner.size.x <= 2.0 or inner.size.y <= 2.0:
+		return
+	# Sombreado por caras: lado izquierdo iluminado, derecho en sombra.
+	if _style.cel_shading > 0.0:
+		var strip := clampf(inner.size.x * 0.2, 3.0, 26.0)
+		draw_rect(Rect2(inner.position, Vector2(strip, inner.size.y)),
+				Color(fill.lightened(0.35), _style.cel_shading * 0.8))
+		draw_rect(Rect2(Vector2(inner.end.x - strip, inner.position.y), Vector2(strip, inner.size.y)),
+				Color(fill.darkened(0.4), _style.cel_shading * 0.8))
+	if _style.rim_light:
+		var width := maxf(_style.outline_width * 0.5, 2.0)
+		draw_line(inner.position + Vector2(0.0, width * 0.5), Vector2(inner.end.x, inner.position.y + width * 0.5),
+				Color(_style.edge, 0.7), width)
 
 
 func _fill(poly: PackedVector2Array, color: Color) -> void:
@@ -110,6 +126,8 @@ func _draw_block(roof: Rect2, index: int) -> void:
 	var lip := Rect2(roof.position, Vector2(roof.size.x, LIP))
 	draw_rect(lip, _style.edge)
 	draw_rect(Rect2(roof.position + Vector2(0, LIP), Vector2(roof.size.x, 18.0)), _style.structure_dark)
+	if _style.bricks > 0.0:
+		_draw_bricks(roof)
 	if _style.facade_windows:
 		_draw_facade_windows(roof, variant)
 	else:
@@ -118,8 +136,43 @@ func _draw_block(roof: Rect2, index: int) -> void:
 			draw_line(Vector2(x, roof.position.y + 60.0), Vector2(x, roof.position.y + 900.0),
 					_style.structure_dark, 4.0)
 			x += 180.0
+	if _style.drainpipes:
+		_draw_drainpipe(roof, variant)
 	if _style.hazard_stripes:
 		_draw_hazard(roof)
+
+
+## Ladrillos trabados en la fachada, por debajo de las ventanas.
+func _draw_bricks(roof: Rect2) -> void:
+	var color := Color(_style.structure_dark, _style.bricks * 0.7)
+	var left := roof.position.x + 8.0
+	var right := roof.end.x - 8.0
+	var row := 0
+	var y := roof.position.y + 30.0
+	while y < roof.position.y + FACADE_DEPTH + 60.0:
+		draw_line(Vector2(left, y), Vector2(right, y), color, 2.0)
+		var x := left + (BRICK.x * 0.5 if row % 2 == 1 else 0.0)
+		while x < right:
+			draw_line(Vector2(x, y), Vector2(x, y + BRICK.y), color, 2.0)
+			x += BRICK.x
+		y += BRICK.y
+		row += 1
+
+
+## Bajante de agua con codo bajo el borde y abrazaderas.
+func _draw_drainpipe(roof: Rect2, variant: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = variant + 31
+	if roof.size.x < 300.0 or rng.randf() < 0.3:
+		return
+	var x := roof.position.x + 34.0 if rng.randf() < 0.5 else roof.end.x - 46.0
+	var top := roof.position.y + LIP + 18.0
+	var bottom := roof.position.y + FACADE_DEPTH + 120.0
+	_box(Rect2(x, top, 12.0, bottom - top), _style.structure_light, variant + 1)
+	var y := top + 90.0
+	while y < bottom:
+		_box(Rect2(x - 4.0, y, 20.0, 8.0), _style.structure_dark, variant + int(y))
+		y += 130.0
 
 
 func _draw_facade_windows(roof: Rect2, variant: int) -> void:
@@ -142,6 +195,10 @@ func _draw_facade_windows(roof: Rect2, variant: int) -> void:
 
 
 func _draw_railing(roof: Rect2) -> void:
+	# Algunas azoteas llevan alambrado en lugar de baranda (decidido por azotea, estable).
+	if _style.fence_amount > 0.0 and fposmod(sin(roof.position.x * 12.9898) * 43758.5453, 1.0) < _style.fence_amount:
+		_draw_fence(roof)
+		return
 	var y0 := roof.position.y
 	var left := roof.position.x + 24.0
 	var right := roof.end.x - 24.0
@@ -154,7 +211,28 @@ func _draw_railing(roof: Rect2) -> void:
 	var x := left
 	while x <= right:
 		_box(Rect2(x - 7.0, y0 - RAIL_HEIGHT - 6.0, 14.0, RAIL_HEIGHT + 6.0), _style.structure, _seed + int(x))
+		_maybe_cobweb(Vector2(x + 7.0, y0 - RAIL_HEIGHT + 6.0), 1.0, 26.0, int(x) ^ _seed)
 		x += RAIL_POST_SPACING
+
+
+## Alambrado: postes, travesaño y malla de rombos recortada al panel.
+func _draw_fence(roof: Rect2) -> void:
+	var y0 := roof.position.y
+	var panel := Rect2(roof.position.x + 24.0, y0 - FENCE_HEIGHT, roof.size.x - 48.0, FENCE_HEIGHT)
+	var panel_points := _rect_points(panel)
+	var mesh := Color(_style.structure_light, 0.85)
+	var x := panel.position.x - FENCE_HEIGHT
+	while x < panel.end.x:
+		for line in [PackedVector2Array([Vector2(x, y0), Vector2(x + FENCE_HEIGHT, y0 - FENCE_HEIGHT)]),
+				PackedVector2Array([Vector2(x, y0 - FENCE_HEIGHT), Vector2(x + FENCE_HEIGHT, y0)])]:
+			for clipped in Geometry2D.intersect_polyline_with_polygon(line, panel_points):
+				draw_polyline(clipped, mesh, 2.0)
+		x += 22.0
+	_box(Rect2(panel.position.x, panel.position.y - 6.0, panel.size.x, 10.0), _style.structure_light, _seed + 3)
+	var post := panel.position.x
+	while post <= panel.end.x:
+		_box(Rect2(post - 6.0, panel.position.y - 6.0, 12.0, FENCE_HEIGHT + 6.0), _style.structure, _seed + int(post))
+		post += 170.0
 
 
 ## Franjas de peligro en ambos extremos de la azotea (avisan del borde).
@@ -184,6 +262,12 @@ func _draw_cable(cable: AzoteaMapData.Cable) -> void:
 		var t := i / 16.0
 		points.append(cable.from.lerp(cable.to, t) + Vector2(0.0, 4.0 * cable.sag * t * (1.0 - t)))
 	draw_polyline(points, _style.outline, maxf(_style.outline_width * 0.75, 2.0), true)
+	if _style.cable_flags:
+		var colors := [_style.accent, _style.edge, _style.blood]
+		for i in range(1, points.size() - 1):
+			var p := points[i]
+			var flag := PackedVector2Array([p + Vector2(-8.0, 0.0), p + Vector2(8.0, 0.0), p + Vector2(0.0, 20.0)])
+			_shape(flag, colors[i % colors.size()], i, true)
 
 
 # --- Objetos -------------------------------------------------------------------------
@@ -192,6 +276,11 @@ func _draw_prop(prop: Prop) -> void:
 	var r := prop.rect
 	var rng := RandomNumberGenerator.new()
 	rng.seed = prop.variant
+	_draw_prop_body(prop, r, rng)
+	_maybe_cobweb(r.position, 1.0, minf(30.0, r.size.x * 0.5), prop.variant + 5)
+
+
+func _draw_prop_body(prop: Prop, r: Rect2, rng: RandomNumberGenerator) -> void:
 	match prop.type:
 		Prop.Type.AC_UNIT:
 			_box(r, _style.structure_light, prop.variant)
@@ -246,6 +335,39 @@ func _draw_prop(prop: Prop) -> void:
 			_shape(glass, _style.window_dark, prop.variant)
 			draw_line(Vector2(r.position.x + 22.0, r.position.y + 6.0), Vector2(r.position.x + 40.0, r.position.y + 6.0),
 					_style.window_lit, 3.0)
+		Prop.Type.BARREL:
+			_box(r, _style.blood.darkened(0.2), prop.variant)
+			for k in 2:
+				var y := r.position.y + r.size.y * (0.3 + k * 0.35)
+				draw_line(Vector2(r.position.x, y), Vector2(r.end.x, y), _style.outline, 3.0)
+			draw_rect(Rect2(r.position.x + 4.0, r.position.y - 4.0, r.size.x - 8.0, 6.0), _style.outline)
+		Prop.Type.CRATES:
+			var size := minf(r.size.x, r.size.y * 0.5 + 25.0)
+			var x := r.position.x
+			while x + size <= r.end.x + 0.5:
+				var stack := rng.randi_range(1, maxi(1, int(r.size.y / size)))
+				for k in stack:
+					_draw_crate(Rect2(x, r.end.y - size * (k + 1), size, size), prop.variant + k + int(x))
+				x += size
+		Prop.Type.SATELLITE_DISH:
+			var base := Vector2(r.get_center().x, r.end.y)
+			_box(Rect2(base.x - 4.0, r.position.y + r.size.y * 0.45, 8.0, r.size.y * 0.55), _style.structure_dark,
+					prop.variant)
+			var dish_center := Vector2(base.x, r.position.y + r.size.y * 0.4)
+			var dish := PackedVector2Array()
+			for k in 9:
+				var angle := lerpf(-2.4, 0.75, k / 8.0)
+				dish.append(dish_center + Vector2(cos(angle), sin(angle)) * r.size.x * 0.5)
+			_shape(dish, _style.edge, prop.variant + 1)
+			draw_line(dish_center, dish_center + Vector2(-14.0, -18.0), _style.outline, 3.0)
+		Prop.Type.PIPE_RUN:
+			var pipe := Rect2(r.position.x, r.position.y + 6.0, r.size.x, r.size.y * 0.45)
+			for x in [r.position.x + 20.0, r.end.x - 34.0]:
+				_box(Rect2(x, pipe.end.y, 14.0, r.end.y - pipe.end.y), _style.structure_dark, prop.variant + int(x))
+			_box(pipe, _style.structure_light, prop.variant)
+			var valve := Vector2(r.position.x + r.size.x * rng.randf_range(0.3, 0.7), pipe.position.y)
+			_box(Rect2(valve.x - 3.0, valve.y - 16.0, 6.0, 16.0), _style.structure_dark, prop.variant + 2)
+			draw_line(valve + Vector2(-12.0, -16.0), valve + Vector2(12.0, -16.0), _style.blood, 5.0)
 		Prop.Type.BILLBOARD:
 			var panel := Rect2(r.position, Vector2(r.size.x, r.size.y * 0.55))
 			for x in [r.position.x + r.size.x * 0.2, r.position.x + r.size.x * 0.75]:
@@ -258,6 +380,34 @@ func _draw_prop(prop: Prop) -> void:
 				var bar_w := inner.size.x * rng.randf_range(0.4, 0.85)
 				draw_rect(Rect2(inner.position + Vector2(14.0, 14.0 + k * inner.size.y * 0.28), Vector2(bar_w, 14.0)),
 						_style.accent if k == 0 else _style.edge)
+
+
+## Telaraña en una esquina superior: se abre hacia abajo y hacia `dir` (1 = derecha, -1 = izquierda).
+func _maybe_cobweb(corner: Vector2, dir: float, size: float, variant: int) -> void:
+	if _style.cobwebs <= 0.0:
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = variant
+	if rng.randf() >= _style.cobwebs * 0.6:
+		return
+	var color := Color(_style.edge, 0.55)
+	var spokes := PackedVector2Array()
+	for k in 4:
+		var t := (k / 3.0) * PI * 0.5
+		spokes.append(corner + Vector2(sin(t) * dir, cos(t)) * size)
+		draw_line(corner, spokes[k], color, 1.5)
+	for ring in [0.4, 0.7, 1.0]:
+		var arc := PackedVector2Array()
+		for spoke in spokes:
+			arc.append(corner.lerp(spoke, ring) + Vector2(0.0, size * 0.06))
+		draw_polyline(arc, color, 1.5)
+
+
+func _draw_crate(rect: Rect2, variant: int) -> void:
+	_box(rect, _style.edge.darkened(0.35), variant)
+	var inset := rect.grow(-6.0)
+	draw_rect(inset, _style.structure_dark, false, 3.0)
+	draw_line(inset.position, inset.end, _style.structure_dark, 3.0)
 
 
 # --- Marcas --------------------------------------------------------------------------
@@ -281,6 +431,70 @@ func _draw_mark(mark: Mark) -> void:
 		Mark.Type.RUBBLE:
 			if mark.weight < _style.rubble_amount:
 				_draw_rubble(mark.position, mark.size, rng)
+		Mark.Type.POSTER:
+			if mark.weight < _style.poster_amount:
+				_draw_poster(mark.position, mark.size, rng)
+		Mark.Type.GRAFFITI:
+			if mark.weight < _style.graffiti_amount:
+				_draw_graffiti(mark.position, mark.size, rng)
+		Mark.Type.WALL_UNIT:
+			if mark.weight < _style.wall_unit_amount:
+				var unit := Rect2(mark.position - Vector2(32.0, 22.0), Vector2(64.0, 44.0))
+				_shape(PackedVector2Array([unit.position + Vector2(8.0, unit.size.y),
+						unit.end, unit.end + Vector2(-8.0, 14.0)]), _style.structure_dark, mark.variant + 1)
+				_box(unit, _style.structure_light, mark.variant)
+				for k in 4:
+					var x := unit.position.x + 12.0 + k * 10.0
+					draw_line(Vector2(x, unit.position.y + 8.0), Vector2(x, unit.end.y - 8.0), _style.structure_dark, 3.0)
+		Mark.Type.BONES:
+			if mark.weight < _style.bones_amount:
+				_draw_bones(mark.position, mark.size, rng)
+
+
+## Afiche pegado y torcido: papel, banda de color, "texto" y esquina rasgada.
+func _draw_poster(center: Vector2, size: float, rng: RandomNumberGenerator) -> void:
+	var half := Vector2(27.0, 38.0) * size
+	draw_set_transform(center, rng.randf_range(-0.15, 0.15))
+	var paper := Rect2(-half, half * 2.0)
+	_box(paper, _style.edge, rng.randi())
+	draw_rect(Rect2(paper.position + Vector2(6.0, 6.0), Vector2(paper.size.x - 12.0, paper.size.y * 0.3)),
+			_style.accent if rng.randf() < 0.5 else _style.blood)
+	for k in 3:
+		draw_rect(Rect2(paper.position + Vector2(6.0, paper.size.y * (0.45 + k * 0.15)),
+				Vector2((paper.size.x - 12.0) * rng.randf_range(0.5, 1.0), 5.0)), _style.structure_dark)
+	_fill(PackedVector2Array([paper.end, paper.end - Vector2(18.0, 0.0), paper.end - Vector2(0.0, 22.0)]),
+			_style.structure)
+	draw_set_transform(Vector2.ZERO)
+
+
+## Firma de grafiti: trazo grueso con contorno y chorreones.
+func _draw_graffiti(origin: Vector2, size: float, rng: RandomNumberGenerator) -> void:
+	var points := PackedVector2Array([origin])
+	for k in rng.randi_range(7, 12):
+		points.append(points[k] + Vector2(rng.randf_range(8.0, 22.0), rng.randf_range(-26.0, 26.0)) * size)
+	var colors := [_style.accent, _style.edge, _style.blood.lightened(0.2)]
+	var color: Color = colors[rng.randi() % colors.size()]
+	draw_polyline(points, _style.outline, 12.0 * size + _style.outline_width)
+	draw_polyline(points, color, 12.0 * size)
+	for k in rng.randi_range(1, 3):
+		var start := points[rng.randi_range(0, points.size() - 1)]
+		draw_line(start, start + Vector2(0.0, rng.randf_range(20.0, 70.0)), color, 4.0)
+
+
+## Calavera con huesos cruzados sobre el techo.
+func _draw_bones(base: Vector2, size: float, rng: RandomNumberGenerator) -> void:
+	var bone := _style.edge.lightened(0.15)
+	var center := base + Vector2(rng.randf_range(-20.0, 20.0), -12.0 * size)
+	for k in 2:
+		var a := center + Vector2(-20.0, 8.0 if k == 0 else -2.0) * size
+		var b := center + Vector2(20.0, -2.0 if k == 0 else 8.0) * size
+		draw_line(a, b, _style.outline, 9.0 * size)
+		draw_line(a, b, bone, 5.0 * size)
+		for end in [a, b]:
+			draw_circle(end, 4.0 * size, bone)
+	_shape(_ellipse(center + Vector2(0.0, -10.0) * size, Vector2(11.0, 10.0) * size, 12), bone, rng.randi())
+	for eye in [-4.0, 4.0]:
+		draw_circle(center + Vector2(eye, -11.0) * size, 2.6 * size, _style.outline)
 
 
 ## Salpicadura: núcleo, gotas satélite y chorreones verticales.

@@ -1,7 +1,7 @@
 shader_type canvas_item;
 // Post-proceso de pantalla del ArtStyle: pixelado, paleta reducida con dithering,
 // gradación (desaturar + tinte), viñeta, foco de luz, haz de luz, grano,
-// aberración cromática y glitch de impacto (`shock`).
+// líneas de escaneo y curvatura CRT, aberración cromática y glitch de impacto (`shock`).
 
 uniform sampler2D screen_tex : hint_screen_texture, filter_nearest;
 uniform float pixel_size = 1.0;
@@ -16,6 +16,8 @@ uniform float aberration = 1.5;
 uniform float spotlight = 0.0;
 uniform float spotlight_radius = 0.6;
 uniform float light_shaft = 0.0;
+uniform float scanlines = 0.0;
+uniform float crt_curvature = 0.0;
 // Los alimenta el script en cada frame.
 uniform vec2 spotlight_center = vec2(0.5);
 uniform float shock = 0.0;
@@ -39,8 +41,13 @@ float bayer4(vec2 a) {
 
 void fragment() {
 	vec2 screen_px = 1.0 / SCREEN_PIXEL_SIZE;
+	// Curvatura de tubo CRT: deforma el muestreo y oscurece fuera del "vidrio".
+	vec2 centered = SCREEN_UV * 2.0 - 1.0;
+	centered *= 1.0 + crt_curvature * 0.12 * dot(centered.yx, centered.yx);
+	vec2 screen_uv = centered * 0.5 + 0.5;
+	float outside = step(1.0, max(abs(centered.x), abs(centered.y)));
 	float cell = max(pixel_size, 1.0);
-	vec2 art_px = floor(SCREEN_UV * screen_px / cell);
+	vec2 art_px = floor(screen_uv * screen_px / cell);
 	vec2 uv = (art_px + 0.5) * cell / screen_px;
 
 	// Bandas horizontales desplazadas durante el impacto.
@@ -67,9 +74,12 @@ void fragment() {
 
 	col += (hash(art_px + floor(TIME * 24.0) * 13.0) - 0.5) * grain;
 
+	float scan = 0.5 + 0.5 * sin(screen_uv.y * screen_px.y * PI / max(cell, 2.0));
+	col *= 1.0 - scanlines * 0.4 * (1.0 - scan);
+
 	if (color_levels > 1.0) {
 		float steps = color_levels - 1.0;
 		col = floor(col * steps + 0.5 + (bayer4(art_px) - 0.5) * dither) / steps;
 	}
-	COLOR = vec4(clamp(col, 0.0, 1.0), 1.0);
+	COLOR = vec4(clamp(col, 0.0, 1.0) * (1.0 - outside), 1.0);
 }

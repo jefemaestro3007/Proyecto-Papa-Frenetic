@@ -22,6 +22,8 @@ uniform vec4 water_color : source_color = vec4(0.169, 0.165, 0.271, 1.0);
 uniform vec4 land_color : source_color = vec4(0.431, 0.165, 0.208, 1.0);
 uniform float beat_flash : hint_range(0.0, 1.0) = 0.5;
 uniform float sun_beat_pulse : hint_range(0.0, 1.0) = 0.6;
+// Rasgo del estilo gráfico (ArtStyle.burst_lines).
+uniform float burst_lines : hint_range(0.0, 1.0) = 0.0;
 // Los alimenta el script desde el Conductor y el combo (0..1).
 uniform float beat_pulse = 0.0;
 uniform float combo_heat = 0.0;
@@ -96,6 +98,15 @@ void fragment() {
 		float star = step(1.0 - star_density * 0.03, hash(cell)) * step(0.12, 1.0 - t) * dot_mask;
 		float twinkle = max(0.5 + 0.5 * sin(TIME * 3.0 + hash(cell + 7.0) * 40.0), pulse);
 		col = mix(col, sun_color.rgb, star * twinkle * (1.0 - t));
+
+		// Rayos radiales de manga desde el sol, giran lento y se encienden en el beat.
+		if (burst_lines > 0.0) {
+			vec2 to_sun = p - sun_center;
+			float rays = step(0.5, fract(atan(to_sun.y, to_sun.x) * 18.0 / TAU + TIME * 0.02));
+			float fade = smoothstep(res.x * 0.9, radius * 1.2, length(to_sun));
+			vec3 ray_col = mix(col, horizon_glow.rgb * 1.2 + 0.04, 0.5);
+			col = mix(col, ray_col, rays * fade * burst_lines * (0.6 + 0.4 * pulse));
+		}
 
 		// Halo y disco del sol, con cortes horizontales en la mitad inferior.
 		if (sun_size > 0.0) {
