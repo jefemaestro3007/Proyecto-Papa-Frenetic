@@ -1031,7 +1031,8 @@ func finish_victory() -> void:
 
 
 ## Pantalla del diseño al terminar: YOU LOOSE (volver al menú o reintentar con la misma seed) o
-## YOU WIN (volver al menú o pasar al siguiente nivel; si no hay otro, la misma zona con otra seed).
+## YOU WIN (volver al menú o pasar al siguiente nivel; al terminar un mundo con final, su imagen; si
+## no, la misma zona con otra seed).
 ## Las coordenadas de los botones son las de las capas de los PSD.
 func _show_result(won: bool) -> void:
 	_hide_result()
@@ -1063,6 +1064,8 @@ func _on_result_action(action_name: StringName) -> void:
 		&"siguiente":
 			if Game.has_next_level():
 				Game.next_level()
+			elif not Game.ending_image().is_empty():
+				Game.go_to_menu(&"final")
 			else:
 				_zone_params().seed += 1
 				Conductor.restart()

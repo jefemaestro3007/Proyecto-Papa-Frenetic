@@ -998,3 +998,17 @@ Files: `src/core/autoloads/game.gd`, `assets_src/ui/menu/carga_mundo_3.jpg`, `as
 Change: Las imágenes de carga pasan de la clave `carga` de cada subnivel a `Game.WORLD_LOADING`, por número de mundo: 2 → `carga_mundo_2.png`, 3 → `carga_mundo_3.png`. `loading_image()` devuelve la del mundo nuevo solo si se llegó con NEXT LEVEL desde otro mundo. La entrada de 2-1 en `Game.LEVELS` vuelve a ser como la de la rama del nivel 3.
 Commit: PENDING (se commitea junto con esta entrada)
 Notes: El nivel 3 está en `feature/nivel-3-bienestar` (3-1 Supermercado), sin integrar; cuando entre, 2-2 → 3-1 muestra la imagen sin tocar nada. Por ir por mundo, agregar subniveles no toca la imagen y el merge de esa rama choca menos. `test_campaign` en verde: 1-2 → 2-1 sigue con su imagen, sin imagen desde el menú ni dentro del mismo mundo, y existen las imágenes de los mundos 2 y 3. Push autorizado por el usuario.
+
+### Final del mundo 3 e integración del nivel 3 en feature/visual-fixes
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (autor de Git: 14mn0t4b0t)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "pasa a esta rama (feature/visual-fixes) y terminala, hay una imagen para el nivel 3 en ."
+Task: Terminar `feature/visual-fixes` (pantallas de carga por mundo) ahora que el nivel 3 está en `develop`, y usar la ilustración nueva (`final mundo 3.png`, en la raíz del repo) como final del mundo 3.
+Type: CODE (AI) / UX / TESTING / DOCS
+Files: `src/core/autoloads/game.gd`, `src/world/levels/zone_level.gd`, `src/ui/menus/main_menu.gd`, `assets_src/ui/menu/final_mundo_3.png` (original), `assets/textures/ui/menu/final_mundo_3.png` (+ `.import`), `tests/integration/test_campaign.gd`, `docs/game-design/menu.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: `develop` (con el nivel 3, PR #20) integrado en la rama con merge; solo chocó `AI_TRACE.md` (entradas agregadas en el mismo lugar, se conservan todas). `Game.WORLD_ENDING` (3 → `final_mundo_3.png`) y `Game.ending_image()`: al ganar el último subnivel de un mundo con final, dentro de la campaña, YOU WIN → NEXT LEVEL abre la pantalla `final` del menú con la ilustración a pantalla completa, que pasa a LEVEL SELECT a los 6 s (`MainMenu.ENDING_SECONDS`) o con cualquier tecla o clic. Abriendo una zona directo sigue como antes (otra seed). La ilustración original va en `assets_src/ui/menu/` y la del juego reducida a 1600×900 como `carga_mundo_2/3`. Docs y CHANGELOG sin el "se verá cuando esté el nivel 3".
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Ilustración provista por el usuario (autoría no indicada; completar si corresponde). `test_campaign` ampliado (el final solo tras 3-2 en la campaña, la imagen existe, la pantalla pasa a LEVEL SELECT con una tecla) en verde. No se corrieron los demás tests: el cambio no toca el nivel 3 ni otras zonas (pedido del usuario para ahorrar tiempo). Sin push hasta que el usuario lo autorice.

@@ -17,11 +17,16 @@ const LEVELS: Array[Dictionary] = [
 ]
 
 ## Imagen de la pantalla de carga al entrar a un mundo (nivel) con NEXT LEVEL desde el anterior:
-## 1-2 → 2-1 y, cuando esté el nivel 3, 2-2 → 3-1. Va por mundo y no en LEVELS: agregar o mover
-## subniveles no la toca.
+## 1-2 → 2-1 y 2-2 → 3-1. Va por mundo y no en LEVELS: agregar o mover subniveles no la toca.
 const WORLD_LOADING := {
 	2: "res://assets/textures/ui/menu/carga_mundo_2.png",
 	3: "res://assets/textures/ui/menu/carga_mundo_3.png",
+}
+
+## Imagen del final de un mundo: al ganar su último subnivel sin otro después (3-2), NEXT LEVEL la
+## muestra a pantalla completa y vuelve a LEVEL SELECT.
+const WORLD_ENDING := {
+	3: "res://assets/textures/ui/menu/final_mundo_3.png",
 }
 
 ## Subnivel en juego (-1 = se abrió una zona directo, sin pasar por el menú).
@@ -122,6 +127,14 @@ func loading_image() -> String:
 	if LEVELS[level_index - 1]["nivel"] == world:
 		return ""
 	return WORLD_LOADING.get(world, "")
+
+
+## Imagen del final del mundo que se acaba de terminar (vacía si hay otro subnivel después, si el
+## mundo no tiene final o si la zona se abrió directo, sin la campaña).
+func ending_image() -> String:
+	if not in_campaign() or has_next_level():
+		return ""
+	return WORLD_ENDING.get(LEVELS[level_index]["nivel"], "")
 
 
 func level_scene() -> String:
