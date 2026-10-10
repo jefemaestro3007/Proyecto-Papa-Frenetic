@@ -26,6 +26,7 @@ func _ready() -> void:
 	await _test_pause()
 	await _test_progress()
 	await _test_danger()
+	await _test_elevator_sync()
 	Game.level_index = -1
 	print("test_campaign: %s" % ("OK" if _failures == 0 else "%d FALLOS" % _failures))
 	get_tree().quit(1 if _failures > 0 else 0)
@@ -243,6 +244,32 @@ func _test_danger() -> void:
 	_check(Conductor.get("_danger_target") == 1.0, "la zona le pasa el peligro al Conductor")
 	level.finish_victory()
 	_check(level.danger_amount() == 0.0, "al terminar la partida no hay peligro")
+	_close(level)
+
+
+## En el ascensor, el pasajero y la zona visible van con la cabina en cada frame (antes el pasajero
+## iba un paso de física atrás y la máscara la seguía con retraso: quedaba fuera, en lo oscuro).
+func _test_elevator_sync() -> void:
+	var level := await _open(2)
+	var lifts: Array = level.call("elevators")
+	var lift: Elevator = lifts[0]
+	var player: PlayerPrototype = level.call("player")
+	player.begin_scripted()
+	level.set("_lift", lift)
+	level.set("_state", 3)  # State.RIDING
+	lift.riding = true
+	var start_y := lift.cabin_y
+	lift.ride_to(lift.spec.high if lift.cabin_floor != lift.spec.high else lift.spec.low)
+	var mask: VisionMask = level.get("_mask")
+	var worst_player := 0.0
+	var worst_mask := 0.0
+	for _i in 120:
+		await get_tree().process_frame
+		worst_player = maxf(worst_player, player.position.distance_to(Vector2(lift.door_x(), lift.cabin_y - 2.0)))
+		worst_mask = maxf(worst_mask, mask.get("_rect").position.distance_to(lift.cabin_rect().position))
+	_check(absf(lift.cabin_y - start_y) > 100.0, "la cabina viajó (%.0f px)" % absf(lift.cabin_y - start_y))
+	_check(worst_player < 0.5, "el pasajero va con la cabina (desfase máximo %.1f px)" % worst_player)
+	_check(worst_mask < 0.5, "la zona visible va con la cabina (desfase máximo %.1f px)" % worst_mask)
 	_close(level)
 
 

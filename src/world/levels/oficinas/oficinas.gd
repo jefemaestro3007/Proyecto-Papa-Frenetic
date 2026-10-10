@@ -416,7 +416,7 @@ func _update_calling() -> void:
 
 ## Adentro: W/S eligen hacia dónde (mantener sigue de piso en piso), A/D salen.
 func _update_riding() -> void:
-	_player.position = Vector2(_lift.door_x(), _lift.cabin_y - 2.0)
+	_player.position = riding_position()
 	if _lift.is_moving():
 		_lift_was_moving = true
 		return
@@ -486,7 +486,7 @@ func _on_key_collected(key_id: int) -> void:
 ## habitación, solo la habitación actual.
 func _update_view() -> void:
 	if _state == State.RIDING:
-		_mask.show_only(_lift.cabin_rect())
+		_mask.show_only(_lift.cabin_rect(), true)
 		return
 	# Dentro de un área al fondo siempre se ve solo el área (está "detrás" del edificio).
 	var area := current_area()
@@ -622,9 +622,25 @@ func _zone_map_controls(section: DebugSection) -> void:
 	section.add_slider(params, &"skyline_ruin", "Ruina del skyline", 0.0, 1.0, 0.01)
 
 
+## En el ascensor, cada frame (no solo en cada paso de física): el pasajero y la zona visible van
+## exactamente con la cabina, que ya se movió este frame. Antes iban a destiempo y, con el temblor
+## del calor, el personaje quedaba fuera de la cabina o en la parte oscura.
+func _sync_riding() -> void:
+	if Engine.is_editor_hint() or _data == null or _state != State.RIDING or _lift == null:
+		return
+	_player.position = riding_position()
+	_mask.show_only(_lift.cabin_rect(), true)
+
+
+## Dónde va el pasajero dentro de la cabina.
+func riding_position() -> Vector2:
+	return Vector2(_lift.door_x(), _lift.cabin_y - 2.0)
+
+
 # --- Salida --------------------------------------------------------------------------
 
 func _process(delta: float) -> void:
+	_sync_riding()
 	super(delta)
 	if Engine.is_editor_hint() or _data == null:
 		return

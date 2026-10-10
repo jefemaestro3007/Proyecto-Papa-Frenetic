@@ -24,6 +24,9 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Fixed
 
+- Ascensores: el pasajero, la cabina y la zona visible iban a destiempo (el personaje quedaba
+  fuera de la cabina o en lo oscuro, peor con el temblor del calor); ahora se mueven juntos en
+  cada frame.
 - Tirones en Oficinas: la guía sonora buscaba el camino a la salida en cada beat (15 ms en
   edificios grandes); ahora sigue el plan guardado y solo replanea al salirse de él. El bot de
   recorrido guarda sus planes y las búsquedas en anchura usan un cursor en lugar de `pop_front()`.
