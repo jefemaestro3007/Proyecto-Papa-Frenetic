@@ -952,11 +952,13 @@ func _on_result_action(action_name: StringName) -> void:
 			Game.go_to_menu()
 		&"reintentar":
 			regenerate()
+			Conductor.restart()
 		&"siguiente":
 			if Game.has_next_level():
 				Game.next_level()
 			else:
 				_zone_params().seed += 1
+				Conductor.restart()
 
 
 ## Congela el mundo (jugador, enemigos, proyectiles) al terminar la partida.
