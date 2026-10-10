@@ -45,15 +45,19 @@ El mapa es el mismo en todos los modos; `ArtStyle` (`src/world/environment/art_s
 decide cómo se dibuja. Cada modo trae su preset de cielo e iluminación.
 Se cambia con **F2** o desde la pestaña Estilo del menú de debug.
 
-| Modo | Rasgos |
+| Modo | Rasgos propios (grupo en la pestaña Estilo) |
 |---|---|
-| **Default** | Tintas planas, contorno limpio, franjas de peligro, rojo saturado. |
-| **Pixel** | Pantalla pixelada (×4), paleta reducida con dithering, cielo pixel-art, sin mugre. |
-| **Isaac** | Paleta terrosa, contorno grueso con trazo a mano, sombras proyectadas, mucha sangre, grietas y escombros, viñeta fuerte, foco en el jugador y haz de luz. Toma como referencia *The Binding of Isaac*, sin copiar sus assets. |
+| **Default** — *Gráfico* | Tintas planas, rayos de manga detrás del sol, trama de semitono, alambrados, banderines en cables, afiches y grafitis, franjas de peligro. |
+| **Pixel** — *Retro* | Pantalla pixelada (×4), paleta reducida con dithering, sombreado por caras, borde de luz, líneas de escaneo y curvatura CRT, ladrillos. |
+| **Isaac** — *Sótano* | Paleta terrosa, trazo a mano, sombras proyectadas, moscas, telarañas, huesos, mucha sangre y escombros, ladrillos, viñeta fuerte, foco y haz de luz. Referencia: *The Binding of Isaac*, sin copiar sus assets. |
+
+Los rasgos no son exclusivos: cualquier control de cualquier grupo funciona en cualquier modo.
 
 **Detalles del mapa:** el generador coloca objetos sobre las azoteas (aires, tanques,
-antenas, ventilaciones, chimeneas, casetas, tragaluces, carteles), cables entre
-edificios y marcas (sangre, grietas, manchas, escombros). Cada marca tiene un
+antenas, ventilaciones, chimeneas, casetas, tragaluces, carteles, barriles con fuego,
+cajas, parabólicas, tuberías), cables entre edificios y marcas (sangre, grietas,
+manchas, escombros y huesos sobre el techo; afiches, grafitis y aires en la fachada).
+Las ventanas del skyline solo aparecen dentro de la silueta de cada edificio. Cada marca tiene un
 `weight`, así que el estilo decide qué fracción se ve sin regenerar el mapa. Las
 balizas de antenas y carteles laten con el beat.
 

@@ -7,6 +7,10 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Ventanas del skyline que quedaban flotando sobre edificios derrumbados.
+
 ### Added
 
 - Zona **Azotea** (`src/world/levels/azotea/`): azoteas jugables con colisión y skyline
@@ -26,6 +30,10 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
   manchas, escombros y balizas que laten con el beat.
 - Modos gráficos Default, Pixel e Isaac (`ArtStyle`): trazo, marcas, colores y
   post-proceso (pixelado, paleta reducida, viñeta, foco, haz de luz). F2 los alterna.
+- Más detalle en la Azotea (barriles con fuego, cajas, parabólicas, tuberías, afiches,
+  grafitis, aires de pared, huesos, bajantes) y rasgos por modo con controles propios:
+  Gráfico (rayos, semitono, alambrados, banderines), Retro (cel shading, borde de luz,
+  scanlines, CRT) y Sótano (moscas, telarañas, huesos, ladrillos).
 - Menú de debug por secciones (Tab/F1) con campos numéricos y exportación/carga de
   presets por sección (`src/shared/resources/presets/`).
 - Dirección de arte en `docs/game-design/art-direction/rojo-frenetico.md`.
