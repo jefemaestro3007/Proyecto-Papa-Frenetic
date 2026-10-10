@@ -13,6 +13,13 @@ La herramienta compone las capas visibles de cada PSD (las de texto exportadas d
 siempre vienen en la imagen compuesta) e imprime cada capa con su rectángulo: de ahí salen las
 coordenadas de los botones. Las tres papas de LOADING se exportan aparte para animarlas.
 
+## Música
+
+Todo el menú suena con `MenuSongStart.wav` (`src/shared/resources/music/menu.tres`, 190,5 BPM medido
+del audio, primer beat a 0,03 s); marca el beat de la protagonista y de los botones. Al entrar a un
+nivel suena la canción de la zona y al volver al menú vuelve la del menú. La canción no dura
+compases enteros, pero el `Conductor` sigue su posición de reproducción.
+
 ## Flujo
 
 ```
@@ -24,7 +31,7 @@ START ──▶ NEW GAME ──▶ LEVEL SELECT ──▶ LOADING ──▶ nive
 
 | Pantalla | Botones | Qué hace |
 |---|---|---|
-| START (`inicio`) | START · SETTINGS | START pasa a NEW GAME; SETTINGS abre la configuración (el texto SETTINGS se dibuja en código con la letra del diseño, al 60 % del tamaño de START) |
+| START (`inicio`) | START · SETTINGS | START pasa a NEW GAME; SETTINGS abre la configuración. Sobre el fondo de la azotea al atardecer (`inicio_fondo.png`, que cubre toda la ventana), la protagonista arriba vibra al ritmo de la música del menú (`StartScreenArt`); debajo, el título y START (capas del PSD exportadas aparte). SETTINGS va debajo de START, dibujado en código con la letra del diseño al 60 % del tamaño de START |
 | SETTINGS (`configuracion`) | Pestañas · BACK · DEFAULTS | Configuración del jugador (ver abajo). BACK o Esc vuelve a donde se abrió |
 | NEW GAME (`nuevo_juego`) | NEW GAME | Pasa a LEVEL SELECT |
 | LEVEL SELECT (`seleccion_nivel`, `_2`, `_3`) | ENTER de cada nivel desbloqueado | Juega el nivel desde su primer subnivel (1-1, 2-1…). El diseño cambia según hasta dónde se llegó: al empezar solo el nivel 1; al llegar a los edificios (2-1) queda desbloqueado el 2, también al volver al menú o reabrir el juego |
@@ -47,15 +54,24 @@ las opciones de `ZoneLevel` del grupo "Subnivel" (`tutorial`, `start_style`, `en
 
 | Subnivel | Escena | Mapa | Enemigos | Música |
 |---|---|---|---|---|
-| 1-1 Tutorial | `azotea/azotea_tutorial.tscn` | La azotea del prototipo (14 azoteas) con los textos del tutorial | Se presentan de a uno: común → voladora → tiradora → embestidora | Nivel uno |
+| 1-1 Tutorial | `azotea/azotea_tutorial.tscn` | La azotea del prototipo (14 azoteas) con el tutorial de la protagonista | Se presentan de a uno: común → voladora → tiradora → embestidora | Nivel uno |
 | 1-2 Carullazo | `azotea/azotea_prueba.tscn` | La misma azotea, 36 azoteas (unas 2,6 veces más larga) | Comunes, voladoras, tiradoras y embestidoras mezcladas desde el principio | Nivel uno |
-| 2-1 Subida | `oficinas/oficinas_subida.tscn` | Torre de 13 pisos, de abajo hacia arriba (12 pisos de subida) con la neblina de habitación (la vista de la V) | Se presentan de a uno: común → tanque → embestidora → tiradora | Nivel dos (industrial) |
+| 2-1 Subida | `oficinas/oficinas_subida.tscn` | Torre de 13 pisos, de abajo hacia arriba (12 pisos de subida) con la neblina de habitación (la vista de la V); la protagonista explica escaleras y ascensores | Se presentan de a uno: común → tanque → embestidora → tiradora | Nivel dos (industrial) |
 | 2-2 Bajada | `oficinas/oficinas_bajada.tscn` | Torre de 14 pisos y 10 módulos, de arriba hacia abajo, con el estilo Isaac | Comunes, tanques, embestidoras y tiradoras | Nivel dos (industrial) |
 
-El tutorial (`TutorialHints`, solo en 1-1) muestra arriba al centro los movimientos básicos (A/D,
-Espacio, clic/J) hasta que el jugador avanza un tramo, y cuando aparece la primera papa explica el
-stomp (S en el aire), el ataque aéreo y el dash (Shift). Jugando desde el menú no se ve la línea de
-ayuda de debug ni Oficinas cambia sola de seed al ganar.
+El tutorial (`TutorialHints`) pausa el juego y la canción, y la protagonista (retrato
+`assets/textures/ui/protagonista_retrato.png`) aparece en el centro y explica los controles en un
+globo de diálogo; Espacio, Enter, J o clic terminan de escribir el texto y cierran. El guion lo
+elige cada escena con `tutorial`:
+
+| Guion | Subnivel | Cuándo | Qué explica |
+|---|---|---|---|
+| `azotea` | 1-1 | Al empezar, sobre fondo oscuro | A/D moverse, Espacio saltar, clic/J golpear |
+| `azotea` | 1-1 | Cuando se acerca la primera papa, sin fondo oscuro | S en el aire stomp, clic/J en el aire ataque aéreo, Shift dash |
+| `edificio` | 2-1 | Al empezar, sobre fondo oscuro | W subir y S bajar por escaleras y ascensores, A/D salir del ascensor (frente a un ascensor W lo llama; adentro W y S eligen el piso) |
+
+Cada diálogo sale una vez por partida: reintentar no lo repite. Jugando desde el menú no se ve la
+línea de ayuda de debug ni Oficinas cambia sola de seed al ganar.
 
 Abrir una zona directo (desde el editor o la línea de comandos) sigue funcionando como antes, con
 el menú de debug abierto. `tests/test_scenes/campaign.tscn` verifica la lista, el largo, los pisos y

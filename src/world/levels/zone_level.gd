@@ -44,8 +44,8 @@ enum Match { PLAYING, VICTORY, GAME_OVER }
 @export var combat: CombatParams
 
 @export_group("Subnivel")
-## Muestra los textos del tutorial (solo el nivel 1-1).
-@export var tutorial := false
+## Guion del tutorial con la protagonista (`azotea` en 1-1, `edificio` en 2-1; vacío = sin tutorial).
+@export var tutorial := &""
 ## Estilo gráfico con el que arranca (`default`, `pixel`, `isaac`; vacío = default).
 @export var start_style := ""
 ## Tipos de enemigo y orden en que se presentan (vacío = el reparto propio de la zona).
@@ -428,8 +428,8 @@ func _build_runtime() -> void:
 	help.add_theme_constant_override("outline_size", 8)
 	help.visible = developer_enabled()
 	ui_layer.add_child(help)
-	if tutorial:
-		_tutorial = TutorialHints.new()
+	if not tutorial.is_empty():
+		_tutorial = TutorialHints.new(tutorial)
 		ui_layer.add_child(_tutorial)
 	_menu = DebugMenu.new()
 	ui_layer.add_child(_menu)

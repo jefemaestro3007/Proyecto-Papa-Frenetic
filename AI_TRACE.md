@@ -726,6 +726,45 @@ Notes: Esta rama solo cambia `AI_TRACE.md`. Push autorizado por el usuario para 
 
 ---
 
+Rama `feature/tutorial` (nace de `develop` en `67a8240`).
+
+**Autoría del arte nuevo** (confirmada por Andrés Valencia):
+
+| Material | Autor | Archivos |
+|---|---|---|
+| Retrato de la protagonista | Juan Manuel Cuero Possu | `assets_src/sprites/ui/protagonista_retrato.png` (original), `assets/textures/ui/protagonista_retrato.png` (copia sin cambios) |
+| Fondo de la pantalla de inicio (azotea al atardecer) | Santiago Calero | `assets_src/ui/menu/inicio_fondo.webp` (original), `assets/textures/ui/menu/inicio_fondo.png` (solo convertido a PNG) |
+
+### Tutorial con la protagonista
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: Crear una copia de develop en una rama nueva, feature/tutorial, para mejorar el tutorial. En el primer nivel se explican moverse, saltar y golpear, pero no como texto en pantalla: aparece la protagonista (imagen adjunta) en medio de la pantalla, con el fondo oscuro, y explica qué presionar para saltar, moverse y pegar. Al avanzar un poco, el juego se vuelve a pausar, aparece otra vez la protagonista sin fondo negro y explica que esos son enemigos, el dash, el ataque aéreo y demás. En el primer subnivel del nivel 2 vuelve a aparecer y explica W para subir por ascensores y escaleras, S para bajar, y A o D en los ascensores.
+Task: Reemplazar los textos del tutorial por diálogos de la protagonista que pausan el juego, en 1-1 y en 2-1.
+Type: CODE (AI) / UX / TESTING / DOCS
+Files: `src/ui/hud/tutorial_hints.gd`, `src/world/levels/zone_level.gd`, `src/world/levels/azotea/azotea_tutorial.tscn`, `src/world/levels/oficinas/oficinas_subida.tscn`, `assets_src/sprites/ui/protagonista_retrato.png`, `assets/textures/ui/protagonista_retrato.png` (+ `.import`), `tests/integration/test_campaign.gd`, `docs/game-design/menu.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: `TutorialHints` pasa a ser un diálogo. Pausa el árbol y la canción (`Conductor.set_paused`); la protagonista entra subiendo al centro y habla en un globo crema con contorno, con texto que se escribe solo y teclas en recuadros. Espacio, Enter, J o clic completan el texto y luego cierran; el juego sigue 0,12 s después para que esa tecla no cuente como salto. `ZoneLevel.tutorial` pasa de booleano a nombre de guion: `azotea` (1-1: lo básico al empezar, sobre fondo oscuro; el combate al acercarse la primera papa, sin fondo oscuro) y `edificio` (2-1: W subir y S bajar por escaleras y ascensores, A/D salir del ascensor; frente a un ascensor W lo llama y adentro W y S eligen el piso). Cada diálogo sale una vez por partida.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Los textos de los diálogos los redactó Claude en la voz de la protagonista; el usuario los aprobó al probar. El diálogo de 2-1 va sobre fondo oscuro (no se especificó; se eligió igual que el del inicio del nivel 1). Se quitó la cola del globo porque quedaba tapada por el busto. `test_campaign` cubre la pausa (no avanza el beat), que la primera tecla solo termina de escribir, que la tecla que cierra no hace saltar, el fondo oscuro o no, que reintentar no repite y el diálogo de 2-1; los demás casos del test abren los subniveles sin diálogos. Capturas con ventana de los tres diálogos.
+
+### Pantalla de inicio con la protagonista y música del menú
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: En la pantalla de inicio, donde dice jugar, que aparezca el render de la protagonista más arriba, abajo el título y abajo PLAY, para que el intro se vea mejor y no sea solo el nombre del juego. Darle al render una animación idle que vibre con la música, como los personajes que vibran al ritmo. Revisar el archivo de música del menú y reemplazar el beat del menú por esa música, para que la protagonista vibre a su ritmo. Después: poner esta imagen (adjunta) como fondo de la pantalla de inicio.
+Task: Rearmar la pantalla de inicio, animar a la protagonista al beat y poner la música del menú.
+Type: CODE (AI) / UX / AUDIO / ART PIPELINE / TESTING / DOCS
+Files: `src/ui/menus/{start_screen_art.gd,fade_bottom.gdshader,main_menu.gd,psd_screen.gd}`, `src/shared/resources/music/menu.tres`, `tools/scripts/build_menu_screens.gd`, `assets/textures/ui/menu/{inicio.png,inicio_titulo.png,inicio_start.png,inicio_fondo.png}` (+ `.import`), `assets_src/ui/menu/inicio_fondo.webp`, `tests/unit/test_music.gd`, `tests/integration/test_campaign.gd`, `docs/game-design/menu.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: `build_menu_screens.gd` exporta aparte las capas del título ("EDITABLE") y de START del PSD de inicio; `inicio.png` queda solo con el fondo gris, que se usa si falta la imagen de fondo. `StartScreenArt`: protagonista arriba, título al 78 % montado sobre el busto y START debajo (el botón se movió con él). Idle al beat: en cada beat se aplasta y rebota, se inclina hacia un lado distinto y tiembla; entre beats respira, y el título late. El corte del busto se desvanece con un shader de opacidad (sirve sobre cualquier fondo). `PsdScreen.set_backdrop_image` pone una imagen que cubre toda la ventana con un velo oscuro del 30 %. Música: `menu.tres` con `MenuSongStart.wav` a 190,5 BPM y primer beat a 0,03 s; `MainMenu` la pone al abrir si no está sonando, en lugar del clic del metrónomo, y al entrar a un nivel suena la del nivel.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: El BPM se midió con un análisis temporal en GDScript (envolvente de energía, autocorrelación del onset y fase), sin herramientas externas y borrado después. Validación contra las canciones ya medidas: 176,5 frente a 177, 175,2 frente a 175 y 139,55 frente a 140. Los WAV son de 24 bits; la primera pasada los leía como de 16 y daba tempos falsos. La canción del menú no dura compases enteros (26 compases darían 191,6 BPM, pero el pico del análisis está claramente en 190,5), por eso `test_music` solo verifica su tempo. Dos errores encontrados en las capturas y corregidos: las imágenes tomaban su tamaño natural porque el modo de ajuste se fijaba después del tamaño, y el shader multiplicaba la textura dos veces (protagonista oscura y translúcida). La imagen de fondo no llegó como archivo en el primer envío; se pidió de nuevo. Todos los tests en verde. Push autorizado por el usuario.
+
+---
+
 Rama `feature/settings-menu` (nace de `develop`). Misma sesión de trabajo del 2026-10-10.
 
 ### Fuente Jersey 20 (material de terceros)

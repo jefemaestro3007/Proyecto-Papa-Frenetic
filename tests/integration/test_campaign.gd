@@ -1,7 +1,7 @@
 extends Node
 ## Campaña: niveles 1 y 2 con sus subniveles (lista de Game, escenas, largo, pisos y sentido,
 ## pausa con Esc, progreso que desbloquea niveles en LEVEL SELECT,
-## neblina, estilo, enemigos, música, tutorial solo en 1-1, y que YOU WIN no se cierre solo).
+## neblina, estilo, enemigos, música, diálogos del tutorial en 1-1 y 2-1, y que YOU WIN no se cierre solo).
 ## Corre como escena (necesita los autoloads). Ejecutar:
 ##   godot --headless --path . --fixed-fps 60 res://tests/test_scenes/campaign.tscn
 
@@ -42,36 +42,53 @@ func _test_level_list() -> void:
 	_check(not Game.has_next_level(), "2-2 es el último")
 
 
-## 1-1: azotea del prototipo con los textos del tutorial. Devuelve dónde termina el mapa.
+## 1-1: la protagonista explica lo básico al empezar (fondo oscuro, juego en pausa) y el combate
+## al acercarse la primera papa (sin fondo oscuro). Devuelve dónde termina el mapa.
 func _test_tutorial() -> float:
-	var level := await _open(0)
+	var level := await _open(0, true)
 	var data: AzoteaMapData = level.get("_data")
-	_check(level.tutorial, "1-1 es el tutorial")
+	_check(level.tutorial == &"azotea", "1-1 tiene el tutorial de la azotea")
 	_check(_track(level) == MUSIC_LEVEL_ONE, "1-1 con la canción del nivel uno")
 	var hints: TutorialHints = level.get("_tutorial")
 	_check(hints != null, "1-1 muestra el tutorial")
 	if hints != null:
 		var player: PlayerPrototype = level.get("_player")
-		var enemies: Array[Enemy] = []
-		_check(hints.get("_step") == TutorialHints.Step.BASICS, "empieza con los movimientos básicos")
-		var early := Enemy.new()
-		early.position = player.position + Vector2(200.0, 0.0)
-		enemies.append(early)
-		hints.update(player, enemies, true)
-		_check(hints.get("_step") == TutorialHints.Step.BASICS, "una papa cerca no tapa los básicos al empezar")
-		enemies.clear()
-		early.free()
-		hints.set("_time", 10.0)
-		player.position.x += TutorialHints.BASICS_DISTANCE + 100.0
-		hints.update(player, enemies, true)
-		_check(hints.get("_step") == TutorialHints.Step.WAIT_ENEMY, "los básicos se van al avanzar")
+		await _frames(40)
+		_check(hints.current() == &"basicos", "al empezar aparece la protagonista con lo básico")
+		_check(get_tree().paused and Conductor.is_paused(), "el diálogo pausa el juego y la canción")
+		_check(hints.get("_backdrop").color.a > 0.8, "lo básico va sobre fondo oscuro")
+		var beat := Conductor.beat_position()
+		await _press(KEY_SPACE)
+		_check(hints.is_open(), "la primera tecla solo termina de escribir")
+		await _frames(30)
+		_check(Conductor.beat_position() == beat, "con el diálogo abierto no avanza el beat")
+		await _press(KEY_SPACE)
+		await _frames(15)
+		_check(not hints.is_open() and not get_tree().paused and not Conductor.is_paused(), "Espacio cierra y sigue el juego")
+		_check(player.is_on_floor(), "la tecla que cierra no hace saltar")
 		var enemy := Enemy.new()
 		enemy.position = player.position + Vector2(300.0, 0.0)
-		enemies.append(enemy)
+		var enemies: Array[Enemy] = [enemy]
 		hints.update(player, enemies, true)
-		_check(hints.get("_step") == TutorialHints.Step.COMBAT, "la primera papa trae el texto de combate")
+		_check(hints.current() == &"combate", "la primera papa trae el diálogo de combate")
+		_check(hints.get("_backdrop").color.a < 0.5, "el de combate va sin fondo oscuro")
+		hints.close()
+		await _frames(15)
+		hints.reset()
+		await _frames(40)
+		hints.update(player, enemies, true)
+		_check(not hints.is_open(), "reintentar no repite los diálogos")
 		enemy.free()
 	var end := data.roofs[-1].end.x
+	_close(level)
+	# 2-1: escaleras y ascensores.
+	level = await _open(2, true)
+	hints = level.get("_tutorial")
+	await _frames(40)
+	_check(hints != null and hints.current() == &"edificio", "2-1: la protagonista explica escaleras y ascensores")
+	if hints != null:
+		hints.close()
+		await _frames(15)
 	_close(level)
 	return end
 
@@ -83,7 +100,7 @@ func _test_rooftop_trial(tutorial_end: float) -> void:
 	var length := data.roofs[-1].end.x
 	_check(length >= tutorial_end * 2.0 and length <= tutorial_end * 3.2,
 			"1-2 mide %.1f veces el tutorial" % (length / tutorial_end))
-	_check(level.get("_tutorial") == null, "1-2 sin textos de tutorial")
+	_check(_scene_tutorial(1) == &"", "1-2 sin tutorial")
 	_check(_track(level) == MUSIC_LEVEL_ONE, "1-2 sigue con la canción del nivel uno")
 	var types := _enemy_types(level)
 	_check(types.size() == AZOTEA_ONE.size() and types.all(func(t): return t in AZOTEA_ONE),
@@ -99,7 +116,7 @@ func _test_tower(index: int, up: bool) -> void:
 	var name: String = Game.LEVELS[index]["nombre"]
 	var climb := layout.end.x - layout.start.x
 	_check(climb >= 12 if up else climb <= -12, "%s recorre %d pisos" % [name, climb])
-	_check(level.get("_tutorial") == null, "%s sin textos de tutorial" % name)
+	_check(_scene_tutorial(index) == (&"edificio" if up else &""), "%s tutorial: %s" % [name, _scene_tutorial(index)])
 	_check(_track(level) == MUSIC_LEVEL_TWO, "%s con la canción del nivel dos" % name)
 	_check(level.room_only_view == up, "%s neblina de habitación: %s" % [name, level.room_only_view])
 	_check((level.get("_style_name") == "isaac") == (not up), "%s estilo %s" % [name, level.get("_style_name")])
@@ -166,6 +183,8 @@ func _menu_buttons() -> int:
 	var menu: MainMenu = load("res://src/ui/menus/main_menu.tscn").instantiate()
 	add_child(menu)
 	var screen: PsdScreen = menu.get("_screen")
+	var track := Conductor.current_track()
+	_check(track != null and track.resource_path == MainMenu.MENU_MUSIC, "el menú suena con su música")
 	var expected: String = MainMenu.LEVEL_SELECT_SCREENS[Game.unlocked_level - 1]
 	_check(menu.level_select_screen() == expected, "diseño %s" % expected)
 	var count: int = screen.get("_buttons").size()
@@ -187,12 +206,35 @@ func _press_escape() -> void:
 	await _frames(2)
 
 
-func _open(index: int) -> ZoneLevel:
+## Abre un subnivel; salvo `with_tutorial`, sin los diálogos (pausan el juego).
+func _open(index: int, with_tutorial := false) -> ZoneLevel:
 	Game.level_index = index
 	var level: ZoneLevel = load(Game.LEVELS[index]["escena"]).instantiate()
+	if not with_tutorial:
+		level.tutorial = &""
 	add_child(level)
 	await _frames(3)
 	return level
+
+
+## Guion de tutorial configurado en la escena del subnivel.
+func _scene_tutorial(index: int) -> StringName:
+	var level: ZoneLevel = load(Game.LEVELS[index]["escena"]).instantiate()
+	var value: StringName = level.tutorial
+	level.free()
+	return value
+
+
+func _press(keycode: Key) -> void:
+	var event := InputEventKey.new()
+	event.keycode = keycode
+	event.pressed = true
+	Input.parse_input_event(event)
+	await get_tree().process_frame
+	var release := event.duplicate()
+	release.pressed = false
+	Input.parse_input_event(release)
+	await _frames(2)
 
 
 func _close(level: ZoneLevel) -> void:

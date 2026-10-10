@@ -61,6 +61,25 @@ func add_button(rect: Rect2, action_name: StringName) -> MenuHotspot:
 	return button
 
 
+## Imagen de fondo que cubre toda la ventana (recortada para no deformarse), con un velo oscuro
+## encima para que se lea lo de adelante.
+func set_backdrop_image(texture: Texture2D, dim: float = 0.3) -> void:
+	var image := TextureRect.new()
+	image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	image.texture = texture
+	image.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(image)
+	move_child(image, _background.get_index() + 1)
+	var veil := ColorRect.new()
+	veil.color = Color(0.0, 0.0, 0.0, dim)
+	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(veil)
+	move_child(veil, image.get_index() + 1)
+
+
 ## Agrega algo dibujado en coordenadas del diseño (para pantallas que no tienen PSD).
 func add_art(art: Control) -> void:
 	art.size = DESIGN_SIZE

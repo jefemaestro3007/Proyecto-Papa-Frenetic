@@ -9,4 +9,4 @@ script = ExtResource("2_params")
 [node name="AzoteaTutorial" type="Node2D"]
 script = ExtResource("1_azotea")
 params = SubResource("Resource_tutorial")
-tutorial = true
+tutorial = &"azotea"
