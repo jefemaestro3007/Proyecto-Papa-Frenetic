@@ -822,3 +822,31 @@ Files: `src/ui/menus/main_menu.gd`, `docs/game-design/menu.md`, `AI_TRACE.md`
 Change: START mide 21 px de alto en el diseño (medido en `inicio.png`); SETTINGS pasa de 40 px de fuente (24 px de alto, más grande que START) a 22 px (13 px de alto, 62 %, lo más cercano al 60 % que da Jersey 20). La zona clicable baja a 96×26, centrada bajo START.
 Commit: PENDING (se commitea junto con esta entrada)
 Notes: Captura con ventana revisada (sin foco y con foco en SETTINGS). `test_settings` en verde. Sin push hasta que el usuario lo autorice.
+
+### Papas vestidas de Bienestar U con habilidades propias
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (autor de Git: 14mn0t4b0t)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "No podemos generar enemigos nuevos, pero si puedes vestir a algunos que ya existan para que cumplan los roles que buscas [...] lo primero que vas a hacer es mostrarmelos" y luego "que la papa comun tenga la bolsa mas pequeña y siempre en la mano, cuando los matan sus compras vuelven el suelo algo mas resbaloso, la tiradora puede tirar muestras en llamas que queman no solo al impacto si no tambien despues unos beats despues, la embestidora lanza el carro y poco despues se laza ella, la voladora tiene un daño de area mas grande y explota, y el guardia corre muy rapido y te empuja a enemigos cercanos mientras aprovecha su vida mas alta, si no hay otros enemigos hace mas daño [...] lo interesante seria cambiar sus habilidades un poco tambien"
+Task: Vestir a los enemigos existentes para el nivel 3 (supermercado / centro comercial) y darle a cada vestuario una variación de su habilidad, sin crear enemigos ni sprites nuevos.
+Type: CODE (AI) / GAMEPLAY / DOCS / TESTING
+Files: `src/features/enemies/{enemy_costume,shopper_enemy,stocker_enemy,promoter_enemy,guard_enemy,balloon_enemy,shopping_cart}.gd` y `src/features/combat/floor_hazards.gd` (nuevos), `src/features/enemies/{enemy,enemy_roster,potato_projectile}.gd`, `src/features/combat/{combat_controller,combat_params}.gd`, `src/features/player/scripts/player_prototype.gd`, `src/core/autoloads/settings.gd`, `src/world/levels/{zone_level,azotea/azotea,oficinas/oficinas}.gd`, `tests/integration/test_bienestar_enemies.gd`, `tests/visual/costume_preview.gd`, `tests/test_scenes/{bienestar_enemies,costume_preview}.tscn` (nuevos), `docs/game-design/combate.md`, `docs/development/testing.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: `EnemyCostume` dibuja accesorios sobre el sprite (en fracciones de su rectángulo, sirven para las tres poses): cliente con bolsa chica en la mano, reponedor con gorra y carrito, guardia con gorra de plato, banda reflectante, placa y radio, promotora con delantal "PRUEBE" y bandeja "GRATIS", voladora colgada de globos con etiqueta "-50%". Cada vestuario es una subclase de su tipo (`EnemyRoster.make(..., dressed)`): el cliente deja compras que bajan la tracción del jugador (`PlayerPrototype.traction`), la promotora lanza muestras en llamas (el jugador arde N beats y en el piso queda fuego, `FloorHazards`), el reponedor lanza un `ShoppingCart` por su carril y carga detrás, los globos se arman cerca y explotan en el beat con daño de área (jugador y papas), el guardia corre rápido y empuja hacia la papa más cercana o, solo, cobra más calor. Parámetros nuevos en `CombatParams` (grupo "Bienestar U" de la pestaña Combate, con interruptor para probarlas en Azotea/Oficinas); velocidad del carrito y del guardia y calor por beat ardiendo siguen la dificultad.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Rol de maniquí descartado (el sprite del tanque es oscuro; aclararlo exige redibujarlo). La primera versión de los vestuarios se mostró al usuario y la segunda incorpora sus cambios; la vista previa (`costume_preview.tscn`) se vuelve a mostrar antes de usarlos en el nivel 3. Importación sin errores; 7 tests unitarios y 7 de integración (nuevo `test_bienestar_enemies`) en verde. Seguimiento del nivel en `../nivel3_bienestar_u.md` (fuera del repo). Sin push hasta que el usuario lo autorice.
+
+### Globos golpeados: mecha de dos beats y explosión que quita una vida
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (autor de Git: 14mn0t4b0t)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "Los globos que explotan con area tienen dos beats o similar de delay (cuando el player le pega, si no, ocurre lo que dijiste) para que el player tenga tiempo de retraerse en lo que explota, su explocion le puede quitar una vida lo que este en su rango (como dijiste)"
+Task: Cambiar la reacción de la papa de globos al recibir un golpe y el daño de su explosión.
+Type: CODE (AI) / GAMEPLAY / DOCS / TESTING
+Files: `src/features/enemies/{balloon_enemy,enemy}.gd`, `src/features/combat/{combat_controller,combat_params}.gd`, `src/world/levels/zone_level.gd`, `tests/integration/test_bienestar_enemies.gd`, `docs/game-design/combate.md`, `AI_TRACE.md`
+Change: Golpear los globos ya no los derrota: salen despedidos, dejan de perseguir, muestran una cuenta atrás y explotan en el beat que cae a ~2 beats (`balloon_hit_fuse_beats`); encendidos no se pueden volver a golpear (`Enemy.is_hittable`) y tocarlos no adelanta la explosión. Sin golpe sigue igual (se arman cerca y explotan en el beat siguiente; tocarlos explota en el acto). La explosión quita una vida a cada papa en el radio (antes las mataba) y otro globo alcanzado se enciende.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: `test_bienestar_enemies` ampliado (golpe → encendido, mecha ~2 beats, el guardia pierde una sola vida) en verde. Sin push hasta que el usuario lo autorice.
