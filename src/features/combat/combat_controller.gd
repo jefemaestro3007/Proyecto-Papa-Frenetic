@@ -13,6 +13,10 @@ extends Node
 ##   la golpea (si aguanta, el dash se corta y rebota); fuera de tiempo choca y lo empuja.
 ## - Contacto con un enemigo (salvo invulnerable): el jugador recibe el golpe y pierde el combo.
 ## - Papas fritas de la tiradora: suman calor y dan un respiro breve, sin romper el combo.
+## - Papas de Bienestar U (vestidas, con habilidades propias): el cliente deja sus compras en el
+##   piso (resbala), la promotora lanza muestras en llamas (arden unos beats y dejan fuego), el
+##   reponedor lanza su carrito antes de embestir, los globos explotan con daño de área y el
+##   guardia te empuja hacia la papa más cercana (si está solo, pega más fuerte).
 ## Las papas lejos de la pantalla duermen (sin proceso ni física), así el costo de la partida
 ## depende de lo que se ve y no de cuántas papas tiene el mapa.
 
@@ -22,6 +26,10 @@ signal player_hurt(enemy: Enemy)
 signal player_bounced(enemy: Enemy)
 signal whiffed(judgment: int)
 signal projectile_hit(at: Vector2)
+## Daño que no viene del cuerpo de una papa (carrito, explosión, fuego): calor y texto.
+signal hazard_hurt(heat: float, text: String, at: Vector2)
+## Explotaron los globos en `at` con ese radio (para el estallido y el temblor).
+signal blast(at: Vector2, radius: float)
 
 ## Margen hacia atrás que todavía cuenta como "adelante".
 const BEHIND_MARGIN := 12.0
@@ -49,6 +57,14 @@ var _indexed: Array[Enemy] = []
 var _awake: Array[Enemy] = []
 ## Mitad del carril más ancho: cuánto puede alejarse una papa del ancla del índice.
 var _max_reach := 0.0
+## Compras y fuego en el piso (se crea al hacer falta dentro de `world`).
+var _hazards: FloorHazards
+## Beats que le quedan al jugador ardiendo.
+var _burn_left := 0
+
+
+func _ready() -> void:
+	Conductor.beat.connect(_on_beat)
 
 
 func register_enemy(enemy: Enemy) -> void:
@@ -65,7 +81,17 @@ func register_enemy(enemy: Enemy) -> void:
 	enemy.reached_player.connect(_on_contact)
 	enemy.defeated.connect(func(defeated_enemy: Enemy) -> void: enemies.erase(defeated_enemy))
 	if enemy is ThrowerEnemy:
-		enemy.projectile_requested.connect(_spawn_projectile)
+		enemy.projectile_requested.connect(_spawn_projectile.bind(enemy is PromoterEnemy))
+	if enemy is ShopperEnemy:
+		enemy.spilled.connect(func(feet: Vector2) -> void: hazards().add_spill(feet, params.spill_beats))
+	if enemy is StockerEnemy:
+		enemy.lead_seconds = params.cart_lead_beats * Conductor.beat_length()
+		enemy.cart_thrown.connect(_throw_cart)
+	if enemy is BalloonEnemy:
+		enemy.trigger_distance = params.balloon_trigger
+		enemy.detonated.connect(_explode)
+	if enemy is GuardEnemy:
+		enemy.rest_seconds = params.guard_rest_beats * Conductor.beat_length()
 
 
 func clear() -> void:
@@ -75,6 +101,23 @@ func clear() -> void:
 	_indexed.clear()
 	_awake.clear()
 	_max_reach = 0.0
+	_burn_left = 0
+	if is_instance_valid(_hazards):
+		_hazards.clear()
+
+
+## Peligros del piso de la zona actual (los crea la primera vez).
+func hazards() -> FloorHazards:
+	if not is_instance_valid(_hazards) or _hazards.get_parent() != world:
+		_hazards = FloorHazards.new()
+		_hazards.style = style
+		_hazards.player = player
+		world.add_child(_hazards)
+	return _hazards
+
+
+func is_burning() -> bool:
+	return _burn_left > 0
 
 
 func bind_player(new_player: PlayerPrototype) -> void:
@@ -85,7 +128,10 @@ func bind_player(new_player: PlayerPrototype) -> void:
 func _physics_process(_delta: float) -> void:
 	if world != null and Engine.get_physics_frames() % WAKE_INTERVAL == 0:
 		update_awake()
-	if player == null or player.scripted or not active or get_viewport().gui_get_focus_owner() is LineEdit:
+	if player == null:
+		return
+	_update_floor()
+	if player.scripted or not active or get_viewport().gui_get_focus_owner() is LineEdit:
 		return
 	if Input.is_action_just_pressed("attack"):
 		attack()
@@ -226,6 +272,12 @@ func _hit(enemy: Enemy, judgment: int, direction: float) -> bool:
 func _on_contact(enemy: Enemy) -> void:
 	if not active or not enemy.active or player == null or player.is_invulnerable():
 		return
+	if enemy is BalloonEnemy:
+		(enemy as BalloonEnemy).detonate()
+		return
+	if enemy is GuardEnemy:
+		_guard_contact(enemy as GuardEnemy)
+		return
 	player.hurt(enemy.global_position.x, Vector2(params.hurt_knockback_x, params.hurt_knockback_y),
 			params.hurt_invulnerable)
 	tracker.break_combo(&"hit")
@@ -234,7 +286,7 @@ func _on_contact(enemy: Enemy) -> void:
 		enemy.defeat(signf(enemy.global_position.x - player.global_position.x))
 
 
-func _spawn_projectile(origin: Vector2, velocity: Vector2) -> void:
+func _spawn_projectile(origin: Vector2, velocity: Vector2, flaming := false) -> void:
 	if not active or world == null:
 		return
 	var projectile := PotatoProjectile.new()
@@ -242,7 +294,10 @@ func _spawn_projectile(origin: Vector2, velocity: Vector2) -> void:
 	projectile.velocity = velocity
 	projectile.target = player
 	projectile.style = style
+	projectile.flaming = flaming
 	projectile.hit_player.connect(_on_projectile_hit)
+	if flaming:
+		projectile.hit_solid.connect(_on_flaming_landed)
 	world.add_child(projectile)
 
 
@@ -251,7 +306,136 @@ func _on_projectile_hit(projectile: PotatoProjectile) -> void:
 		return
 	player.graze(GRAZE_INVULNERABLE)
 	projectile_hit.emit(projectile.global_position)
+	if projectile.flaming:
+		_ignite()
 	projectile.queue_free()
+
+
+## Una muestra en llamas cayó al piso: deja fuego donde cayó (si debajo hay piso cerca).
+func _on_flaming_landed(projectile: PotatoProjectile) -> void:
+	if not active or world == null:
+		return
+	var from := projectile.global_position + Vector2(0.0, -PotatoProjectile.RADIUS * 2.0)
+	var query := PhysicsRayQueryParameters2D.create(from, from + Vector2(0.0, 160.0), 1)
+	query.exclude = [player.get_rid()]
+	var hit := world.get_world_2d().direct_space_state.intersect_ray(query)
+	if not hit.is_empty():
+		hazards().add_fire(hit["position"], params.fire_beats)
+
+
+## El jugador empieza a arder (o se reaviva): calor en cada beat durante `burn_beats`.
+func _ignite() -> void:
+	if params.burn_beats <= 0:
+		return
+	_burn_left = params.burn_beats
+	hazards().burning = true
+
+
+func _on_beat(_index: int) -> void:
+	if _burn_left <= 0:
+		return
+	_burn_left -= 1
+	if active and player != null:
+		hazard_hurt.emit(params.burn_heat, "", player.global_position)
+	if _burn_left <= 0 and is_instance_valid(_hazards):
+		_hazards.burning = false
+
+
+## Piso bajo los pies: las compras resbalan y el fuego enciende al jugador.
+func _update_floor() -> void:
+	if not is_instance_valid(_hazards) or _hazards.get_parent() != world:
+		player.traction = 1.0
+		return
+	var feet := player.global_position
+	player.traction = _hazards.traction_at(feet, params.spill_traction) if player.is_on_floor() else 1.0
+	if active and not player.scripted and _burn_left <= 0 and _hazards.on_fire(feet):
+		_ignite()
+		hazard_hurt.emit(params.burn_heat, "¡QUEMA!", player.global_position)
+
+
+## El reponedor suelta su carrito: rueda por su carril hacia donde mira.
+func _throw_cart(stocker: StockerEnemy) -> void:
+	if not active or world == null or stocker.get_parent() != world:
+		return
+	var cart := ShoppingCart.new()
+	cart.direction = float(stocker.facing)
+	cart.speed = params.cart_speed
+	cart.lane_left = stocker.lane_left - stocker.body_radius
+	cart.lane_right = stocker.lane_right + stocker.body_radius
+	# Mismo padre que la papa (el contenido de la zona): el carril está en sus coordenadas.
+	cart.position = stocker.position + Vector2(stocker.facing * stocker.body_radius, 0.0)
+	cart.target = player
+	cart.style = style
+	cart.hit_player.connect(_on_cart_hit)
+	world.add_child(cart)
+
+
+func _on_cart_hit(cart: ShoppingCart) -> void:
+	if not active or player.is_invulnerable() or not cart.is_rolling():
+		return
+	player.hurt(cart.global_position.x - cart.direction * 60.0,
+			Vector2(params.hurt_knockback_x, params.hurt_knockback_y), params.hurt_invulnerable)
+	tracker.break_combo(&"hit")
+	hazard_hurt.emit(params.contact_heat * 1.5, "¡CARRITO!", player.global_position)
+
+
+## Explotan los globos: el jugador y las papas dentro del radio reciben el golpe.
+func _explode(balloon: BalloonEnemy) -> void:
+	if not active:
+		return
+	var at := balloon.body_center()
+	var radius := params.balloon_blast_radius
+	blast.emit(at, radius)
+	for enemy in enemies.duplicate():
+		if enemy != balloon and is_instance_valid(enemy) and enemy.active \
+				and enemy.body_center().distance_to(at) <= radius + enemy.body_radius:
+			enemy.receive_hit(signf(enemy.global_position.x - at.x), true, 99)
+	if player == null or player.is_invulnerable():
+		return
+	var center := player.global_position + Vector2(0.0, -PlayerPrototype.SIZE.y * 0.5)
+	if center.distance_to(at) <= radius:
+		player.hurt(at.x, Vector2(params.hurt_knockback_x, params.hurt_knockback_y) * 1.2, params.hurt_invulnerable)
+		tracker.break_combo(&"hit")
+		hazard_hurt.emit(params.contact_heat * params.balloon_blast_scale, "¡BOOM!", player.global_position)
+
+
+## El guardia te alcanza: te empuja hacia la papa más cercana (con un respiro tan corto que esa
+## papa puede golpearte) o, si no hay otra cerca, te cobra más calor.
+func _guard_contact(guard: GuardEnemy) -> void:
+	if guard.is_resting():
+		return
+	guard.rest()
+	tracker.break_combo(&"hit")
+	var nearest := _nearest_other(guard)
+	if nearest != null:
+		var side := signf(nearest.global_position.x - player.global_position.x)
+		if side == 0.0:
+			side = 1.0
+		player.hurt(player.global_position.x - side, Vector2(params.guard_push, params.hurt_knockback_y * 0.5),
+				GRAZE_INVULNERABLE)
+		guard.contact_heat_scale = 1.0
+	else:
+		player.hurt(guard.global_position.x, Vector2(params.hurt_knockback_x, params.hurt_knockback_y),
+				params.hurt_invulnerable)
+		guard.contact_heat_scale = params.guard_alone_scale
+	player_hurt.emit(guard)
+
+
+## La papa viva más cercana al jugador (sin contar `except`) dentro del alcance del empujón y más
+## o menos a su altura.
+func _nearest_other(except: Enemy) -> Enemy:
+	var best: Enemy = null
+	var best_distance := params.guard_push_range
+	for enemy in enemies:
+		if enemy == except or not is_instance_valid(enemy) or not enemy.active:
+			continue
+		if absf(enemy.global_position.y - player.global_position.y) > PlayerPrototype.SIZE.y * 1.5:
+			continue
+		var distance := absf(enemy.global_position.x - player.global_position.x)
+		if distance < best_distance:
+			best_distance = distance
+			best = enemy
+	return best
 
 
 static func _sort_by_distance(list: Array[Enemy], from: Vector2) -> void:

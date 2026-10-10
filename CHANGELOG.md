@@ -32,6 +32,13 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Added
 
+- Papas vestidas de Bienestar U (nivel 3), sin enemigos nuevos: los tipos de siempre con
+  accesorios dibujados en código y habilidades propias. Cliente (deja sus compras y el piso
+  resbala), promotora (muestras en llamas: arde unos beats y deja fuego), reponedor (lanza el
+  carrito y carga detrás), globos de oferta (se arman y explotan con área) y guardia (rápido; te
+  empuja hacia otra papa o, solo, pega el doble). Ajustes en la pestaña Combate y vista previa en
+  `tests/test_scenes/costume_preview.tscn`.
+
 - Menú de configuración (SETTINGS), desde START y desde la pausa: volúmenes general, de música y
   de efectos (buses de audio) y silenciar; pantalla completa, VSync y límite de FPS; dos teclas
   reasignables por acción; estilo gráfico, temblor de cámara y corrección de latencia del ritmo;

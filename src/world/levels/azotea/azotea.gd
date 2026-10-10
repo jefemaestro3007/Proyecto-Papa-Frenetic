@@ -74,7 +74,7 @@ func _spawn_enemies() -> void:
 		var count := floori(roof.size.x / 650.0 * combat.enemy_density * 2.0 + rng.randf())
 		for k in count:
 			var type := _pick_enemy(EnemyRoster.AZOTEA, progress, rng)
-			var enemy := EnemyRoster.make(type, combat, rng)
+			var enemy := EnemyRoster.make(type, combat, rng, combat.bienestar_enemies)
 			var x := rng.randf_range(roof.position.x + 80.0, roof.end.x - 80.0)
 			var y := roof.position.y - (FLYER_HEIGHT if type == &"flyer" else 0.0)
 			spawn_enemy(enemy, Vector2(x, y), roof.position.x + 30.0, roof.end.x - 30.0)

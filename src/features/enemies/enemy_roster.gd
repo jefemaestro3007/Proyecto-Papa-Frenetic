@@ -31,31 +31,33 @@ static func pick(order: Array[StringName], progress: float, rng: RandomNumberGen
 	return types[rng.randi_range(0, types.size() - 1)]
 
 
-## Crea un enemigo del tipo pedido con los valores de la pestaña Combate.
-static func make(type: StringName, params: CombatParams, rng: RandomNumberGenerator) -> Enemy:
+## Crea un enemigo del tipo pedido con los valores de la pestaña Combate. `dressed` usa la versión
+## vestida de Bienestar U (mismo sprite, habilidades propias): cliente, guardia, globos, reponedor
+## y promotora.
+static func make(type: StringName, params: CombatParams, rng: RandomNumberGenerator, dressed := false) -> Enemy:
 	var enemy: Enemy
 	match type:
 		&"tank":
-			enemy = TankEnemy.new()
-			enemy.move_speed = params.tank_speed
+			enemy = GuardEnemy.new() if dressed else TankEnemy.new()
+			enemy.move_speed = params.guard_speed if dressed else params.tank_speed
 			enemy.max_health = params.tank_health
 		&"flyer":
-			var flyer := FlyingEnemy.new()
+			var flyer: FlyingEnemy = BalloonEnemy.new() if dressed else FlyingEnemy.new()
 			flyer.fly_speed = params.flyer_speed
 			enemy = flyer
 		&"charger":
-			var charger := ChargerEnemy.new()
+			var charger: ChargerEnemy = StockerEnemy.new() if dressed else ChargerEnemy.new()
 			charger.charge_speed = params.charger_speed
 			charger.recover_seconds = params.charger_recover
 			enemy = charger
 		&"thrower":
-			var thrower := ThrowerEnemy.new()
+			var thrower: ThrowerEnemy = PromoterEnemy.new() if dressed else ThrowerEnemy.new()
 			thrower.rng.seed = rng.randi()
 			thrower.bars_between_volleys = params.thrower_bars_between
 			thrower.pattern_weights = PackedFloat32Array([1.0, params.thrower_eighths, params.thrower_sixteenths])
 			enemy = thrower
 		_:
-			enemy = Enemy.new()
+			enemy = ShopperEnemy.new() if dressed else Enemy.new()
 			enemy.move_speed = params.potato_speed
 			enemy.max_health = params.potato_health
 	enemy.same_level_tolerance = maxf(params.same_level_tolerance, enemy.body_radius * 1.5)

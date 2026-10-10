@@ -383,6 +383,8 @@ func _build_runtime() -> void:
 	_combat.player_bounced.connect(_on_player_bounced)
 	_combat.whiffed.connect(_on_whiffed)
 	_combat.projectile_hit.connect(_on_projectile_hit)
+	_combat.hazard_hurt.connect(_on_hazard_hurt)
+	_combat.blast.connect(_on_blast)
 	_player.dash_started.connect(_on_dash_started)
 	add_child(_combat)
 
@@ -757,6 +759,25 @@ func _build_combat_section(section: DebugSection) -> void:
 	section.add_text("Al inicio de cada zona solo hay papas comunes; luego aparece un tipo nuevo por tramo.\n" \
 			+ "Azotea: común → voladora → tiradora → embestidora. Oficinas: común → tanque → embestidora → tiradora.")
 	section.add_slider(combat, &"enemy_density", "Cantidad de enemigos", 0.0, 1.0, 0.01)
+	section.add_group("Bienestar U: papas vestidas (se aplican al regenerar)")
+	section.add_text("Cliente: deja sus compras (resbala) · Promotora: muestras en llamas · Reponedor: lanza el " \
+			+ "carrito y se lanza detrás · Globos: explotan con área · Guardia: rápido, te empuja a otra papa.")
+	section.add_toggle(combat, &"bienestar_enemies", "Usar papas vestidas en esta zona")
+	section.add_slider(combat, &"spill_beats", "Compras en el piso (beats)", 1, 64, 1)
+	section.add_slider(combat, &"spill_traction", "Agarre sobre las compras", 0.02, 1.0, 0.01)
+	section.add_slider(combat, &"burn_beats", "Arder tras el impacto (beats)", 0, 16, 1)
+	section.add_slider(combat, &"burn_heat", "Calor por beat ardiendo", 0.0, 20.0, 0.5)
+	section.add_slider(combat, &"fire_beats", "Fuego en el piso (beats)", 0, 32, 1)
+	section.add_slider(combat, &"cart_speed", "Velocidad del carrito", 200, 2500, 10)
+	section.add_slider(combat, &"cart_lead_beats", "Beats entre carrito y carga", 0.0, 4.0, 0.25)
+	section.add_slider(combat, &"balloon_trigger", "Globos: distancia para armarse (px)", 40, 600, 5)
+	section.add_slider(combat, &"balloon_blast_radius", "Globos: radio de la explosión (px)", 60, 800, 5)
+	section.add_slider(combat, &"balloon_blast_scale", "Globos: calor (× tocar)", 0.5, 4.0, 0.1)
+	section.add_slider(combat, &"guard_speed", "Guardia: velocidad", 0, 900, 5)
+	section.add_slider(combat, &"guard_push_range", "Guardia: alcance del empujón (px)", 100, 2000, 10)
+	section.add_slider(combat, &"guard_push", "Guardia: fuerza del empujón", 100, 2000, 10)
+	section.add_slider(combat, &"guard_alone_scale", "Guardia solo: calor (× tocar)", 1.0, 4.0, 0.1)
+	section.add_slider(combat, &"guard_rest_beats", "Guardia: descanso tras alcanzarte (beats)", 0.0, 8.0, 0.25)
 	section.add_slider(combat, &"same_level_tolerance", "Distancia de 'mismo nivel' (px)", 10, 200, 5)
 	section.add_slider(combat, &"potato_speed", "Común: velocidad", 0, 600, 5)
 	section.add_slider(combat, &"potato_health", "Común: vida", 1, 10, 1)
@@ -1244,6 +1265,23 @@ func _on_projectile_hit(at: Vector2) -> void:
 	_feel.add_trauma(0.22)
 	_sfx.play(&"hurt")
 	_add_heat(combat.projectile_heat, "¡PAPA FRITA!")
+
+
+## Carrito, explosión o fuego (Bienestar U): calor con su texto; los golpes fuertes, con efecto.
+func _on_hazard_hurt(heat: float, text: String, _at: Vector2) -> void:
+	if not text.is_empty():
+		_hurt_fx()
+		_sfx.play(&"hurt")
+	_add_heat(heat, text)
+
+
+## Explotan los globos: estallido grande en el aire y temblor.
+func _on_blast(at: Vector2, radius: float) -> void:
+	_burst(at, radius / 120.0, {"spread": 360.0, "fill": FreneticPalette.YELLOW, "debris": Color("ff5a4a"),
+			"debris_alt": FreneticPalette.CREAM, "ring": Color(1.0, 1.0, 1.0, 0.9)})
+	_shock = maxf(_shock, 0.5)
+	_feel.add_trauma(0.45)
+	_sfx.play(&"hit")
 
 
 func _on_dash_started(direction: float) -> void:

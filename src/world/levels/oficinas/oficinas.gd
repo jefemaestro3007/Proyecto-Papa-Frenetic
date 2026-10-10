@@ -198,7 +198,7 @@ func _spawn_enemies() -> void:
 		var left := rect.position.x + OficinasMapData.WALL + 30.0
 		var right := rect.end.x - OficinasMapData.WALL - 30.0
 		var x := rng.randf_range(lerpf(left, right, 0.35), right)
-		spawn_enemy(EnemyRoster.make(type, combat, rng), Vector2(x, _data.surface_y(node.x)), left, right)
+		spawn_enemy(EnemyRoster.make(type, combat, rng, combat.bienestar_enemies), Vector2(x, _data.surface_y(node.x)), left, right)
 
 
 ## Pasos del grafo desde `origin` hasta cada nodo alcanzable (con todas las llaves).

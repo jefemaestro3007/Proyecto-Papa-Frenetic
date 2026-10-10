@@ -47,12 +47,19 @@ godot --headless --path . --fixed-fps 60 res://tests/test_scenes/campaign.tscn
 godot --headless --path . res://tests/test_scenes/rhythm_rewards.tscn
 godot --headless --path . --fixed-fps 60 res://tests/test_scenes/sfx.tscn
 godot --headless --path . --fixed-fps 60 res://tests/test_scenes/settings.tscn
+godot --headless --path . --fixed-fps 60 res://tests/test_scenes/bienestar_enemies.tscn
 ```
 
 Juega la Azotea real: reparto de enemigos por tramo (`EnemyRoster`), calor pasivo, stomp que
 derrota a la común y rebota sobre el tanque, dash a tiempo, papa frita, hitstop que congela la
 acción sin desplazar los beats, game over al agotarse la mecha, reintento con Enter (misma seed)
 y victoria al llegar al final de la última azotea.
+
+`bienestar_enemies` juega las papas vestidas de Bienestar U en la Azotea (sin papas al azar ni
+calor pasivo): el cliente deja compras que resbalan, la muestra en llamas quema el impacto más
+un calor por beat y deja fuego que enciende al pisarlo, el reponedor lanza el carrito antes de
+cargar, los globos se arman cerca y su explosión alcanza al jugador y a otras papas, y el guardia
+empuja hacia otra papa o, solo, cobra más calor.
 
 `sfx` comprueba que los efectos de sonido cargan por grupo, que los WAV quedan recortados y qué
 evento pide cada sonido (golpe, stomp, daño, fallo; aterrizar fuera de ritmo no suena).
@@ -79,6 +86,12 @@ Los tests de integración empiezan con `Settings.use_defaults()`: no leen ni esc
 configuración guardada del jugador.
 
 ## Capturas para revisar lo visual
+
+Papas vestidas de Bienestar U (sin vestir, vestidas, atacando y usando su habilidad):
+
+```bash
+godot --path . --quit-after 600 res://tests/test_scenes/costume_preview.tscn -- --out=/tmp/vestuarios.png
+```
 
 ```bash
 xvfb-run -a godot --path . --rendering-driver opengl3 --resolution 1920x1080 --fixed-fps 30 \

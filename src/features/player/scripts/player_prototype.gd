@@ -41,6 +41,8 @@ var params := PlayerParams.new()
 var facing := 1.0
 ## Movido por la zona (escaleras, ascensor): sin física ni colisión.
 var scripted := false
+## Agarre del piso (1 = normal). Menos resbala: cuesta arrancar y frenar (compras en el piso).
+var traction := 1.0
 
 var _was_on_floor := true
 var _air_top_y := 0.0
@@ -159,6 +161,7 @@ func is_invulnerable() -> bool:
 
 func reset_state() -> void:
 	velocity = Vector2.ZERO
+	traction = 1.0
 	_fast_falling = false
 	_spin_left = 0.0
 	_boost_left = 0.0
@@ -245,7 +248,7 @@ func _physics_process(delta: float) -> void:
 		speed *= params.stumble_speed
 	elif _boost_left > 0.0:
 		speed *= _boost
-	var accel := params.ground_accel if on_floor else params.air_accel
+	var accel := params.ground_accel * traction if on_floor else params.air_accel
 	velocity.x = move_toward(velocity.x, direction * speed, accel * delta)
 	move_and_slide()
 

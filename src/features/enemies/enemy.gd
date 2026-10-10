@@ -35,6 +35,8 @@ static var _textures := {}
 @export var enemy_type := &"normal"
 ## Multiplica el calor que suma tocar al jugador (la embestidora pega más fuerte).
 @export var contact_heat_scale := 1.0
+## Vestuario de la zona (`EnemyCostume`); vacío = sin vestuario. Solo cambia el dibujo.
+@export var costume := &""
 
 var active := true
 var health := 1
@@ -172,11 +174,13 @@ func _draw() -> void:
 	var center := Vector2(0.0, -body_radius)
 	var texture := sprite_texture(sprite_pose())
 	_top_y = -texture.get_height() * SPRITE_SCALE if texture != null else -body_radius * 2.0
+	_top_y *= 1.0 + EnemyCostume.top_extra(costume)
 	if texture != null:
 		# Los dibujos miran a la izquierda: se espejan al mirar a la derecha. El golpe ilumina.
 		var size := texture.get_size() * SPRITE_SCALE
 		draw_set_transform(_draw_offset(), 0.0, squash * Vector2(-1.0 if facing > 0 else 1.0, 1.0))
 		var rect := Rect2(Vector2(-size.x * 0.5, -size.y), size)
+		_draw_costume(rect, EnemyCostume.Layer.BACK)
 		# Contorno con el color del estilo: separa las papas rojas del cielo rojo.
 		var width := clampf(_outline_width() * 0.8, 2.0, 5.0)
 		for i in 8:
@@ -184,11 +188,15 @@ func _draw() -> void:
 					false, Color(_outline(), 0.9))
 		draw_texture_rect(texture, rect, false,
 				Color(1.0 + _flash, 1.0 + _flash, 1.0 + _flash))
+		_draw_costume(rect, EnemyCostume.Layer.FRONT)
 		draw_set_transform(_draw_offset(), 0.0, squash)
 	else:
+		var rect := Rect2(center - Vector2(body_radius * 1.1, body_radius), Vector2(body_radius * 2.2, body_radius * 2.0))
+		_draw_costume(rect, EnemyCostume.Layer.BACK)
 		_draw_before_body(center)
 		_draw_potato(center, body_radius, _body_color())
 		_draw_after_body(center)
+		_draw_costume(rect, EnemyCostume.Layer.FRONT)
 		if _flash > 0.0:
 			draw_circle(center, body_radius + 2.0, Color(1.0, 1.0, 1.0, _flash))
 	if not _dying:
@@ -196,6 +204,13 @@ func _draw() -> void:
 		if max_health > 1:
 			_draw_health_pips(center)
 	draw_set_transform(Vector2.ZERO)
+
+
+## Accesorios del vestuario en el espacio del dibujo (cara a la izquierda). Al morir sale despedido
+## con la papa, igual que el sprite.
+func _draw_costume(rect: Rect2, layer: EnemyCostume.Layer) -> void:
+	if costume != &"":
+		EnemyCostume.draw(self, costume, rect, layer)
 
 
 ## Pose del sprite: herido al recibir un golpe o al morir, ataque cerca del jugador, base si no.
