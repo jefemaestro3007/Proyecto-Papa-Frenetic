@@ -769,3 +769,17 @@ Files: `src/core/autoloads/settings.gd`, `src/ui/hud/system_monitor.gd`, `src/fe
 Change: Pestaña DEVELOPER: "Developer mode" (en la campaña, sin él, Tab/F1, F2, R/N/P y G/V no hacen nada y la línea de ayuda no se ve; antes Tab y R/N/P funcionaban siempre aunque el menú arrancara oculto; al abrir una zona directo todo sigue igual) y "System monitor" Off / FPS / Full (`SystemMonitor`, creado por `Settings` para verse en todas las pantallas: FPS con color, tiempo promedio y peor frame, proceso, física, draw calls, objetos, nodos, huérfanos, física 2D, memoria, video, latencia de audio, ventana, VSync, límite, BPM y beat). Dificultad: multiplicador nuevo `enemies` sobre `enemy_density` (Easy ×0,7, Hard ×1,3; se nota al empezar o reintentar) y opción Custom con un deslizador por multiplicador, que aparecen al elegirla. Los nombres de los buses pasan a `AudioBuses` para cortar un ciclo de dependencias (`conductor.gd` → `settings.gd` → monitor → `Conductor`) que rompía `test_heat_meter` al correr con `--script`.
 Commit: PENDING (se commitea junto con esta entrada)
 Notes: Importación sin errores; 7 tests unitarios y 6 de integración en verde (`test_settings` ampliado: Custom, cantidad de papas, modo developer en la campaña, monitor). Capturas con ventana de Hard, Custom, DEVELOPER y el monitor completo sobre la Azotea revisadas. Sin push hasta que el usuario lo autorice.
+
+### SETTINGS más chico en START
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (autor de Git: 14mn0t4b0t)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "Haz el boton de setting un 60 % del tamaño del start en la pantalla de inicio"
+Task: Achicar el texto y la zona clicable de SETTINGS en la pantalla START.
+Type: CODE (AI) / UI / DOCS
+Files: `src/ui/menus/main_menu.gd`, `docs/game-design/menu.md`, `AI_TRACE.md`
+Change: START mide 21 px de alto en el diseño (medido en `inicio.png`); SETTINGS pasa de 40 px de fuente (24 px de alto, más grande que START) a 22 px (13 px de alto, 62 %, lo más cercano al 60 % que da Jersey 20). La zona clicable baja a 96×26, centrada bajo START.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Captura con ventana revisada (sin foco y con foco en SETTINGS). `test_settings` en verde. Sin push hasta que el usuario lo autorice.

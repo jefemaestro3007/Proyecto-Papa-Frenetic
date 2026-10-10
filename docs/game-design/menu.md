@@ -24,7 +24,7 @@ START ──▶ NEW GAME ──▶ LEVEL SELECT ──▶ LOADING ──▶ nive
 
 | Pantalla | Botones | Qué hace |
 |---|---|---|
-| START (`inicio`) | START · SETTINGS | START pasa a NEW GAME; SETTINGS abre la configuración (el texto SETTINGS se dibuja en código con la letra del diseño) |
+| START (`inicio`) | START · SETTINGS | START pasa a NEW GAME; SETTINGS abre la configuración (el texto SETTINGS se dibuja en código con la letra del diseño, al 60 % del tamaño de START) |
 | SETTINGS (`configuracion`) | Pestañas · BACK · DEFAULTS | Configuración del jugador (ver abajo). BACK o Esc vuelve a donde se abrió |
 | NEW GAME (`nuevo_juego`) | NEW GAME | Pasa a LEVEL SELECT |
 | LEVEL SELECT (`seleccion_nivel`, `_2`, `_3`) | ENTER de cada nivel desbloqueado | Juega el nivel desde su primer subnivel (1-1, 2-1…). El diseño cambia según hasta dónde se llegó: al empezar solo el nivel 1; al llegar a los edificios (2-1) queda desbloqueado el 2, también al volver al menú o reabrir el juego |

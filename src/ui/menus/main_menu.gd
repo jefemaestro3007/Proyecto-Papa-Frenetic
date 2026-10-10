@@ -7,8 +7,10 @@ extends Control
 ## Las coordenadas de los botones son las de las capas de cada PSD (ver build_menu_screens.gd).
 
 const START_BUTTON := Rect2(682, 715, 84, 36)
-## SETTINGS debajo de START, con el mismo texto (no está en el PSD: se dibuja en código).
-const SETTINGS_BUTTON := Rect2(652, 775, 144, 36)
+## SETTINGS debajo de START, con la misma letra al 60 % del tamaño (no está en el PSD: se dibuja
+## en código). START mide 21 px de alto en el diseño; Jersey 20 a 22 px da 13 px.
+const SETTINGS_BUTTON := Rect2(675, 762, 96, 26)
+const SETTINGS_FONT_SIZE := 22
 const NEW_GAME_BUTTON := Rect2(539, 484, 359, 57)
 ## Botón ENTER de cada tarjeta (nivel 1, 2 y 3).
 const LEVEL_ENTER_BUTTONS: Array[Rect2] = [Rect2(155, 639, 319, 56), Rect2(546, 639, 319, 56), Rect2(936, 639, 319, 56)]
@@ -121,7 +123,7 @@ func _process(delta: float) -> void:
 		get_tree().change_scene_to_packed(ResourceLoader.load_threaded_get(_loading_path))
 
 
-## Texto SETTINGS debajo de START, con la misma letra y color que START en el diseño.
+## Texto SETTINGS debajo de START, con la misma letra y color que START en el diseño (más chico).
 class StartLinksArt extends Control:
 	func _draw() -> void:
-		MenuStyle.text_in(self, "SETTINGS", SETTINGS_BUTTON, 40, Color.WHITE)
+		MenuStyle.text_in(self, "SETTINGS", SETTINGS_BUTTON, SETTINGS_FONT_SIZE, Color.WHITE)
