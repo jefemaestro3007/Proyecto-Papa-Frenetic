@@ -21,6 +21,8 @@ uniform float crt_curvature = 0.0;
 // Los alimenta el script en cada frame.
 uniform vec2 spotlight_center = vec2(0.5);
 uniform float shock = 0.0;
+// Glitch leve del calor alto (0-1): a ratos, pocas franjas finas se corren y el color se separa.
+uniform float heat_glitch = 0.0;
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -54,8 +56,14 @@ void fragment() {
 	float band = floor(uv.y * 40.0);
 	float jitter = step(1.0 - shock * 0.5, hash1(band + floor(TIME * 30.0))) * (hash1(band) - 0.5);
 	uv.x += jitter * 0.04 * shock;
+	// Calor alto: glitch leve e intermitente (prende en ~40 % de los instantes), mucho menor que el
+	// del impacto.
+	float heat_gate = step(0.6, hash1(floor(TIME * 9.0) + 17.0));
+	float fine = floor(uv.y * 90.0);
+	float heat_jitter = step(1.0 - heat_glitch * 0.2, hash1(fine + floor(TIME * 24.0))) * (hash1(fine * 1.7) - 0.5);
+	uv.x += heat_jitter * 0.012 * heat_glitch * heat_gate;
 
-	vec2 offset = vec2((aberration + shock * 10.0) * cell, 0.0) * SCREEN_PIXEL_SIZE;
+	vec2 offset = vec2((aberration + shock * 10.0 + heat_glitch * (1.0 + 2.5 * heat_gate)) * cell, 0.0) * SCREEN_PIXEL_SIZE;
 	vec3 col = vec3(texture(screen_tex, uv + offset).r, texture(screen_tex, uv).g,
 			texture(screen_tex, uv - offset).b);
 

@@ -9,6 +9,9 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Changed
 
+- La canción del nivel uno es el remake de Dirty Love Song: el ritmo empieza de una (primer beat
+  a 0,15 s).
+- El temblor de cámara por calor es 50 % más fuerte.
 - Rendimiento independiente del tamaño del mapa: las vistas estáticas se dibujan en trozos
   (`ChunkedView`) y Godot descarta los que están fuera de pantalla; las vistas animadas
   (balizas, fuego, lámparas, carteles, moscas) solo dibujan lo cercano (`SpatialIndex`); las
@@ -32,6 +35,13 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Added
 
+- Tutorial centrado en la premisa: al empezar 1-1 la protagonista cuenta que le pegaron una papa
+  bomba (con el foco en la papa del HUD), cómo se calienta y que pelar papas zombi al ritmo la
+  enfría, y luego los controles básicos; con la primera papa, que pelarla enfría la papa bomba. El
+  stomp y el dash pasan a la 1-2. Diálogos de varias páginas.
+- Pantalla de carga propia al pasar de 1-2 a 2-1 con NEXT LEVEL (ilustración de la protagonista).
+- Peligro desde 70 de calor: canción de peligro (prod. by @1tynee) que sube de volumen hasta 100,
+  mezclada con la del nivel (juntas o cruzada) y glitch leve en pantalla.
 - Papas vestidas de Bienestar U (nivel 3), sin enemigos nuevos: los tipos de siempre con
   accesorios dibujados en código y habilidades propias. Cliente (deja sus compras y el piso
   resbala), promotora (muestras en llamas: arde unos beats y deja fuego), reponedor (lanza el
