@@ -51,6 +51,10 @@ func _zone_map_folder() -> String:
 	return "oficinas"
 
 
+func _zone_default_zoom() -> float:
+	return 1.35
+
+
 func _zone_help_text() -> String:
 	return "←/→ mover · Espacio saltar · ↓ caída forzada · Tab menú · F2 estilo · R/N/P seed · G grafo"
 

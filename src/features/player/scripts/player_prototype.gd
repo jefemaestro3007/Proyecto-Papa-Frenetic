@@ -77,13 +77,14 @@ func _physics_process(delta: float) -> void:
 
 	_coyote_left = params.coyote_time if on_floor else maxf(_coyote_left - delta, 0.0)
 	_buffer_left = maxf(_buffer_left - delta, 0.0)
-	if not blocked and (Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("ui_up")):
+	# Solo Espacio salta: ↑ y ↓ quedan libres para escaleras, puertas y ascensores.
+	if not blocked and Input.is_action_just_pressed("ui_accept"):
 		_buffer_left = maxf(params.jump_buffer, delta)
 
 	if not on_floor:
 		var gravity := params.gravity * (params.fall_gravity_multiplier if velocity.y > 0.0 else 1.0)
 		velocity.y += gravity * delta
-		var jump_held := Input.is_action_pressed("ui_accept") or Input.is_action_pressed("ui_up")
+		var jump_held := Input.is_action_pressed("ui_accept")
 		# Salto variable: soltar mientras sube recorta el impulso una sola vez.
 		if velocity.y < 0.0 and not jump_held and not _jump_cut_done:
 			velocity.y *= params.jump_cut
