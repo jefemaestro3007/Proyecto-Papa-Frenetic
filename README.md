@@ -55,7 +55,10 @@ godot --path . res://src/world/levels/oficinas/oficinas.tscn     # zona Oficinas
 | **Oficinas** | Edificio abandonado: escaleras y ascensores de fondo, puertas con llave, habitaciones y pasillos al fondo; recorrido garantizado y no lineal. |
 
 Ambas tienen tres modos gráficos (Default, Pixel e Isaac, con F2) y juego al ritmo: saltar,
-girar y aterrizar en el beat suma combo.
+girar y aterrizar en el beat suma combo. Es una papa caliente: el calor sube con el tiempo y al
+fallar el ritmo, y baja al acertar; si llega a 100 se enciende una mecha y, si se agota, la papa
+explota. Los enemigos (común, tanque, voladora, embestidora, tiradora) se presentan de a uno
+([combate](docs/game-design/combate.md)).
 
 ## Controles
 
@@ -63,7 +66,9 @@ girar y aterrizar en el beat suma combo.
 |---|---|
 | Mover / saltar | A/D (o ←/→) · Espacio |
 | Atacar | J o clic izquierdo |
-| Caída forzada (en el aire) | S (o ↓) |
+| Dash (en el suelo) | Shift (o K) |
+| Caída forzada / stomp (en el aire) | S (o ↓) |
+| Reintentar al terminar la partida | Enter |
 | Escaleras, ascensores, puertas al fondo (Oficinas) | W / S (o ↑ / ↓) |
 | Menú de debug · cambiar estilo | Tab (o F1) · F2 |
 | Seed aleatoria / siguiente / anterior | R / N / P |
