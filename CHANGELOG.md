@@ -22,6 +22,10 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - Solo atacan las caídas forzadas o desde una altura configurable; partículas del
   impacto (rayos, escombros, temblor, glitch) configurables en `ImpactFxParams`, con
   presets "base", "brutal" y "sutil".
+- Detalles de la Azotea: objetos sobre los techos, cables, ventanas de fachada, grietas,
+  manchas, escombros y balizas que laten con el beat.
+- Modos gráficos Default, Pixel e Isaac (`ArtStyle`): trazo, marcas, colores y
+  post-proceso (pixelado, paleta reducida, viñeta, foco, haz de luz). F2 los alterna.
 - Menú de debug por secciones (Tab/F1) con campos numéricos y exportación/carga de
   presets por sección (`src/shared/resources/presets/`).
 - Dirección de arte en `docs/game-design/art-direction/rojo-frenetico.md`.
