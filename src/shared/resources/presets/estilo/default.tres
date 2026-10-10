@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ArtStyle" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/world/environment/art_style.gd" id="1_params"]
+
+[resource]
+script = ExtResource("1_params")
+burst_lines = 0.35
+halftone = 0.3
+fence_amount = 0.35
+cable_flags = true
+poster_amount = 0.55
+graffiti_amount = 0.45
+wall_unit_amount = 0.6
+fires = 0.45
+drainpipes = true

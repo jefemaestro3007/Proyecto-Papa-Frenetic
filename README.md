@@ -18,20 +18,63 @@ Las funcionalidades se crean a partir de `develop` y se integran de vuelta a
 ## Estructura
 
 ```
+assets/         # media importada compartida (textures, audio, fonts, models)
+├── textures/   # sprites, tilesets, ui, vfx
+├── audio/      # music, sfx, ambience
+├── fonts/
+└── models/
+assets_src/     # fuentes editables (.blend, .psd, .aseprite); Godot las ignora
 src/
 ├── core/       # autoloads, eventos, interfaces y utilidades
 ├── features/   # módulos de gameplay (player, enemies, combat, ...)
 ├── world/      # niveles, entorno e interactuables
 ├── ui/         # menús, HUD, diálogos y componentes
-├── shared/     # recursos, escenas, assets y temas compartidos
+├── shared/     # recursos (.tres), escenas y temas compartidos
 └── main/       # escena y script de entrada
 tests/          # unit, integration y test_scenes
 tools/          # scripts e importers
 docs/           # documentación del proyecto
 ```
 
+> Los binarios (`assets/`, `assets_src/`) se versionan con **Git LFS**.
+> `assets_src/` queda fuera de Godot gracias a su archivo `.gdignore`.
+
 ## Ejecución
 
 ```bash
-godot --path .
+godot --path .                                                   # escena principal
+godot --path . res://src/world/levels/azotea/azotea.tscn         # zona Azotea
+godot --path . res://src/world/levels/oficinas/oficinas.tscn     # zona Oficinas
 ```
+
+## Zonas jugables
+
+| Zona | Qué es |
+|---|---|
+| **Azotea** | Azoteas en ruinas de izquierda a derecha, con skyline de fondo. |
+| **Oficinas** | Edificio abandonado: escaleras y ascensores de fondo, puertas con llave, habitaciones y pasillos al fondo; recorrido garantizado y no lineal. |
+
+Ambas tienen tres modos gráficos (Default, Pixel e Isaac, con F2) y juego al ritmo: saltar,
+girar y aterrizar en el beat suma combo. Es una papa caliente: el calor sube con el tiempo y al
+fallar el ritmo, y baja al acertar; si llega a 100 se enciende una mecha y, si se agota, la papa
+explota. Los enemigos (común, tanque, voladora, embestidora, tiradora) se presentan de a uno
+([combate](docs/game-design/combate.md)).
+
+## Controles
+
+| Acción | Tecla |
+|---|---|
+| Mover / saltar | A/D (o ←/→) · Espacio |
+| Atacar | J o clic izquierdo |
+| Dash (en el suelo) | Shift (o K) |
+| Caída forzada / stomp (en el aire) | S (o ↓) |
+| Menú: elegir / activar / volver | Flechas o mouse / Enter, Espacio o J / Esc |
+| Escaleras, ascensores, puertas al fondo (Oficinas) | W / S (o ↑ / ↓) |
+| Menú de debug · cambiar estilo | Tab (o F1) · F2 |
+| Seed aleatoria / siguiente / anterior | R / N / P |
+| Vista de habitación · grafo de recorrido (Oficinas) | V · G |
+
+## Documentación y tests
+
+Índice en [`docs/README.md`](docs/README.md); tests en
+[`docs/development/testing.md`](docs/development/testing.md).

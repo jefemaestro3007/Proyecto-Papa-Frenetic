@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="SkyParams" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/world/environment/sky_params.gd" id="1_params"]
+
+[resource]
+script = ExtResource("1_params")
+cloud_coverage = 0.4
+sun_size = 0.0
+horizon_line = 0.86
+dither_strength = 0.3
+snowfall = 0.08
+sky_apex = Color(0.13, 0.075, 0.067, 1)
+horizon_glow = Color(0.38, 0.2, 0.17, 1)
+sun_color = Color(0.627, 0.439, 0.227, 1)
+water_color = Color(0.102, 0.063, 0.071, 1)
+land_color = Color(0.25, 0.145, 0.125, 1)

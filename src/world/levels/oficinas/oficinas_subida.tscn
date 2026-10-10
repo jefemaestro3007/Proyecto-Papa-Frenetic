@@ -1,0 +1,16 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/world/levels/oficinas/oficinas.gd" id="1_oficinas"]
+[ext_resource type="Script" path="res://src/world/generation/oficinas/oficinas_params.gd" id="2_params"]
+
+[sub_resource type="Resource" id="Resource_subida"]
+script = ExtResource("2_params")
+seed = 21
+floors = 13
+end_mode = 0
+
+[node name="OficinasSubida" type="Node2D"]
+script = ExtResource("1_oficinas")
+params = SubResource("Resource_subida")
+room_only_view = true
+tutorial = &"edificio"
