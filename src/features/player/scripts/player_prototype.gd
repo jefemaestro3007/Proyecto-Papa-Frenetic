@@ -7,7 +7,8 @@ signal jumped
 signal turned(direction: float)
 signal fast_fall_started
 ## `forced` = el aterrizaje venía de una caída forzada (su timing sí cuenta como intencional).
-signal landed(impact_speed: float, forced: bool)
+## `fall_height` = px desde el punto más alto del tramo aéreo hasta el suelo.
+signal landed(impact_speed: float, forced: bool, fall_height: float)
 
 const SIZE := Vector2(44.0, 88.0)
 
@@ -15,6 +16,7 @@ var params := PlayerParams.new()
 var facing := 1.0
 
 var _was_on_floor := true
+var _air_top_y := 0.0
 var _coyote_left := 0.0
 var _buffer_left := 0.0
 var _fast_falling := false
@@ -112,10 +114,12 @@ func _physics_process(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, direction * speed, accel * delta)
 	move_and_slide()
 
-	if is_on_floor() and not _was_on_floor:
+	if not is_on_floor():
+		_air_top_y = position.y if _was_on_floor else minf(_air_top_y, position.y)
+	elif not _was_on_floor:
 		var forced := _fast_falling
 		_fast_falling = false
-		landed.emit(fall_speed, forced)
+		landed.emit(fall_speed, forced, position.y - _air_top_y)
 	_was_on_floor = is_on_floor()
 
 

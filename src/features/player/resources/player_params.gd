@@ -20,6 +20,11 @@ extends Resource
 ## Tiempo que se recuerda un salto pulsado antes de tocar suelo.
 @export_range(0.0, 0.3) var jump_buffer: float = 0.1
 
+@export_group("Caídas")
+## Una caída normal solo "ataca" (estallido, glitch) si cae desde al menos esta altura en px.
+## Las caídas forzadas atacan siempre.
+@export_range(0.0, 2000.0) var hard_landing_height: float = 320.0
+
 @export_group("Caída forzada")
 @export var fast_fall_enabled: bool = true
 @export_range(800.0, 5000.0) var fast_fall_speed: float = 2400.0

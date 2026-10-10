@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ImpactFxParams" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/features/combat/impact_fx_params.gd" id="1_params"]
+
+[resource]
+script = ExtResource("1_params")
+ray_count_min = 18
+ray_count_max = 28
+ray_length_max = 300.0
+ray_width_max = 40.0
+spread_degrees = 220.0
+jaggedness = 14.0
+debris_count = 40
+debris_speed_max = 1200.0
+debris_color_alt = Color(0.62, 0.059, 0.106, 1)
+screen_shake = 32.0
+glitch_strength = 1.5

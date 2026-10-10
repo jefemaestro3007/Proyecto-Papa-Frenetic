@@ -2,7 +2,7 @@ class_name DebugMenu
 extends PanelContainer
 ## Menú de debug lateral con pestañas (una DebugSection por pestaña).
 
-const WIDTH := 400.0
+const WIDTH := 440.0
 
 
 func _init() -> void:
