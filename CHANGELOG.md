@@ -32,6 +32,14 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Added
 
+- Menú de configuración (SETTINGS), desde START y desde la pausa: volúmenes general, de música y
+  de efectos (buses de audio) y silenciar; pantalla completa, VSync y límite de FPS; dos teclas
+  reasignables por acción; estilo gráfico, temblor de cámara y corrección de latencia del ritmo;
+  dificultad Easy / Normal / Hard o Custom (calor, mecha, ventanas de juicio, velocidad y
+  cantidad de papas); pestaña DEVELOPER con el modo developer (menú de debug y teclas de
+  desarrollo en la campaña) y el monitor del sistema (FPS, tiempos, draw calls, nodos, memoria).
+  Se guarda en `user://configuracion.cfg` y se aplica al instante. Dibujado en código con la
+  letra Jersey 20 de los diseños (licencia OFL).
 - Tutorial con la protagonista: el juego se pausa y ella explica los controles en un globo de
   diálogo (1-1: lo básico al empezar y el combate con la primera papa; 2-1: escaleras y ascensores).
 - Pantalla de inicio con la protagonista vibrando al ritmo, el título y START sobre el fondo de la

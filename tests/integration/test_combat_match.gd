@@ -15,6 +15,8 @@ var _level: ZoneLevel
 
 
 func _ready() -> void:
+	# Sin la configuración guardada del jugador (volúmenes, teclas, dificultad).
+	Settings.use_defaults()
 	Conductor.params.metronome_enabled = false
 	_test_roster()
 	await _test_match()

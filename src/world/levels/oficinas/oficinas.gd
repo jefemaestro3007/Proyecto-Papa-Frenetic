@@ -247,6 +247,7 @@ func _ensure_guide() -> void:
 		return
 	_guide = AudioStreamPlayer2D.new()
 	_guide.stream = ConductorClock._make_click()
+	_guide.bus = AudioBuses.SFX
 	_guide.volume_db = guide_volume_db
 	_guide.max_distance = 2600.0
 	_guide.pitch_scale = 0.7
@@ -646,7 +647,7 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	super(event)
 	var key := event as InputEventKey
-	if key == null or not key.pressed or key.echo:
+	if key == null or not key.pressed or key.echo or not developer_enabled():
 		return
 	match key.keycode:
 		KEY_G:

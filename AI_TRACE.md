@@ -762,3 +762,63 @@ Files: `src/ui/menus/{start_screen_art.gd,fade_bottom.gdshader,main_menu.gd,psd_
 Change: `build_menu_screens.gd` exporta aparte las capas del título ("EDITABLE") y de START del PSD de inicio; `inicio.png` queda solo con el fondo gris, que se usa si falta la imagen de fondo. `StartScreenArt`: protagonista arriba, título al 78 % montado sobre el busto y START debajo (el botón se movió con él). Idle al beat: en cada beat se aplasta y rebota, se inclina hacia un lado distinto y tiembla; entre beats respira, y el título late. El corte del busto se desvanece con un shader de opacidad (sirve sobre cualquier fondo). `PsdScreen.set_backdrop_image` pone una imagen que cubre toda la ventana con un velo oscuro del 30 %. Música: `menu.tres` con `MenuSongStart.wav` a 190,5 BPM y primer beat a 0,03 s; `MainMenu` la pone al abrir si no está sonando, en lugar del clic del metrónomo, y al entrar a un nivel suena la del nivel.
 Commit: PENDING (se commitea junto con esta entrada)
 Notes: El BPM se midió con un análisis temporal en GDScript (envolvente de energía, autocorrelación del onset y fase), sin herramientas externas y borrado después. Validación contra las canciones ya medidas: 176,5 frente a 177, 175,2 frente a 175 y 139,55 frente a 140. Los WAV son de 24 bits; la primera pasada los leía como de 16 y daba tempos falsos. La canción del menú no dura compases enteros (26 compases darían 191,6 BPM, pero el pico del análisis está claramente en 190,5), por eso `test_music` solo verifica su tempo. Dos errores encontrados en las capturas y corregidos: las imágenes tomaban su tamaño natural porque el modo de ajuste se fijaba después del tamaño, y el shader multiplicaba la textura dos veces (protagonista oscura y translúcida). La imagen de fondo no llegó como archivo en el primer envío; se pidió de nuevo. Todos los tests en verde. Push autorizado por el usuario.
+
+---
+
+Rama `feature/settings-menu` (nace de `develop`). Misma sesión de trabajo del 2026-10-10.
+
+### Fuente Jersey 20 (material de terceros)
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (autor de Git: 14mn0t4b0t)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "si basjaste esa font ponlo en ai trace tambien"
+Task: Registrar el origen y la licencia de la fuente agregada al proyecto.
+Type: ASSET (terceros) / DOCS
+Files: `assets/fonts/jersey20/Jersey20-Regular.ttf`, `assets/fonts/jersey20/OFL.txt` (nuevos)
+Change: La IA identificó en los PSD del menú (`assets_src/ui/menu/*.psd`, datos de sus capas de texto) que los diseños usan la fuente Jersey 20 y la descargó del repositorio oficial de Google Fonts (`https://github.com/google/fonts`, carpeta `ofl/jersey20`), junto con su licencia. Autoría: The Soft Type Project Authors (`https://github.com/scfried/soft-type-jersey`), 2023. Licencia: SIL Open Font License 1.1 (`OFL.txt` incluido junto a la fuente), que permite usarla, incluirla y distribuirla con el juego. No es material del equipo ni fue generada por IA: no se modificó. Se usa en las pantallas dibujadas en código (configuración y pausa) para que coincidan con los diseños del equipo.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Si el equipo prefiere otra fuente o tiene el archivo con el que diseñó, basta con reemplazarlo en `MenuStyle.FONT_PATH`.
+
+### Menú de configuración
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (autor de Git: 14mn0t4b0t)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "Haz pull a dev y creas una rama que se encarga de hacer el menu de configuracion". Respuestas: opciones de Audio, Video, Controles, Juego y "Dificultad, alli te voy deciendo mas"; se abre desde el menú y la pausa; "Dibujalo en codigo, no creo que llegue PSD asi que hazlo bien".
+Task: Pantalla de configuración con guardado y aplicación inmediata, accesible desde START y PAUSE.
+Type: CODE (AI) / UI / DOCS / TESTING
+Files: `src/core/autoloads/settings.gd`, `src/ui/menus/{settings_screen.gd,settings_row.gd,drawn_button.gd,menu_style.gd}` (nuevos), `src/ui/menus/{pause_art.gd,psd_screen.gd,main_menu.gd}`, `src/world/levels/zone_level.gd`, `src/world/levels/oficinas/oficinas.gd`, `src/core/autoloads/conductor.gd`, `src/features/audio/sfx_player.gd`, `project.godot`, `tests/integration/test_settings.gd`, `tests/test_scenes/settings.tscn` (nuevos), `tests/integration/*.gd`, `tests/perf/benchmark.gd`, `docs/game-design/menu.md`, `docs/development/testing.md`, `docs/architecture/overview.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: Autoload `Settings` (guarda en `user://configuracion.cfg`): buses `Musica` y `Efectos` (música, metrónomo, efectos y guía sonora van a su bus), ventana (pantalla completa, VSync, límite de FPS), dos teclas por acción en el InputMap (intercambio si la tecla ya estaba en uso, Esc/Tab/F1 reservadas, el clic de atacar se conserva), y para la partida: dificultad (multiplicadores de calor, mecha, ventanas de juicio y velocidad de las papas sobre los valores del nivel, sin acumularse), temblor de cámara, latencia del ritmo y estilo gráfico ("Level's own" respeta el del nivel). `ZoneLevel` lo aplica al empezar y cada vez que cambia. Pantalla `SettingsScreen` en código con `MenuStyle` (colores y botones de los PSD, letra Jersey 20): pestañas AUDIO, VIDEO, CONTROLS, GAME, DIFFICULTY; filas `SettingsRow` (deslizador, ON/OFF, lista, teclas) con teclado y mouse, ayuda de la opción con foco y DEFAULTS por pestaña. SETTINGS bajo START y en PAUSE (que pasa a usar `MenuStyle`). Textos en inglés como los botones del diseño.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Los tests de integración y el benchmark llaman `Settings.use_defaults()` para no depender de la configuración guardada. Importación sin errores; 7 tests unitarios y 6 de integración (incluido el nuevo `test_settings`) en verde. Capturas con ventana de START, las cinco pestañas, la espera de tecla y la pausa revisadas. Los multiplicadores de dificultad son una propuesta: el usuario indicó que irá definiendo más. Sin push hasta que el usuario lo autorice.
+
+### Opciones de desarrollador, dificultad personalizada, cantidad de papas y monitor del sistema
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (autor de Git: 14mn0t4b0t)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "Pon que para habilitar el menu y opciones de developer esta en el menu de la config, ademas de permitir dificultades personalizadas añade cantidad de enemigos a las opciones, tambien que un system monitor que dejar ver los fps y esa clase de info"
+Task: Ampliar la configuración con opciones de desarrollador, dificultad Custom, cantidad de papas y un monitor del sistema.
+Type: CODE (AI) / UI / DOCS / TESTING
+Files: `src/core/autoloads/settings.gd`, `src/ui/hud/system_monitor.gd`, `src/features/audio/audio_buses.gd` (nuevos los dos últimos), `src/ui/menus/settings_screen.gd`, `src/world/levels/zone_level.gd`, `src/world/levels/oficinas/oficinas.gd`, `src/core/autoloads/conductor.gd`, `src/features/audio/sfx_player.gd`, `tests/integration/test_settings.gd`, `docs/game-design/menu.md`, `docs/development/testing.md`, `docs/architecture/overview.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: Pestaña DEVELOPER: "Developer mode" (en la campaña, sin él, Tab/F1, F2, R/N/P y G/V no hacen nada y la línea de ayuda no se ve; antes Tab y R/N/P funcionaban siempre aunque el menú arrancara oculto; al abrir una zona directo todo sigue igual) y "System monitor" Off / FPS / Full (`SystemMonitor`, creado por `Settings` para verse en todas las pantallas: FPS con color, tiempo promedio y peor frame, proceso, física, draw calls, objetos, nodos, huérfanos, física 2D, memoria, video, latencia de audio, ventana, VSync, límite, BPM y beat). Dificultad: multiplicador nuevo `enemies` sobre `enemy_density` (Easy ×0,7, Hard ×1,3; se nota al empezar o reintentar) y opción Custom con un deslizador por multiplicador, que aparecen al elegirla. Los nombres de los buses pasan a `AudioBuses` para cortar un ciclo de dependencias (`conductor.gd` → `settings.gd` → monitor → `Conductor`) que rompía `test_heat_meter` al correr con `--script`.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Importación sin errores; 7 tests unitarios y 6 de integración en verde (`test_settings` ampliado: Custom, cantidad de papas, modo developer en la campaña, monitor). Capturas con ventana de Hard, Custom, DEVELOPER y el monitor completo sobre la Azotea revisadas. Sin push hasta que el usuario lo autorice.
+
+### SETTINGS más chico en START
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (autor de Git: 14mn0t4b0t)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "Haz el boton de setting un 60 % del tamaño del start en la pantalla de inicio"
+Task: Achicar el texto y la zona clicable de SETTINGS en la pantalla START.
+Type: CODE (AI) / UI / DOCS
+Files: `src/ui/menus/main_menu.gd`, `docs/game-design/menu.md`, `AI_TRACE.md`
+Change: START mide 21 px de alto en el diseño (medido en `inicio.png`); SETTINGS pasa de 40 px de fuente (24 px de alto, más grande que START) a 22 px (13 px de alto, 62 %, lo más cercano al 60 % que da Jersey 20). La zona clicable baja a 96×26, centrada bajo START.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Captura con ventana revisada (sin foco y con foco en SETTINGS). `test_settings` en verde. Sin push hasta que el usuario lo autorice.

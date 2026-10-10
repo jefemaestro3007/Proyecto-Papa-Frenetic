@@ -87,6 +87,11 @@ func add_art(art: Control) -> void:
 	_canvas.add_child(art)
 
 
+## Agrega un control interactivo en coordenadas del diseño (tal cual, sin cambiar su tamaño).
+func add_control(control: Control) -> void:
+	_canvas.add_child(control)
+
+
 func focus_first() -> void:
 	if not _buttons.is_empty():
 		_buttons[0].grab_focus()

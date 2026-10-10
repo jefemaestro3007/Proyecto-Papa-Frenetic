@@ -12,6 +12,8 @@ var _failures := 0
 
 
 func _ready() -> void:
+	# Sin la configuración guardada del jugador (volúmenes, teclas, dificultad).
+	Settings.use_defaults()
 	Conductor.params.metronome_enabled = false
 	var level: ZoneLevel = load(SCENE).instantiate()
 	level.set("_hide_menu", true)
