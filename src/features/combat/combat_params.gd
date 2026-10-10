@@ -4,6 +4,25 @@ extends Resource
 ## Combate y enemigos integrados desde el prototipo `feature/gameplay-prototype`.
 ## Pestaña "Combate" del menú de debug (presets en `presets/combate/`).
 
+@export_group("Calor")
+@export var heat_enabled: bool = true
+## Sin game over la papa explota pero el calor se reinicia (útil para probar).
+@export var game_over_enabled: bool = true
+@export_range(0.0, 10.0) var passive_heating: float = 1.0
+@export_range(0.0, 30.0) var perfect_cooling: float = 8.0
+@export_range(0.0, 30.0) var good_cooling: float = 4.0
+@export_range(0.0, 40.0) var miss_heating: float = 10.0
+## Peso del calor en saltos y giros (atacar, caída forzada y dash pesan 1).
+@export_range(0.0, 1.0) var movement_heat_scale: float = 0.25
+@export_range(0.0, 40.0) var contact_heat: float = 10.0
+@export_range(0.0, 40.0) var projectile_heat: float = 5.0
+@export_range(0.0, 40.0) var fall_heat: float = 15.0
+## Tajo al aire fuera de ritmo (castiga el spam sin romper el combo).
+@export_range(0.0, 20.0) var whiff_heat: float = 5.0
+## Desde este calor la partida se siente tensa (temblor, viñeta).
+@export_range(0.0, 100.0) var intensity_threshold: float = 50.0
+@export_range(1.0, 30.0) var fuse_seconds: float = 10.0
+
 @export_group("Ataque")
 ## Alcance del ataque en el suelo: hacia adelante y de alto.
 @export_range(40.0, 400.0) var ground_reach: float = 150.0
