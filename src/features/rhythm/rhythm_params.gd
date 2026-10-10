@@ -7,6 +7,8 @@ extends Resource
 @export_range(60.0, 240.0) var bpm: float = 170.0
 @export var music_enabled: bool = true
 @export_range(-40.0, 6.0) var music_volume_db: float = -6.0
+@export var sfx_enabled: bool = true
+@export_range(-40.0, 6.0) var sfx_volume_db: float = -4.0
 @export var metronome_enabled: bool = true
 ## Con música el metrónomo calla salvo que se pida (sirve para comprobar la sincronía).
 @export var metronome_over_music: bool = false

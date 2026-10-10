@@ -11,7 +11,8 @@ src/
 ├── core/autoloads/conductor.gd        # Conductor: reloj musical global (BPM, beat, juicio)
 ├── features/
 │   ├── player/                        # PlayerPrototype + PlayerParams
-│   ├── rhythm/                        # RhythmTracker (combo/puntaje) + RhythmParams
+│   ├── rhythm/                        # RhythmTracker (combo/puntaje) + RhythmParams + MusicTrack
+│   ├── audio/                         # SfxPlayer + SoundEffect (efectos de sonido)
 │   ├── combat/                        # CombatController, HeatMeter, GameFeel, ImpactBurst + params
 │   └── enemies/                       # Enemy (común) + tanque, voladora, embestidora, tiradora, EnemyRoster
 ├── world/
@@ -34,7 +35,10 @@ src/
 │   ├── components/debug_section.gd    # pestaña del menú de debug (sliders, colores, presets)
 │   ├── menus/debug_menu.gd            # menú de debug con pestañas
 │   └── hud/                           # RhythmHud (combo, compás, avisos) + HeatHud (manómetro, mecha, fin)
-└── shared/resources/presets/<sección>/ # presets .tres por sección del menú
+└── shared/resources/
+    ├── presets/<sección>/             # presets .tres por sección del menú
+    ├── music/                         # MusicTrack de cada canción
+    └── sfx/                           # SoundEffect, agrupados por prefijo del nombre
 ```
 
 ## Capas de una zona
@@ -75,6 +79,24 @@ nada pero el tempo es el de la canción, así los tests juegan igual.
 El BPM se midió analizando el audio y todas empiezan en el beat (`first_beat` = 0). Pestaña
 Ritmo → Música: cambiar de canción, volumen, reiniciarla, y "Metrónomo sobre la música" para
 comprobar la sincronía de oído. `MenuSongStart.wav` (≈191 BPM) queda para el menú.
+
+### Efectos de sonido
+
+`ZoneLevel` crea un `SfxPlayer` que carga los `SoundEffect` de `src/shared/resources/sfx/` y los
+agrupa por el prefijo del nombre (`hurt_grave.tres` → `hurt`). `play(grupo)` toca una variante al
+azar sin repetir la anterior, con un pool de reproductores para que se superpongan. Para sumar
+una variante basta con otro `.tres` con el mismo prefijo. Los WAV se importan con `edit/trim`:
+sin silencio al inicio (el retraso se nota en un juego de ritmo) ni la cola muda de 3 s.
+
+| Grupo | Cuándo suena | Variantes |
+|---|---|---|
+| `hit` | Golpe que entra a una papa (ataque, aéreo, dash o stomp) | UserDealsDamageOne, WeCanWeBeHeroesUserDealsDamageTwo |
+| `stomp` | Cada aterrizaje de caída forzada | FloorStampOne, FloorStampTwo |
+| `hurt` | El jugador recibe daño: tocar una papa o una papa frita | DamageVocaloidGrave, DamageVocaloidUh |
+| `miss` | Cualquier acción fuera de ritmo (MISS), salvo aterrizar | ErrorSoundEffect |
+
+Pestaña Ritmo → Efectos: activarlos y volumen general; el volumen y la variación de tono de cada
+sonido están en su `.tres`. En headless no suenan, pero `SfxPlayer.history` registra lo pedido.
 
 ## Combate y partida
 
