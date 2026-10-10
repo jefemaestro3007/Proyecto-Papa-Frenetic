@@ -2,7 +2,8 @@
 extends Node2D
 ## Zona "Azotea": mapa de azoteas + fondo procedurales con estética "Rojo Frenético" y juego al ritmo.
 ## En el editor funciona como laboratorio: cambia los parámetros en el Inspector y se regenera.
-## En juego: ←/→ mover, Espacio saltar, ↓ en el aire caída forzada, Tab/F1 menú de debug, R/N/P seeds.
+## En juego: ←/→ mover, Espacio saltar, ↓ en el aire caída forzada, Tab/F1 menú de debug,
+## F2 cambia de estilo (Default / Pixel / Isaac), R/N/P seeds.
 ## Saltar, girar y aterrizar en el beat suma combo; la caída forzada se premia o castiga según su timing.
 ## Solo "atacan" (estallido, glitch, temblor) las caídas forzadas y las que superan
 ## `player_params.hard_landing_height`.
@@ -12,6 +13,7 @@ const GRUNGE_SHADER := preload("res://src/world/environment/shaders/ruin_grunge.
 const POST_SHADER := preload("res://src/world/environment/shaders/frenetic_post.gdshader")
 const PRESETS := "res://src/shared/resources/presets/"
 const DEFAULT_LOOK := "rojo_frenetico"
+const STYLES: Array[String] = ["default", "pixel", "isaac"]
 
 const FAR_SCROLL := Vector2(0.15, 0.08)
 const NEAR_SCROLL := Vector2(0.4, 0.22)
@@ -32,6 +34,7 @@ const AUTORUN_EDGE := 70.0
 @export var lighting: LightingParams
 @export var player_params: PlayerParams
 @export var impact_fx: ImpactFxParams
+@export var style: ArtStyle
 
 @export_tool_button("Regenerar", "Reload") var regenerate_button := regenerate
 
@@ -56,6 +59,13 @@ var _fx_rng := RandomNumberGenerator.new()
 var _shock := 0.0
 var _autorun_cooldown := 0.0
 var _initial_tab := 0
+var _style_name := "default"
+var _hide_menu := false
+var _style_signature := 0
+var _roofs_view: RooftopView
+var _beacons: BeaconView
+var _grunge_materials: Array[ShaderMaterial] = []
+var _sections := {}
 
 
 func _ready() -> void:
@@ -69,6 +79,8 @@ func _ready() -> void:
 		player_params = PlayerParams.new()
 	if impact_fx == null:
 		impact_fx = _load_preset("efectos", "base", ImpactFxParams.new())
+	if style == null:
+		style = _load_preset("estilo", "default", ArtStyle.new())
 	if not Engine.is_editor_hint():
 		_parse_args()
 		_build_runtime()
@@ -83,6 +95,10 @@ func _parse_args() -> void:
 			params.seed = arg.trim_prefix("--seed=").to_int()
 		elif arg.begins_with("--debug-tab="):
 			_initial_tab = arg.trim_prefix("--debug-tab=").to_int()
+		elif arg == "--hide-menu":
+			_hide_menu = true
+		elif arg.begins_with("--style="):
+			apply_style(arg.trim_prefix("--style="))
 		elif arg.begins_with("--look="):
 			var look := arg.trim_prefix("--look=")
 			sky = _load_preset("cielo", look, sky)
@@ -106,14 +122,21 @@ func regenerate() -> void:
 	add_child(_generated)
 	move_child(_generated, 0)
 
-	_far_view = _add_skyline_layer(_data.far, FAR_SCROLL, 0.25)
-	_near_view = _add_skyline_layer(_data.near, NEAR_SCROLL, 0.45)
+	_grunge_materials.clear()
+	_far_view = _add_skyline_layer(_data.far, FAR_SCROLL)
+	_near_view = _add_skyline_layer(_data.near, NEAR_SCROLL)
 	_apply_skyline_colors()
 
-	var roofs := RooftopView.new()
-	roofs.setup(_data.roofs, params.seed)
-	_generated.add_child(roofs)
+	_roofs_view = RooftopView.new()
+	_roofs_view.setup(_data, params.seed, style)
+	_roofs_view.material = _make_grunge()
+	_generated.add_child(_roofs_view)
+	_beacons = BeaconView.new()
+	_beacons.setup(_data, style.blood.lightened(0.35))
+	_generated.add_child(_beacons)
 	_generated.add_child(_make_colliders(_data.roofs))
+	_style_signature = 0
+	_apply_style_to_world()
 
 	if _player != null:
 		_respawn()
@@ -126,16 +149,55 @@ func _on_params_changed() -> void:
 		regenerate()
 
 
-func _add_skyline_layer(layer: AzoteaMapData.SkylineData, scroll: Vector2, dirt: float) -> SkylineView:
+## Carga un estilo por nombre (presets/estilo/<nombre>.tres) junto con su cielo e iluminación.
+func apply_style(style_name: String) -> void:
+	var path := PRESETS + "estilo/" + style_name + ".tres"
+	if not ResourceLoader.exists(path):
+		push_warning("Estilo inexistente: " + style_name)
+		return
+	_style_name = style_name
+	DebugSection.copy_into(ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE), style)
+	_on_style_loaded()
+
+
+## Tras cargar un estilo: aplica sus presets de cielo e iluminación y refresca el menú.
+func _on_style_loaded() -> void:
+	for pair in [["cielo", style.sky_preset, sky], ["iluminacion", style.lighting_preset, lighting]]:
+		var path: String = PRESETS + pair[0] + "/" + pair[1] + ".tres"
+		if ResourceLoader.exists(path):
+			DebugSection.copy_into(ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE), pair[2])
+	for section: DebugSection in _sections.values():
+		section.refresh()
+
+
+## Lo estático (azoteas, texturas) solo se actualiza cuando cambia algún valor del estilo.
+func _apply_style_to_world() -> void:
+	var signature := style.signature()
+	if signature == _style_signature or _roofs_view == null:
+		return
+	_style_signature = signature
+	_roofs_view.queue_redraw()
+	_beacons.color = style.blood.lightened(0.35)
+	(_roofs_view.material as ShaderMaterial).set_shader_parameter("dirt", style.grime)
+	for material in _grunge_materials:
+		material.set_shader_parameter("dirt", style.skyline_dirt)
+
+
+func _make_grunge() -> ShaderMaterial:
+	var material := ShaderMaterial.new()
+	material.shader = GRUNGE_SHADER
+	return material
+
+
+func _add_skyline_layer(layer: AzoteaMapData.SkylineData, scroll: Vector2) -> SkylineView:
 	var parallax := Parallax2D.new()
 	parallax.scroll_scale = scroll
 	parallax.repeat_size = Vector2(layer.width, 0.0)
 	parallax.repeat_times = 3
 	var view := SkylineView.new()
 	view.setup(layer, FreneticPalette.RUIN_FAR, FreneticPalette.WINDOW_FAR)
-	var material := ShaderMaterial.new()
-	material.shader = GRUNGE_SHADER
-	material.set_shader_parameter("dirt", dirt)
+	var material := _make_grunge()
+	_grunge_materials.append(material)
 	view.material = material
 	parallax.add_child(view)
 	_generated.add_child(parallax)
@@ -205,7 +267,7 @@ func _build_runtime() -> void:
 	_hud.tracker = _tracker
 	ui_layer.add_child(_hud)
 	var help := Label.new()
-	help.text = "←/→ mover · Espacio saltar · ↓ caída forzada · Tab menú de debug · R/N/P seed"
+	help.text = "←/→ mover · Espacio saltar · ↓ caída forzada · Tab menú · F2 estilo · R/N/P seed"
 	help.position = Vector2(24.0, 18.0)
 	help.add_theme_color_override("font_color", FreneticPalette.CREAM)
 	help.add_theme_color_override("font_outline_color", FreneticPalette.INK)
@@ -217,14 +279,68 @@ func _build_runtime() -> void:
 
 
 func _build_debug_menu() -> void:
-	_build_map_section(_menu.add_section("Mapa"))
-	_build_sky_section(_menu.add_section("Cielo"))
-	_build_lighting_section(_menu.add_section("Luz"))
-	_build_player_section(_menu.add_section("Jugador"))
-	_build_fx_section(_menu.add_section("Efectos"))
-	_build_rhythm_section(_menu.add_section("Ritmo"))
-	_build_system_section(_menu.add_section("Sistema"))
+	var builders := {
+		"Estilo": _build_style_section, "Mapa": _build_map_section, "Cielo": _build_sky_section,
+		"Luz": _build_lighting_section, "Jugador": _build_player_section, "Efectos": _build_fx_section,
+		"Ritmo": _build_rhythm_section, "Sistema": _build_system_section,
+	}
+	for title in builders:
+		var section := _menu.add_section(title)
+		_sections[title] = section
+		builders[title].call(section)
 	_menu.get_node("Tabs").current_tab = _initial_tab
+	_menu.visible = not _hide_menu
+
+
+func _build_style_section(section: DebugSection) -> void:
+	section.add_group("Modo")
+	section.add_buttons([
+		["Default", apply_style.bind("default")],
+		["Pixel", apply_style.bind("pixel")],
+		["Isaac", apply_style.bind("isaac")],
+	])
+	section.add_text("F2 alterna los modos. Cada modo trae su cielo e iluminación.")
+	section.add_preset_bar(style, "estilo")
+	section.preset_loaded.connect(func(_path: String) -> void: _on_style_loaded())
+	section.add_group("Trazo")
+	section.add_slider(style, &"outline_width", "Contorno (px)", 0, 12, 0.5)
+	section.add_slider(style, &"wobble", "Trazo a mano (px)", 0, 10, 0.5)
+	section.add_toggle(style, &"drop_shadows", "Sombras proyectadas")
+	section.add_toggle(style, &"hazard_stripes", "Franjas de peligro")
+	section.add_toggle(style, &"facade_windows", "Ventanas en fachadas")
+	section.add_group("Marcas")
+	section.add_slider(style, &"blood_amount", "Sangre", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"crack_amount", "Grietas", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"stain_amount", "Manchas", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"rubble_amount", "Escombros", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"lit_windows", "Ventanas encendidas", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"grime", "Mugre en azoteas", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"skyline_dirt", "Mugre en skyline", 0.0, 1.0, 0.01)
+	section.add_group("Colores")
+	section.add_color(style, &"structure", "Estructura")
+	section.add_color(style, &"structure_dark", "Estructura oscura")
+	section.add_color(style, &"structure_light", "Estructura clara")
+	section.add_color(style, &"edge", "Borde pisable")
+	section.add_color(style, &"outline", "Contorno")
+	section.add_color(style, &"accent", "Acento")
+	section.add_color(style, &"blood", "Sangre")
+	section.add_color(style, &"rock", "Roca")
+	section.add_color(style, &"rock_light", "Brillo de roca")
+	section.add_color(style, &"window_dark", "Ventana apagada")
+	section.add_color(style, &"window_lit", "Ventana encendida")
+	section.add_group("Post-proceso")
+	section.add_slider(style, &"pixel_size", "Tamaño de pixel", 1, 12, 1)
+	section.add_slider(style, &"color_levels", "Niveles de color (0 = libre)", 0, 32, 1)
+	section.add_slider(style, &"dither", "Dithering", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"vignette", "Viñeta", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"vignette_softness", "Suavidad de viñeta", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"desaturate", "Desaturar", 0.0, 1.0, 0.01)
+	section.add_color(style, &"tint", "Tinte")
+	section.add_slider(style, &"grain", "Grano", 0.0, 0.3, 0.005)
+	section.add_slider(style, &"aberration", "Aberración cromática", 0.0, 6.0, 0.1)
+	section.add_slider(style, &"spotlight", "Foco en el jugador", 0.0, 1.0, 0.01)
+	section.add_slider(style, &"spotlight_radius", "Radio del foco", 0.1, 1.5, 0.01)
+	section.add_slider(style, &"light_shaft", "Haz de luz", 0.0, 1.0, 0.01)
 
 
 func _build_map_section(section: DebugSection) -> void:
@@ -246,6 +362,10 @@ func _build_map_section(section: DebugSection) -> void:
 	section.add_slider(params, &"roof_base_y", "Altura base (px)", 400, 1000, 10)
 	section.add_slider(params, &"roof_height_variation", "Relieve (px)", 0, 400, 10)
 	section.add_slider(params, &"max_step", "Escalón máximo (px)", 0, 200, 10)
+	section.add_group("Detalles")
+	section.add_slider(params, &"detail_density", "Densidad de objetos", 0.0, 1.0, 0.01)
+	section.add_slider(params, &"marks_per_roof", "Marcas por azotea", 0, 24, 1)
+	section.add_slider(params, &"cable_chance", "Probabilidad de cable", 0.0, 1.0, 0.01)
 	section.add_group("Skyline")
 	section.add_slider(params, &"ruin", "Ruina", 0.0, 1.0, 0.01)
 	section.add_slider(params, &"broken_windows", "Ventanas rotas", 0.0, 1.0, 0.01)
@@ -430,6 +550,7 @@ func _physics_process(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	_apply_skyline_colors()
+	_apply_style_to_world()
 	if Engine.is_editor_hint():
 		return
 	if _player.position.y > _data.kill_y:
@@ -447,7 +568,11 @@ func _process(delta: float) -> void:
 	_world_light.color = lighting.world_tint(sky, pulse, heat)
 
 	_shock = move_toward(_shock, 0.0, delta * 2.5)
+	for uniform in ArtStyle.POST_UNIFORMS:
+		_post.set_shader_parameter(uniform, style.get(uniform))
 	_post.set_shader_parameter("shock", _shock)
+	_post.set_shader_parameter("spotlight_center",
+			_player_screen_position() / get_viewport().get_visible_rect().size)
 	_camera.offset = Vector2(_fx_rng.randf_range(-1.0, 1.0), _fx_rng.randf_range(-1.0, 1.0)) * _shock * impact_fx.screen_shake
 
 	if _menu.visible:
@@ -465,6 +590,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	match key.keycode:
 		KEY_TAB, KEY_F1:
 			_menu.visible = not _menu.visible
+		KEY_F2:
+			apply_style(STYLES[(STYLES.find(_style_name) + 1) % STYLES.size()])
 		KEY_R:
 			params.seed = randi_range(1, 999999)
 		KEY_N:

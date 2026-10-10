@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ArtStyle" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/world/environment/art_style.gd" id="1_params"]
+
+[resource]
+script = ExtResource("1_params")
+sky_preset = "pixel_frenetico"
+lighting_preset = "pixel_frenetico"
+outline_width = 4.0
+lit_windows = 0.2
+grime = 0.0
+skyline_dirt = 0.08
+pixel_size = 4.0
+color_levels = 16.0
+dither = 0.45
+vignette = 0.3
+aberration = 0.5
