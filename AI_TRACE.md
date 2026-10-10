@@ -614,3 +614,112 @@ Files: `src/world/environment/{chunk_canvas.gd,chunked_view.gd,spatial_index.gd}
 Change: Benchmark con ventana (tiempo por frame, draw calls, nodos). Diagnóstico: `RooftopView` e `InteriorView` dibujaban el mapa entero en un solo canvas item (20 000 draw calls con 64 azoteas); las vistas animadas, los ascensores (todas sus paradas) y las puertas se redibujaban enteras cada frame; todas las papas procesaban aunque estuvieran lejos; la guía sonora de Oficinas buscaba el camino a la salida en cada beat (15 ms en un edificio 24×16) y el bot en cada frame. Arreglos: `ChunkedView` (grilla de trozos × capas, Godot descarta los que no se ven), `SpatialIndex` para las vistas animadas y para dormir/despertar papas en `CombatController`, ascensores y puertas que se redibujan solo al cambiar, plan de la guía guardado (solo replanea al salirse del camino), planes del bot memorizados, BFS con cursor en lugar de `pop_front()`. Resultado (frame promedio, sin vsync): Azotea 6 azoteas 5,7 → 4,3 ms, 64 azoteas 33,5 → 4,7 ms; Oficinas 4×4 3,9 → 3,5 ms, 24×16 quieto 54,8 → 3,9 ms, 24×16 con bot 46,6 → 6,5 ms (p99 197 → 12 ms).
 Commit: PENDING (se commitea junto con esta entrada)
 Notes: Render comparado con `develop` (mismos frames de Azotea y Oficinas): se dibuja lo mismo, sin cortes en los bordes de los trozos. Importación sin errores; 7 tests unitarios, `test_combat_match`, `test_rhythm_rewards`, `test_sfx` y `test_oficinas_traversal` (48/48) en verde. Queda pendiente: `OficinasLayout.plan()` cuesta ~15 ms en edificios grandes (ya no se llama por frame); la generación de Oficinas 24×16 tarda ~420 ms al cargar; el menú de debug crea ~975 controles ocultos al abrir cada zona. Sin push hasta que el usuario lo autorice.
+
+---
+
+## Herramientas y autoría del arte y el audio (declaración del equipo)
+
+Rama `feature/docs-ai-trace` (nace de `develop` en `19ea47c`). Lo que sigue es lo que cada
+integrante declaró, recogido en un documento del equipo y entregado por Andrés Valencia el
+2026-10-10. Se transcribe sin agregar herramientas ni usos que no se hayan declarado.
+
+**Autoría.** Todas las imágenes y todos los audios del juego los crearon integrantes del equipo:
+
+| Material | Autor | Archivos en el repositorio |
+|---|---|---|
+| Música (menú y niveles) y efectos de sonido | Miguel Angel Asprilla | `assets/audio/music/*.wav`, `assets/audio/sfx/*.wav` |
+| Enemigos (las cinco papas: base, ataque, herido) | William Coral Castro | `assets_src/sprites/enemies/*` (originales); `assets/textures/sprites/enemies/*` (derivados) |
+| Protagonista y sus animaciones | Juan Manuel Cuero Possu | `assets_src/sprites/player/*` (originales); `assets/textures/sprites/player/*` (derivados) |
+| Ayudas visuales (papa del calor del HUD, flecha y nube del stomp, efecto del golpe) | William Coral Castro y Juan Manuel Cuero Possu | `assets_src/sprites/ui/*`, `assets_src/sprites/fx/*` (originales); `assets/textures/ui/papa_calor_*.png`, `assets/textures/sprites/fx/*` (derivados) |
+| Diseños del menú (wireframes de alta calidad: START, NEW GAME, LEVEL SELECT, LOADING, YOU WIN, YOU LOOSE) | William Coral Castro | `assets_src/ui/menu/*` (originales); `assets/textures/ui/menu/*` (derivados) |
+| Fondo y mapa de cada nivel (terrenos procedurales con una skill de IA) | Santiago Calero | Generadores de `src/world/generation/` y vistas de `src/world/environment/` |
+
+Los "derivados" son los PNG que usa el juego. Los generan desde los originales las herramientas de
+`tools/scripts/` (recorte del fondo, escala, anclaje, composición de las capas de los PSD y las
+variaciones de color de los enemigos). Esas herramientas y ese proceso ya están registrados en las
+entradas de sprites y del menú (AI: Claude). El dibujo de cada personaje, efecto y pantalla es del
+autor indicado.
+
+### William Coral Castro: enemigos, frames de movimiento, manómetro, menú y logo
+
+Timestamp: N/A (timestamp oficial no disponible; declaración entregada el 2026-10-10)
+Participant: William Coral Castro
+Team: Frenetic Studios
+AI: ChatGPT (solo para el logo y el isotipo)
+Prompt: No se conserva. Declaración: "con esta herramienta pude crear el logo principal de la marca, y su isotipo".
+Task: Arte de los villanos, frames de movimiento, contabilizador de tiempo de la partida (el manómetro del HUD), wireframes del menú y logo de la marca.
+Type: ART / UI DESIGN / BRANDING
+Files: `assets_src/sprites/enemies/*`, `assets_src/sprites/ui/*` y `assets_src/sprites/fx/*` (ayudas visuales, junto con Juan Manuel Cuero Possu), `assets_src/ui/menu/*`
+Change: Herramientas declaradas: Adobe Photoshop, para los frames de movimientos, los villanos principales y el contabilizador de tiempo de la partida (el manómetro del HUD). Figma, para los wireframes de alta calidad de la interfaz principal del menú. ChatGPT, para el logo principal de la marca y su isotipo.
+Commit: N/A (los archivos entraron en commits anteriores de las ramas de sprites y del menú)
+Notes: El único uso de IA declarado es ChatGPT para el logo y el isotipo; los villanos, los frames y los wireframes son de su autoría con Photoshop y Figma. El logo y el isotipo no están como archivos aparte en el repositorio. En el juego el manómetro se dibuja por código (`src/ui/hud/heat_gauge.gd`); su diseño en Photoshop es el que declara William.
+
+### Miguel Angel Asprilla: música y efectos de sonido
+
+Timestamp: N/A (timestamp oficial no disponible; declaración entregada el 2026-10-10)
+Participant: Miguel Angel Asprilla
+Team: Frenetic Studios
+AI: N/A (no se declaró uso de IA)
+Prompt: N/A
+Task: Música principal del juego (menú y niveles) y efectos de sonido.
+Type: AUDIO
+Files: `assets/audio/music/*.wav`, `assets/audio/sfx/*.wav`
+Change: Herramientas declaradas: Vocaloid, LMMS y FamiStudio. Con ellas hizo la música principal del videojuego, la del menú, la de los niveles y los efectos de sonido.
+Commit: N/A (los audios entraron en commits anteriores de música y de efectos de sonido)
+Notes: La medición de BPM y primer beat (`MusicTrack`), el recorte del silencio inicial al importar y la mezcla en el juego son trabajo de código, ya registrado en sus entradas; la composición y los sonidos son de su autoría.
+
+### Juan Manuel Cuero Possu: protagonista y sus animaciones
+
+Timestamp: N/A (timestamp oficial no disponible; declaración entregada el 2026-10-10)
+Participant: Juan Manuel Cuero Possu
+Team: Frenetic Studios
+AI: ChatGPT (solo para quitar el fondo de las imágenes)
+Prompt: No se conserva. Declaración: "Lo use para quitarle el fondo a las imagenes".
+Task: Sprites del protagonista y sus animaciones, y ayudas visuales (junto con William Coral Castro).
+Type: ART
+Files: `assets_src/sprites/player/*`, `assets_src/sprites/ui/*` y `assets_src/sprites/fx/*` (ayudas visuales, junto con William Coral Castro)
+Change: Herramientas declaradas: Medibang Paint Pro, para los sprites del protagonista y sus animaciones. ChatGPT, para quitarles el fondo a las imágenes.
+Commit: N/A (los archivos entraron en commits anteriores de la rama de sprites)
+Notes: El único uso de IA declarado es quitar el fondo; el dibujo del personaje y sus poses es de su autoría. Algunas imágenes llegaron con el fondo de cuadros de transparencia dibujado (p. ej. `correr.jpg`): ese fondo lo quita `tools/scripts/build_player_sprites.gd`, ya registrado.
+
+### Santiago Calero: fondos y mapas con arte algorítmico
+
+Timestamp: N/A (timestamp oficial no disponible; declaración entregada el 2026-10-10)
+Participant: Santiago Calero
+Team: Frenetic Studios
+AI: Sí: una skill propia que usa IA (no se nombró el asistente)
+Prompt: No se conserva.
+Task: Fondo y mapa de cada nivel, con terrenos procedurales.
+Type: CODE / PROCEDURAL ART
+Files: `src/world/generation/*`, `src/world/environment/*`
+Change: Declaración: usó una skill que usa IA y algoritmos matemáticos para crear terrenos procedurales; con ella generó el fondo y el mapa de cada nivel, que son pseudoaleatorios. La skill la desarrolla desde hace bastante tiempo, a partir de una que tomó hace un año y cuyo origen no recuerda bien; es un área en la que tiene experiencia propia. También declara que el resto de las contribuciones fueron propias y que no cree que se haya usado ningún recurso externo para producir.
+Commit: N/A (el código entró en commits anteriores; los de la Azotea y Oficinas son los PR #1 y #2)
+Notes: El origen de la skill base no se conoce (lo declara el propio autor). No se citan fuentes externas. La aclaración de que la skill usa IA para generar el fondo y el mapa la dio Andrés Valencia al revisar este registro.
+
+### Registrar las herramientas y la autoría declaradas por el equipo
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: Crear una copia de develop para actualizar datos del AI Trace que pidieron: agregar a la trazabilidad de IA lo que tres compañeros declararon en un documento de Google (herramientas para desarrollo gráfico y visual, para qué, fuentes y todo lo que pusieron). Todas las imágenes y audios los creó el equipo y deben llevar sus nombres: los audios Miguel Asprilla; las ayudas visuales Will y Juan Manuel; los enemigos Will; el protagonista Juan Manuel. Se entregó el texto de William Coral Castro, Miguel Angel Asprilla, Juan Manuel Cuero Possu y una declaración de Santiago Calero.
+Task: Pasar las declaraciones al AI_TRACE y relacionar cada material con su autor y sus archivos.
+Type: DOCS / PROCESS
+Files: `AI_TRACE.md`
+Change: Sección nueva al final, sin tocar las anteriores: tabla de autoría (material, autor, archivos originales y derivados) y una entrada por integrante con las herramientas, el uso declarado y el uso de IA (ChatGPT para el logo y el isotipo; ChatGPT para quitar fondos; una skill que usa IA para los terrenos procedurales del fondo y el mapa; ninguno en audio).
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Los textos se transcriben como los entregó el equipo; solo se ordenaron y se corrigieron nombres de programas (FamiStudio, LMMS). El "Xd" junto al nombre de Miguel Angel Asprilla en el documento no se tomó como parte del nombre. Confirmado por Andrés Valencia al revisar: las ayudas visuales son la papa del calor y los efectos del stomp y del golpe (de los dos autores, sin detallar quién hizo cuál); el contabilizador de tiempo de William es el manómetro; la skill de Santiago usa IA. Sin push hasta que el usuario lo autorice.
+
+### Preparar feature/docs-ai-trace para el merge a develop
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "Hacer el commit y el push a la nueva rama y ya hago yo lo de pull request para incorporarlo dentro de developer. Pero asegúrate de que esté todo listo y preparado para que podamos hacer el merge."
+Task: Integrar `origin/develop` (optimización, PR #12) en `feature/docs-ai-trace` sin rebase y dejar la rama lista para el pull request.
+Type: PROCESS / DOCS
+Files: `AI_TRACE.md`
+Change: La sección de herramientas y autoría quedó en el commit `68fa0f1`. Merge de `origin/develop` (`b323d15`): el único conflicto fue en AI_TRACE, donde las dos ramas agregaban al final; el archivo de `develop` queda intacto y la sección del equipo va después.
+Commit: PENDING (se commitea junto con esta entrada, en el commit de merge)
+Notes: Esta rama solo cambia `AI_TRACE.md`. Push autorizado por el usuario para que abra él el pull request.
