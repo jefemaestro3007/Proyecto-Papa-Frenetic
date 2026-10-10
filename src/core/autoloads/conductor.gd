@@ -1,0 +1,101 @@
+class_name ConductorClock
+extends Node
+## Reloj musical global (autoload `Conductor`). Única fuente de verdad del tempo:
+## todo lo que late o juzga ritmo pregunta aquí, nunca a TIME por su cuenta.
+## Su configuración vive en `params` (RhythmParams) y se puede cambiar en caliente.
+
+signal beat(index: int)
+
+enum Judgment { PERFECT, GOOD, MISS }
+
+var params := RhythmParams.new()
+
+var _time := 0.0
+var _bpm := 0.0
+var _last_beat := -1
+var _click: AudioStreamPlayer
+
+
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	_bpm = params.bpm
+	_click = AudioStreamPlayer.new()
+	_click.stream = _make_click()
+	add_child(_click)
+
+
+func _exit_tree() -> void:
+	_click.stop()
+	_click.stream = null
+
+
+func _process(delta: float) -> void:
+	if not is_equal_approx(_bpm, params.bpm):
+		# Conserva la posición en el compás al cambiar de tempo.
+		var position := beat_position()
+		_bpm = clampf(params.bpm, 60.0, 240.0)
+		_time = position * beat_length()
+	_time += delta
+	var index := floori(beat_position())
+	if index != _last_beat:
+		_last_beat = index
+		beat.emit(index)
+		if params.metronome_enabled:
+			_click.volume_db = params.metronome_volume_db
+			_click.pitch_scale = 1.6 if index % 4 == 0 else 1.0
+			_click.play()
+
+
+func beat_length() -> float:
+	return 60.0 / _bpm
+
+
+func beat_position() -> float:
+	return _time / beat_length()
+
+
+func beat_index() -> int:
+	return floori(beat_position())
+
+
+## 0 justo en el beat, sube hasta 1 justo antes del siguiente.
+func phase() -> float:
+	return fposmod(beat_position(), 1.0)
+
+
+## 1 en el beat y decae exponencialmente; útil para que algo "lata".
+func pulse(sharpness: float = 7.0) -> float:
+	return exp(-phase() * sharpness)
+
+
+## Distancia con signo al beat más cercano, en segundos.
+func offset_to_beat() -> float:
+	var position := (_time - params.input_offset) / beat_length()
+	return (position - roundf(position)) * beat_length()
+
+
+func judge() -> Judgment:
+	var offset := absf(offset_to_beat())
+	if offset <= params.perfect_window:
+		return Judgment.PERFECT
+	if offset <= params.good_window:
+		return Judgment.GOOD
+	return Judgment.MISS
+
+
+## Clic de metrónomo sintetizado (seno con caída rápida) para no depender de assets.
+static func _make_click() -> AudioStreamWAV:
+	const RATE := 44100
+	var samples := int(RATE * 0.04)
+	var data := PackedByteArray()
+	data.resize(samples * 2)
+	for i in samples:
+		var t := float(i) / RATE
+		var s := sin(TAU * 1600.0 * t) * exp(-t * 90.0)
+		data.encode_s16(i * 2, int(s * 26000.0))
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
+	wav.mix_rate = RATE
+	wav.stereo = false
+	wav.data = data
+	return wav
