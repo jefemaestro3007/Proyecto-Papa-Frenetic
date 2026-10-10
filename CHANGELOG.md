@@ -19,6 +19,9 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - Prototipo de jugador (`PlayerPrototype`, `PlayerParams`): coyote time, buffer y corte
   de salto, caída forzada juzgada por ritmo (premio o aturdimiento), recompensas por
   saltar, girar y aterrizar a tiempo.
+- Solo atacan las caídas forzadas o desde una altura configurable; partículas del
+  impacto (rayos, escombros, temblor, glitch) configurables en `ImpactFxParams`, con
+  presets "base", "brutal" y "sutil".
 - Menú de debug por secciones (Tab/F1) con campos numéricos y exportación/carga de
   presets por sección (`src/shared/resources/presets/`).
 - Dirección de arte en `docs/game-design/art-direction/rojo-frenetico.md`.

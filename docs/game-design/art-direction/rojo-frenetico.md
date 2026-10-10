@@ -62,17 +62,25 @@ combo, multiplicador y puntaje.
 |---|---|
 | Saltar | Salto más alto (×1.18 / ×1.08) y chispa |
 | Girar | Giro de 360° e impulso de velocidad |
-| Aterrizar | Estallido y glitch mayores (nunca rompe combo) |
+| Aterrizar | Suma combo (nunca lo rompe); si es una caída alta, además ataca |
 | Caída forzada (↓ en el aire) | A tiempo: estallido máximo y puntos ×2. Fuera: rompe combo y aturde |
 | Combo | Sol más grande, más destello, multiplicador hasta ×4 |
 
 Fallar una acción intencional (saltar/girar/caída forzada) rompe el combo, y 4 beats
 sin acertar también. Todas las cifras son ajustables en el menú de debug.
 
+### Caídas que atacan
+
+No todas las caídas atacan. Solo producen el impacto (rayos, escombros, glitch y
+temblor) las **caídas forzadas** y las caídas normales desde al menos
+`PlayerParams.hard_landing_height` px (medido desde el punto más alto del tramo aéreo).
+La intensidad de cada caso y la forma de las partículas viven en `ImpactFxParams`
+(`src/features/combat/`).
+
 ## Menú de debug y presets
 
 En juego, **Tab** (o F1) abre el menú de debug, con una pestaña por sección:
-Mapa, Cielo, Luz, Jugador, Ritmo y Sistema. Cada slider tiene un campo numérico
+Mapa, Cielo, Luz, Jugador, Efectos, Ritmo y Sistema. Cada slider tiene un campo numérico
 editable y su rango en el tooltip.
 
 Cada sección (menos Sistema) tiene su barra de presets: **Cargar** aplica un `.tres`
@@ -86,6 +94,7 @@ Ejecutando desde el editor se exporta a `src/shared/resources/presets/<sección>
 | Cielo | `SkyParams` | `cielo/` |
 | Luz | `LightingParams` | `iluminacion/` |
 | Jugador | `PlayerParams` | `jugador/` |
+| Efectos | `ImpactFxParams` | `efectos/` |
 | Ritmo | `RhythmParams` (en `Conductor.params`) | `ritmo/` |
 
 ## Reglas de implementación
