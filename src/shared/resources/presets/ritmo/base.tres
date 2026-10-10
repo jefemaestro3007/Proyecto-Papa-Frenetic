@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="RhythmParams" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/features/rhythm/rhythm_params.gd" id="1_params"]
+
+[resource]
+script = ExtResource("1_params")
