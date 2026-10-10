@@ -12,6 +12,8 @@ const LEVELS: Array[Dictionary] = [
 	{"nivel": 1, "nombre": "1-2 Carullazo", "escena": "res://src/world/levels/azotea/azotea_prueba.tscn"},
 	{"nivel": 2, "nombre": "2-1 Subida", "escena": "res://src/world/levels/oficinas/oficinas_subida.tscn"},
 	{"nivel": 2, "nombre": "2-2 Bajada", "escena": "res://src/world/levels/oficinas/oficinas_bajada.tscn"},
+	{"nivel": 3, "nombre": "3-1 Supermercado", "escena": "res://src/world/levels/bienestar/supermercado.tscn"},
+	{"nivel": 3, "nombre": "3-2 Centro comercial", "escena": "res://src/world/levels/bienestar/centro_comercial.tscn"},
 ]
 
 ## Subnivel en juego (-1 = se abrió una zona directo, sin pasar por el menú).

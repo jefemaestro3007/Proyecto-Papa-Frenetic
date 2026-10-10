@@ -38,7 +38,6 @@ func is_rolling() -> bool:
 func _physics_process(delta: float) -> void:
 	if not is_rolling():
 		_crash += delta
-		rotation = direction * minf(_crash * 6.0, PI * 0.5)
 		modulate.a = clampf(1.0 - (_crash - CRASH_SECONDS * 0.5) / (CRASH_SECONDS * 0.5), 0.0, 1.0)
 		if _crash >= CRASH_SECONDS:
 			queue_free()
@@ -58,8 +57,11 @@ func _process(_delta: float) -> void:
 
 
 func _draw() -> void:
-	# El dibujo tiene el canasto a la izquierda: se espeja al rodar hacia la derecha.
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2(-direction, 1.0))
+	# El dibujo tiene el canasto a la izquierda: se espeja al rodar hacia la derecha. Al chocar vuelca
+	# hacia adelante sobre la rueda delantera.
+	var tip := minf(maxf(_crash, 0.0) * 5.0, 0.9) * direction
+	var pivot := Vector2(direction * HEIGHT * 0.66, 0.0)
+	draw_set_transform_matrix(Transform2D(tip, pivot) * Transform2D(0.0, Vector2(-direction, 1.0), 0.0, -pivot))
 	var ink := style.outline if style != null else FreneticPalette.INK
 	var width := clampf(style.outline_width * 0.75 if style != null else 3.0, 2.0, 4.0)
 	EnemyCostume.cart(self, Vector2.ZERO, HEIGHT, ink, width, 0.0, _spin)

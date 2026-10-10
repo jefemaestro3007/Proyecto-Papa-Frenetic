@@ -61,6 +61,12 @@ var _max_reach := 0.0
 var _hazards: FloorHazards
 ## Beats que le quedan al jugador ardiendo.
 var _burn_left := 0
+## Tracción del piso bajo el jugador según los peligros (compras): la zona la combina con la suya.
+var hazard_traction := 1.0
+## Velocidad con la que el jugador embiste en carrito (0 = a pie). Desde `ram_threshold` atropella
+## papas en vez de recibir el golpe.
+var ram_speed := 0.0
+var ram_threshold := INF
 
 
 func _ready() -> void:
@@ -278,6 +284,9 @@ func _on_contact(enemy: Enemy) -> void:
 		if not (enemy as BalloonEnemy).is_struck():
 			(enemy as BalloonEnemy).detonate()
 		return
+	if ram_speed >= ram_threshold:
+		_ram(enemy)
+		return
 	if enemy is GuardEnemy:
 		_guard_contact(enemy as GuardEnemy)
 		return
@@ -347,10 +356,10 @@ func _on_beat(_index: int) -> void:
 ## Piso bajo los pies: las compras resbalan y el fuego enciende al jugador.
 func _update_floor() -> void:
 	if not is_instance_valid(_hazards) or _hazards.get_parent() != world:
-		player.traction = 1.0
+		hazard_traction = 1.0
 		return
 	var feet := player.global_position
-	player.traction = _hazards.traction_at(feet, params.spill_traction) if player.is_on_floor() else 1.0
+	hazard_traction = _hazards.traction_at(feet, params.spill_traction) if player.is_on_floor() else 1.0
 	if active and not player.scripted and _burn_left <= 0 and _hazards.on_fire(feet):
 		_ignite()
 		hazard_hurt.emit(params.burn_heat, "¡QUEMA!", player.global_position)
@@ -401,6 +410,16 @@ func _explode(balloon: BalloonEnemy) -> void:
 		player.hurt(at.x, Vector2(params.hurt_knockback_x, params.hurt_knockback_y) * 1.2, params.hurt_invulnerable)
 		tracker.break_combo(&"hit")
 		hazard_hurt.emit(params.contact_heat * params.balloon_blast_scale, "¡BOOM!", player.global_position)
+
+
+## Atropello en carrito: la papa pierde una vida y el jugador sigue (un respiro corto para no
+## volver a chocarla en el frame siguiente).
+func _ram(enemy: Enemy) -> void:
+	var direction := signf(enemy.global_position.x - player.global_position.x)
+	var defeated := enemy.receive_hit(direction, true)
+	hit_landed.emit(enemy, ConductorClock.Judgment.GOOD, defeated)
+	player.graze(GRAZE_INVULNERABLE * 2.0)
+	player.velocity.x *= 0.75
 
 
 ## El guardia te alcanza: te empuja hacia la papa más cercana (con un respiro tan corto que esa

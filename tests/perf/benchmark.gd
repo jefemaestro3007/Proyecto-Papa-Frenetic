@@ -9,6 +9,8 @@ extends Node
 const SCENES := {
 	"azotea": "res://src/world/levels/azotea/azotea.tscn",
 	"oficinas": "res://src/world/levels/oficinas/oficinas.tscn",
+	"supermercado": "res://src/world/levels/bienestar/supermercado.tscn",
+	"centro_comercial": "res://src/world/levels/bienestar/centro_comercial.tscn",
 	"menu": "res://src/ui/menus/main_menu.tscn",
 }
 const WARMUP := 120

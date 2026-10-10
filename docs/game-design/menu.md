@@ -77,17 +77,16 @@ Abrir una zona directo (desde el editor o la línea de comandos) sigue funcionan
 el menú de debug abierto. `tests/test_scenes/campaign.tscn` verifica la lista, el largo, los pisos y
 el sentido, la neblina, el estilo, los enemigos, la música y el tutorial de cada subnivel.
 
-## Progreso y nivel 3
+## Progreso
 
 `Game.unlocked_level` es el nivel más alto al que se llegó; se guarda en `user://progreso.cfg`.
 Entrar a un subnivel (desde el menú o con NEXT LEVEL) desbloquea su nivel. LEVEL SELECT usa el
 diseño `seleccion_nivel` (solo nivel 1), `seleccion_nivel_2` o `seleccion_nivel_3` (PSD en
 `assets_src/ui/menu/`) y pone ENTER solo en los niveles desbloqueados que tienen escena.
 
-Para conectar el nivel 3 basta con agregar sus subniveles a `Game.LEVELS` con `"nivel": 3`: el
-botón ENTER de la tercera tarjeta (`MainMenu.LEVEL_ENTER_BUTTONS`) y el diseño con las tres
-tarjetas ya están listos. Al ganar 2-2, NEXT LEVEL pasará solo a 3-1 y lo desbloqueará. Para
-empezar de cero, borrar `progreso.cfg` de la carpeta de datos del juego (en Windows,
+El nivel 3 (Bienestar U) son 3-1 Supermercado y 3-2 Centro comercial (ver
+[zonas/bienestar.md](zonas/bienestar.md)): la tercera tarjeta entra por 3-1 y, al ganar 2-2, NEXT
+LEVEL pasa a 3-1 y lo desbloquea. 3-2 es el último subnivel. Para empezar de cero, borrar `progreso.cfg` de la carpeta de datos del juego (en Windows,
 `%APPDATA%Godotpp_userdata<proyecto>`).
 
 ## Configuración (SETTINGS)

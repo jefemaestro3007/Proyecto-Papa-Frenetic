@@ -1,5 +1,5 @@
 extends Node
-## Campaña: niveles 1 y 2 con sus subniveles (lista de Game, escenas, largo, pisos y sentido,
+## Campaña: niveles 1, 2 y 3 con sus subniveles (lista de Game, escenas, largo, pisos y sentido,
 ## pausa con Esc, progreso que desbloquea niveles en LEVEL SELECT,
 ## neblina, estilo, enemigos, música, diálogos del tutorial en 1-1 y 2-1, y que YOU WIN no se cierre solo).
 ## Corre como escena (necesita los autoloads). Ejecutar:
@@ -7,6 +7,7 @@ extends Node
 
 const MUSIC_LEVEL_ONE := "res://src/shared/resources/music/nivel_uno.tres"
 const MUSIC_LEVEL_TWO := "res://src/shared/resources/music/industrial.tres"
+const MUSIC_LEVEL_THREE := "res://src/shared/resources/music/centro_comercial.tres"
 const AZOTEA_ONE := [&"normal", &"flyer", &"thrower", &"charger"]
 const OFICINAS_TWO := [&"normal", &"tank", &"charger", &"thrower"]
 
@@ -22,6 +23,8 @@ func _ready() -> void:
 	await _test_rooftop_trial(tutorial_end)
 	await _test_tower(2, true)
 	await _test_tower(3, false)
+	await _test_store(4, false)
+	await _test_store(5, true)
 	await _test_win_stays()
 	await _test_pause()
 	await _test_progress()
@@ -31,15 +34,18 @@ func _ready() -> void:
 
 
 func _test_level_list() -> void:
-	_check(Game.LEVELS.size() == 4, "4 subniveles")
-	_check(Game.level_count() == 2, "2 niveles en el menú")
-	_check(Game.first_sublevel(1) == 0 and Game.first_sublevel(2) == 2, "cada tarjeta entra por su primer subnivel")
+	_check(Game.LEVELS.size() == 6, "6 subniveles")
+	_check(Game.level_count() == 3, "3 niveles en el menú")
+	_check(Game.first_sublevel(1) == 0 and Game.first_sublevel(2) == 2 and Game.first_sublevel(3) == 4,
+			"cada tarjeta entra por su primer subnivel")
 	for i in Game.LEVELS.size():
 		_check(ResourceLoader.exists(Game.LEVELS[i]["escena"]), "existe la escena de %s" % Game.LEVELS[i]["nombre"])
 	Game.level_index = 0
 	_check(Game.has_next_level(), "después de 1-1 viene 1-2")
 	Game.level_index = 3
-	_check(not Game.has_next_level(), "2-2 es el último")
+	_check(Game.has_next_level(), "después de 2-2 viene 3-1")
+	Game.level_index = 5
+	_check(not Game.has_next_level(), "3-2 es el último")
 
 
 ## 1-1: la protagonista explica lo básico al empezar (fondo oscuro, juego en pausa) y el combate
@@ -126,6 +132,21 @@ func _test_tower(index: int, up: bool) -> void:
 	_close(level)
 
 
+## 3-1 supermercado y 3-2 centro comercial: canción del nivel tres y solo papas vestidas.
+func _test_store(index: int, mall: bool) -> void:
+	var level := await _open(index)
+	var data: BienestarMapData = level.get("_data")
+	var name: String = Game.LEVELS[index]["nombre"]
+	_check(data.mall == mall, "%s es %s" % [name, "centro comercial" if mall else "supermercado"])
+	if mall:
+		_check(data.floors.size() >= 3 and not data.escalators.is_empty(), "%s tiene pisos y escaleras mecánicas" % name)
+	_check(_track(level) == MUSIC_LEVEL_THREE, "%s con la canción del nivel tres" % name)
+	var combat: CombatController = level.get("_combat")
+	_check(not combat.enemies.is_empty() and combat.enemies.all(func(e: Enemy) -> bool: return e.costume != &""),
+			"%s solo con papas vestidas" % name)
+	_close(level)
+
+
 ## En campaña, YOU WIN se queda en pantalla (antes Oficinas pasaba sola a otra seed a los 2.5 s).
 func _test_win_stays() -> void:
 	var level := await _open(2)
@@ -158,7 +179,7 @@ func _test_pause() -> void:
 	_close(level)
 
 
-## Llegar a un nivel lo desbloquea en LEVEL SELECT (y se guarda); el 3 espera su escena.
+## Llegar a un nivel lo desbloquea en LEVEL SELECT (y se guarda).
 func _test_progress() -> void:
 	var real_path := Game.progress_path
 	Game.progress_path = "user://test_progreso.cfg"
@@ -170,8 +191,10 @@ func _test_progress() -> void:
 	Game.load_progress()
 	_check(Game.unlocked_level == 2 and Game.can_play(2), "llegar a los edificios desbloquea el nivel 2 y se guarda")
 	_check(_menu_buttons() == 2, "LEVEL SELECT 2 con dos ENTER")
-	Game.unlock(3)
-	_check(not Game.can_play(3), "el nivel 3 no se puede jugar hasta que tenga escena")
+	Game.unlock(Game.LEVELS[Game.first_sublevel(3)]["nivel"])
+	Game.load_progress()
+	_check(Game.unlocked_level == 3 and Game.can_play(3), "llegar al supermercado desbloquea el nivel 3")
+	_check(_menu_buttons() == 3, "LEVEL SELECT 3 con tres ENTER")
 	DirAccess.remove_absolute(Game.progress_path)
 	Game.progress_path = real_path
 	Game.load_progress()

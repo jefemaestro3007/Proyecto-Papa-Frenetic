@@ -116,6 +116,11 @@ del tipo recién presentado). Todo es determinista por seed.
   máximo, nunca en el inicio, la salida, escaleras, ascensores ni huecos; el avance es la
   distancia en el grafo desde el inicio.
 
+- **Bienestar U** (nivel 3): solo papas vestidas, por los carriles de cada piso. Supermercado:
+  cliente → reponedor → promotora → globos → guardia; centro comercial: cliente → globos →
+  guardia → promotora → reponedor. En carrito, desde cierta velocidad, el jugador las atropella
+  (pierden una vida y él no recibe daño). Ver [zonas/bienestar.md](zonas/bienestar.md).
+
 "Cantidad de enemigos" (`enemy_density`) controla cuántas hay.
 
 ### Papas vestidas (Bienestar U)
