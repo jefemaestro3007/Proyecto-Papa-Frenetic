@@ -7,6 +7,13 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed
+
+- Recompensas: golpear papas es la fuente principal (sube el combo, enfría −8/−4 y da puntos
+  con multiplicador). Moverse a tiempo solo mantiene el combo, da 10/5 puntos y enfría poco con
+  tope (75 % del calor pasivo): solo moviéndose no se sobrevive. Saltar o girar fuera de ritmo
+  calienta y rompe el combo; la caída forzada fallada suma +20.
+
 ### Fixed
 
 - Ventanas del skyline que quedaban flotando sobre edificios derrumbados.
@@ -19,7 +26,7 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - Música real en las zonas: `MusicTrack` (canción, BPM y primer beat medidos del audio) y el
   `Conductor` sigue la posición de reproducción para que los beats caigan sobre la música.
   Azotea: nivel uno (177 BPM); Oficinas: industrial (175 BPM). Controles en la pestaña Ritmo.
-- Test `test_music`.
+- Tests `test_music` y `test_rhythm_rewards`.
 - Papa caliente (`HeatMeter`, `HeatHud`): calor que sube con el tiempo y al fallar el ritmo,
   mecha de 10 s que no se recarga, explosión y game over; manómetro, aviso de
   sobrecalentamiento con cuenta atrás, viñeta roja y temblor de tensión.

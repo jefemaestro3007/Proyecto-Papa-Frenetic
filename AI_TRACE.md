@@ -244,3 +244,35 @@ Files: `src/core/autoloads/conductor.gd`, `src/features/rhythm/{music_track,rhyt
 Change: Nivel uno 177 BPM (Azotea), Industrial 175 BPM (Oficinas), Centro comercial 140 BPM (sin zona); las tres empiezan en el beat. El reloj corrige suave hacia el audio y nunca retrocede; en headless no suena pero usa el tempo de la canción.
 Commit: `8852d8a` (merge de `origin/develop`: `62fa49e`)
 Notes: Sincronía medida con ventana real: el reloj va a menos de un frame de la música y el bucle no repite beats. El BPM de `MenuSongStart.wav` (≈191) no está confirmado. Los `.wav` de `develop` se subieron sin Git LFS aunque `.gitattributes` lo pide; no se tocaron.
+
+---
+
+Rama `feature/rhythm-rewards` (nace de `feature/real-music`). Misma sesión de trabajo.
+
+### Recompensa principal por golpes y secundaria por movimiento
+
+Timestamp: N/A (commit de Git: 2026-10-10T08:33:39-05:00)
+Participant: N/A (autor de Git: 14mn0t4b0t)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "vamos a arreglar el tema de como se recompensa el movimiento, la fuente principal es gopeando a los enemigos, lo de movimientos era secundario, no se debe poder sobrevivir apunta de movimientos, pero si debe aumentar el combo (mantenerlo ...)"; "Eso es otra rama". Respuestas del usuario a las preguntas: moverse a tiempo solo mantiene el combo; fuera de ritmo calienta y rompe el combo, y si tiene un ataque (caída forzada) castiga más; moverse a tiempo enfría muy poco, sin llegar a compensar el calentamiento; pocos puntos sin multiplicador.
+Task: Separar golpes y movimientos en `RhythmTracker`, tope al enfriamiento por movimiento en `HeatMeter`, castigo fuerte a la caída forzada fallada y stomp sin papa como movimiento.
+Type: CODE (AI) / TESTING / DOCS
+Files: `src/features/rhythm/rhythm_tracker.gd`, `src/features/combat/{heat_meter,combat_params,combat_controller}.gd`, `src/world/levels/{zone_level,oficinas/oficinas}.gd`, `tests/unit/test_heat_meter.gd`, `tests/integration/test_rhythm_rewards.gd`, `tests/test_scenes/rhythm_rewards.tscn`, `docs/game-design/combate.md`, `docs/development/testing.md`
+Change: Golpes: +1 combo, −8/−4 de calor, 100/50 × multiplicador. Movimientos a tiempo: mantienen el combo, 10/5 puntos, −1/−0,5 de calor con tope del 75 % del calor pasivo. Saltar o girar fuera de ritmo: +2,5 y rompe; caída forzada fuera de ritmo: +20 y rompe.
+Commit: `a412690`
+Notes: Arregla un hueco: la caída forzada a tiempo sin papas contaba como golpe y enfriaba −8. Tests: 7 unitarios, `test_combat_match`, `test_rhythm_rewards` y `test_oficinas_traversal` en verde.
+
+### Preparar el merge a develop
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (autor de Git: 14mn0t4b0t)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "Preparemos para mergear con dev todo lo que hemos hecho".
+Task: Completar AI_TRACE y CHANGELOG, simular el merge de las tres ramas sobre `origin/develop` y correr todos los tests.
+Type: PROCESS / DOCS / TESTING
+Files: `AI_TRACE.md`, `CHANGELOG.md`
+Change: Registro de las ramas `feature/real-music` y `feature/rhythm-rewards`.
+Commit: PENDING (se commitea junto con este archivo)
+Notes: Sin push, PR ni merge hasta que el usuario lo autorice.
