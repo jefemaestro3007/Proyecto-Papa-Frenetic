@@ -48,10 +48,13 @@ func _physics_process(delta: float) -> void:
 	elif distance > CLOSE_DISTANCE or not same_floor:
 		_wants_open = false
 	var opening := _wants_open and (_open_at_beat < 0 or Conductor.beat_index() >= _open_at_beat)
+	var previous := _open
 	_open = move_toward(_open, 1.0 if opening else 0.0, delta * 8.0)
 	# Pasable en cuanto empieza a abrirse; vuelve a ser sólida solo cerrada del todo.
 	_collision.disabled = _open > 0.2
-	queue_redraw()
+	# Solo se redibuja mientras se mueve (la zona la redibuja también al cambiar el estilo).
+	if _open != previous:
+		queue_redraw()
 
 
 func _draw() -> void:

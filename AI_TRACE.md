@@ -596,3 +596,21 @@ Files: `AI_TRACE.md`, `CHANGELOG.md`
 Change: Commit `707cc90` con los niveles, la pausa y el progreso. Merge de `origin/develop` (`6b9d691`): `zone_level.gd`, `testing.md` y el resto se combinaron solos. Los conflictos eran solo de texto: en CHANGELOG quedan las dos listas en `Added`, y en AI_TRACE el archivo de `develop` queda intacto con las entradas de `feature/levels` al final. Los `.wav.import` de los efectos, que Godot había generado sin seguimiento en esta copia, se borraron antes del merge para que entraran los de `develop`.
 Commit: PENDING (se commitea junto con esta entrada, en el commit de merge)
 Notes: Los efectos suenan desde un `SfxPlayer` hijo del nivel, así que también quedan en pausa con Esc. Sin push hasta que el usuario lo autorice.
+
+---
+
+Rama `feature/optimizacion` (nace de `develop`). Misma sesión de trabajo del 2026-10-10.
+
+### Rendimiento independiente del tamaño del mapa
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (autor de Git: 14mn0t4b0t)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "Perfecto, vas a crear otra rama desde dev que sea de optimizacion del juego, vamos a revisar todos los problemas de optimizacion y todo lo que se puede mejorar". Luego: "la idea es que el rendimiento sea el mismo independiente del tamaño del mapa".
+Task: Medir el rendimiento de las zonas y quitar todo lo que escala con el tamaño del mapa.
+Type: CODE (AI) / PERFORMANCE / DOCS / TESTING
+Files: `src/world/environment/{chunk_canvas.gd,chunked_view.gd,spatial_index.gd}` (nuevos), `src/world/environment/{styled_canvas.gd,rooftop_view.gd,interior_view.gd,live_details_view.gd,interior_live_view.gd,flies_view.gd}`, `src/world/levels/azotea/azotea.gd`, `src/world/levels/oficinas/{oficinas.gd,oficinas_bot.gd}`, `src/world/generation/oficinas/oficinas_layout.gd`, `src/world/interactables/{elevator.gd,wall_door.gd}`, `src/features/combat/combat_controller.gd`, `tests/perf/benchmark.gd`, `tests/test_scenes/benchmark.tscn` (nuevos), `docs/architecture/overview.md`, `docs/development/testing.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: Benchmark con ventana (tiempo por frame, draw calls, nodos). Diagnóstico: `RooftopView` e `InteriorView` dibujaban el mapa entero en un solo canvas item (20 000 draw calls con 64 azoteas); las vistas animadas, los ascensores (todas sus paradas) y las puertas se redibujaban enteras cada frame; todas las papas procesaban aunque estuvieran lejos; la guía sonora de Oficinas buscaba el camino a la salida en cada beat (15 ms en un edificio 24×16) y el bot en cada frame. Arreglos: `ChunkedView` (grilla de trozos × capas, Godot descarta los que no se ven), `SpatialIndex` para las vistas animadas y para dormir/despertar papas en `CombatController`, ascensores y puertas que se redibujan solo al cambiar, plan de la guía guardado (solo replanea al salirse del camino), planes del bot memorizados, BFS con cursor en lugar de `pop_front()`. Resultado (frame promedio, sin vsync): Azotea 6 azoteas 5,7 → 4,3 ms, 64 azoteas 33,5 → 4,7 ms; Oficinas 4×4 3,9 → 3,5 ms, 24×16 quieto 54,8 → 3,9 ms, 24×16 con bot 46,6 → 6,5 ms (p99 197 → 12 ms).
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Render comparado con `develop` (mismos frames de Azotea y Oficinas): se dibuja lo mismo, sin cortes en los bordes de los trozos. Importación sin errores; 7 tests unitarios, `test_combat_match`, `test_rhythm_rewards`, `test_sfx` y `test_oficinas_traversal` (48/48) en verde. Queda pendiente: `OficinasLayout.plan()` cuesta ~15 ms en edificios grandes (ya no se llama por frame); la generación de Oficinas 24×16 tarda ~420 ms al cargar; el menú de debug crea ~975 controles ocultos al abrir cada zona. Sin push hasta que el usuario lo autorice.

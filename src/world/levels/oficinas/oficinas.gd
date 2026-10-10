@@ -46,9 +46,12 @@ var auto_next := true
 var goals_reached := 0
 ## Llaves que se tienen (máscara de bits).
 var keys_held := 0
+## Último plan de la guía sonora y largos de plan por puerta (ver `_guide_plan_from`).
+var _guide_plan := []
+var _door_plan_lengths := {}
 
 var _data: OficinasMapData
-var _view: InteriorView
+var _view: ChunkedView
 var _live: InteriorLiveView
 var _graph: OficinasGraphView
 var _mask: VisionMask
@@ -110,8 +113,11 @@ func _zone_generate() -> void:
 	_add_skyline_layer(_data.far, FAR_SCROLL)
 	_add_skyline_layer(_data.near, NEAR_SCROLL)
 
-	_view = InteriorView.new()
-	_view.setup(_data, params.seed, style)
+	_view = ChunkedView.new()
+	_view.build(func() -> InteriorView:
+		var view := InteriorView.new()
+		view.setup(_data, params.seed, style)
+		return view, _data.bounds, InteriorView.LAYERS)
 	_view.material = _make_grunge()
 	_generated.add_child(_view)
 	for area in _data.areas:
@@ -138,6 +144,8 @@ func _zone_generate() -> void:
 		door.has_key = func(key_id: int) -> bool: return keys_held & (1 << key_id) != 0
 		_generated.add_child(door)
 	keys_held = 0
+	_guide_plan = []
+	_door_plan_lengths.clear()
 	for spec in _data.keys:
 		var key := KeyPickup.new()
 		key.key_id = spec.id
@@ -197,8 +205,10 @@ func _spawn_enemies() -> void:
 func _graph_distances(origin: Vector2i) -> Dictionary:
 	var distance := {origin: 0}
 	var queue: Array[Vector2i] = [origin]
-	while not queue.is_empty():
-		var node: Vector2i = queue.pop_front()
+	var head := 0
+	while head < queue.size():
+		var node: Vector2i = queue[head]
+		head += 1
 		for pair in _data.layout.successors(node):
 			if not distance.has(pair[0]):
 				distance[pair[0]] = distance[node] + 1
@@ -247,9 +257,9 @@ func _ensure_guide() -> void:
 func _zone_style_changed() -> void:
 	if _view == null:
 		return
-	_view.queue_redraw()
+	_view.redraw()
 	for child in _generated.get_children():
-		if child is AreaView:
+		if child is AreaView or child is WallDoorNode or child is Elevator:
 			child.queue_redraw()
 	var material := _view.material as ShaderMaterial
 	material.set_shader_parameter("dirt", style.grime)
@@ -515,7 +525,7 @@ func guide_point() -> Vector2:
 		var best_length := INF
 		for door in doors:
 			var spec := _data.depth_doors[door.depth_door]
-			var length := _data.layout.plan(Vector2i(spec.floor, spec.module), keys_held).size()
+			var length := _door_plan_length(Vector2i(spec.floor, spec.module))
 			if length > 0 and length < best_length:
 				best = door
 				best_length = length
@@ -523,12 +533,32 @@ func guide_point() -> Vector2:
 	var node := _data.node_at(_player.position)
 	if node.x < 0:
 		return Vector2.INF
-	var plan := _data.layout.plan(node, keys_held)
+	var plan := _guide_plan_from(node)
 	for i in range(1, plan.size()):
 		if plan[i][2] != OficinasLayout.Link.WALK or i == plan.size() - 1:
 			var step: Vector2i = plan[i - 1][0]
 			return Vector2(_data.module_center(step.y), _data.surface_y(step.x) - 60.0)
 	return _data.goal.get_center()
+
+
+## Largo del plan a la salida saliendo por la puerta de `node` (guardado por puerta y llaves).
+func _door_plan_length(node: Vector2i) -> int:
+	var key := Vector3i(node.x, node.y, keys_held)
+	if not _door_plan_lengths.has(key):
+		_door_plan_lengths[key] = _data.layout.plan(node, keys_held).size()
+	return _door_plan_lengths[key]
+
+
+## Plan hacia la salida desde `node`. Mientras el jugador siga sobre el último plan (mismo lugar y
+## mismas llaves) se usa el resto de ese plan: buscar un camino nuevo en cada beat costaba
+## milisegundos en los edificios grandes. Solo se vuelve a planear al salirse del camino.
+func _guide_plan_from(node: Vector2i) -> Array:
+	var mask := keys_held | _data.layout.keys_at(node)
+	for i in _guide_plan.size():
+		if _guide_plan[i][0] == node and _guide_plan[i][1] == mask:
+			return _guide_plan.slice(i)
+	_guide_plan = _data.layout.plan(node, keys_held)
+	return _guide_plan
 
 
 # --- Menú ----------------------------------------------------------------------------

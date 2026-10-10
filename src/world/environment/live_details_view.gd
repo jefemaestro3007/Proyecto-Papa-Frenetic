@@ -3,6 +3,7 @@ class_name LiveDetailsView
 extends Node2D
 ## Detalles animados de la azotea: balizas que laten con el beat, fuego en los barriles
 ## y moscas (FliesView). Separado de RooftopView para que lo estático no se redibuje cada frame.
+## Solo dibuja lo que está cerca de la pantalla (SpatialIndex).
 
 const FIRE_OUTER := Color("ff5a1a")
 const FIRE_INNER := Color("ffd400")
@@ -11,12 +12,16 @@ var _style: ArtStyle
 var _beacons := PackedVector2Array()
 var _fires: Array[Rect2] = []
 var _flies: FliesView
+var _beacon_index := SpatialIndex.new()
+var _fire_index := SpatialIndex.new()
 
 
 func setup(data: AzoteaMapData, style: ArtStyle) -> void:
 	_style = style
 	_beacons.clear()
 	_fires.clear()
+	_beacon_index.clear()
+	_fire_index.clear()
 	if _flies == null:
 		_flies = FliesView.new()
 		add_child(_flies)
@@ -32,6 +37,10 @@ func setup(data: AzoteaMapData, style: ArtStyle) -> void:
 				_fires.append(prop.rect)
 				_flies.add_anchor(prop.rect.get_center() - Vector2(0.0, 50.0), prop.variant)
 	_flies.add_marks(data.marks)
+	for i in _beacons.size():
+		_beacon_index.add(i, _beacons[i])
+	for i in _fires.size():
+		_fire_index.add(i, _fires[i].position)
 	queue_redraw()
 
 
@@ -46,12 +55,14 @@ func _draw() -> void:
 	var time := Time.get_ticks_msec() / 1000.0
 	var pulse := 1.0 if Engine.is_editor_hint() else Conductor.pulse(5.0)
 	var beacon := _style.blood.lightened(0.35)
-	for point in _beacons:
+	var screen := SpatialIndex.screen_rect(self)
+	for i in _beacon_index.query(screen):
+		var point := _beacons[i]
 		draw_circle(point, 14.0 * pulse, Color(beacon, 0.35 * pulse))
 		draw_circle(point, 5.0, beacon.lerp(Color.WHITE, pulse * 0.6))
 	if _style.fires > 0.0:
-		for barrel in _fires:
-			_draw_fire(barrel, time, pulse)
+		for i in _fire_index.query(screen):
+			_draw_fire(_fires[i], time, pulse)
 
 
 ## Llamas: lenguas que oscilan, más altas en el beat, con resplandor.

@@ -13,6 +13,8 @@ extends Node
 ##   la golpea (si aguanta, el dash se corta y rebota); fuera de tiempo choca y lo empuja.
 ## - Contacto con un enemigo (salvo invulnerable): el jugador recibe el golpe y pierde el combo.
 ## - Papas fritas de la tiradora: suman calor y dan un respiro breve, sin romper el combo.
+## Las papas lejos de la pantalla duermen (sin proceso ni física), así el costo de la partida
+## depende de lo que se ve y no de cuántas papas tiene el mapa.
 
 signal hit_landed(enemy: Enemy, judgment: int, defeated: bool)
 signal player_hurt(enemy: Enemy)
@@ -24,6 +26,10 @@ signal projectile_hit(at: Vector2)
 ## Margen hacia atrás que todavía cuenta como "adelante".
 const BEHIND_MARGIN := 12.0
 const GRAZE_INVULNERABLE := 0.15
+## Distancia fuera de la pantalla a la que las papas despiertan (llegan a moverse antes de verse).
+const WAKE_MARGIN := 900.0
+## Cada cuántos frames de física se revisa qué papas despertar.
+const WAKE_INTERVAL := 6
 
 var params := CombatParams.new()
 var player: PlayerPrototype
@@ -37,10 +43,25 @@ var enemies: Array[Enemy] = []
 
 var _dash_judgment := ConductorClock.Judgment.MISS
 var _dash_hit: Array[Enemy] = []
+## Papas indexadas por el centro de su carril (se mueven dentro de él) y las despiertas ahora.
+var _sleep_index := SpatialIndex.new()
+var _indexed: Array[Enemy] = []
+var _awake: Array[Enemy] = []
+## Mitad del carril más ancho: cuánto puede alejarse una papa del ancla del índice.
+var _max_reach := 0.0
 
 
 func register_enemy(enemy: Enemy) -> void:
 	enemies.append(enemy)
+	var anchor := Vector2((enemy.lane_left + enemy.lane_right) * 0.5, enemy.position.y)
+	_max_reach = maxf(_max_reach, (enemy.lane_right - enemy.lane_left) * 0.5)
+	_sleep_index.add(_indexed.size(), anchor)
+	_indexed.append(enemy)
+	# Nace despierta; la próxima revisión la duerme si está lejos.
+	_awake.append(enemy)
+	# Al morir vuelve a procesar (termina su animación aunque salga de la pantalla).
+	enemy.defeated.connect(func(defeated_enemy: Enemy) -> void:
+		defeated_enemy.process_mode = Node.PROCESS_MODE_INHERIT)
 	enemy.reached_player.connect(_on_contact)
 	enemy.defeated.connect(func(defeated_enemy: Enemy) -> void: enemies.erase(defeated_enemy))
 	if enemy is ThrowerEnemy:
@@ -50,6 +71,10 @@ func register_enemy(enemy: Enemy) -> void:
 func clear() -> void:
 	enemies.clear()
 	_dash_hit.clear()
+	_sleep_index.clear()
+	_indexed.clear()
+	_awake.clear()
+	_max_reach = 0.0
 
 
 func bind_player(new_player: PlayerPrototype) -> void:
@@ -58,12 +83,31 @@ func bind_player(new_player: PlayerPrototype) -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	if world != null and Engine.get_physics_frames() % WAKE_INTERVAL == 0:
+		update_awake()
 	if player == null or player.scripted or not active or get_viewport().gui_get_focus_owner() is LineEdit:
 		return
 	if Input.is_action_just_pressed("attack"):
 		attack()
 	if player.is_dashing():
 		_check_dash_contacts()
+
+
+## Despierta las papas cerca de la pantalla y duerme a las que se alejaron. Solo recorre las
+## celdas del índice cercanas a la pantalla, no todas las papas.
+func update_awake() -> void:
+	var screen := SpatialIndex.screen_rect(world, WAKE_MARGIN)
+	var now: Array[Enemy] = []
+	for i in _sleep_index.query(screen.grow(_max_reach)):
+		var enemy := _indexed[i]
+		if is_instance_valid(enemy) and enemy.active and screen.has_point(enemy.global_position):
+			now.append(enemy)
+	for enemy in _awake:
+		if is_instance_valid(enemy) and enemy.active and not now.has(enemy):
+			enemy.process_mode = Node.PROCESS_MODE_DISABLED
+	for enemy in now:
+		enemy.process_mode = Node.PROCESS_MODE_INHERIT
+	_awake = now
 
 
 func has_target() -> bool:
