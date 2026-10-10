@@ -99,6 +99,11 @@ func _next_case() -> void:
 	_elapsed = 0.0
 	_level = load(SCENE).instantiate()
 	_level.params = _cases[_index]
+	# El bot solo recorre: sin calor (la papa explotaría) ni enemigos.
+	var combat := CombatParams.new()
+	combat.heat_enabled = false
+	combat.enemy_density = 0.0
+	_level.combat = combat
 	_level.autorun = true
 	_level.auto_next = false
 	_level.set("_hide_menu", true)

@@ -4,7 +4,8 @@ extends Node2D
 ## Base de toda zona jugable: cielo, iluminación, jugador, ritmo, efectos de impacto,
 ## modos gráficos (ArtStyle), post-proceso, HUD y menú de debug.
 ## Cada zona implementa solo lo suyo sobrescribiendo los métodos `_zone_*`.
-## En juego: ←/→ mover, Espacio saltar, ↓ en el aire caída forzada, Tab/F1 menú de debug,
+## En juego: A/D mover, Espacio saltar, J/clic atacar, Shift dash, S en el aire caída forzada (stomp),
+## Tab/F1 menú de debug, Enter reintentar al terminar la partida,
 ## F2 cambia de estilo (Default / Pixel / Isaac), R/N/P seeds.
 
 const SKY_SHADER := preload("res://src/world/environment/shaders/sky.gdshader")
@@ -18,12 +19,23 @@ const FAR_SCROLL := Vector2(0.15, 0.08)
 const NEAR_SCROLL := Vector2(0.4, 0.22)
 ## Aterrizajes más suaves que esto (saltitos) ni siquiera se juzgan.
 const LAND_MIN_SPEED := 400.0
+## Nombre de cada acción en los textos de juicio.
+const ACTION_LABELS := {&"air_attack": "AÉREO ", &"slam": "STOMP ", &"dash": "DASH "}
+## Acciones de combate: pesan 1 en el calor y sus fallos siempre se anuncian.
+const COMBAT_ACTIONS: Array[StringName] = [&"attack", &"air_attack", &"slam", &"dash"]
+## Acciones de movimiento: pesan `movement_heat_scale` en el calor.
+const MOVE_ACTIONS: Array[StringName] = [&"jump", &"turn"]
+
+## Estado de la partida (del prototipo, adaptado): jugando, llegó a la salida o explotó la papa.
+enum Match { PLAYING, VICTORY, GAME_OVER }
 
 @export var sky: SkyParams
 @export var lighting: LightingParams
 @export var player_params: PlayerParams
 @export var impact_fx: ImpactFxParams
 @export var style: ArtStyle
+## Combate y enemigos traídos del prototipo (pestaña "Combate").
+@export var combat: CombatParams
 
 @export_tool_button("Regenerar", "Reload") var regenerate_button := regenerate
 
@@ -43,7 +55,14 @@ var _sky_material: ShaderMaterial
 var _post: ShaderMaterial
 var _world_light: CanvasModulate
 var _tracker: RhythmTracker
+var _combat: CombatController
 var _hud: RhythmHud
+var _heat_hud: HeatHud
+var _heat: HeatMeter
+var _feel: GameFeel
+var _match := Match.PLAYING
+## Segundos de juego desde el inicio (o el último reintento).
+var _elapsed := 0.0
 var _menu: DebugMenu
 var _seed_text: Label
 var _stats_text: Label
@@ -57,6 +76,8 @@ var _skyline_views: Array[SkylineView] = []
 var _grunge_materials: Array[ShaderMaterial] = []
 var _sections := {}
 var _zoom_override := 0.0
+## Falso mientras _ready arma la zona: los cambios de parámetros no regeneran a mitad de camino.
+var _initialized := false
 
 
 # --- Ganchos de cada zona ------------------------------------------------------------
@@ -113,8 +134,14 @@ func _zone_autorun(_delta: float) -> void:
 	pass
 
 
+## Rectángulos sólidos con los que chocan las papas voladoras.
+func _zone_solids() -> Array[Rect2]:
+	return []
+
+
 func _zone_help_text() -> String:
-	return "←/→ mover · Espacio saltar · ↓ en el aire caída forzada · Tab menú · F2 estilo · R/N/P seed"
+	return "A/D mover · Espacio saltar · J/clic atacar · Shift dash · S en el aire caída forzada · Tab menú · " \
+			+ "F2 estilo · R/N/P seed"
 
 
 # --- Ciclo de vida -------------------------------------------------------------------
@@ -131,10 +158,13 @@ func _ready() -> void:
 		impact_fx = _load_preset("efectos", "base", ImpactFxParams.new())
 	if style == null:
 		style = _load_preset("estilo", "default", ArtStyle.new())
+	if combat == null:
+		combat = _load_preset("combate", "base", CombatParams.new())
 	if not Engine.is_editor_hint():
 		_parse_args()
 		_build_runtime()
 	regenerate()
+	_initialized = true
 
 
 func _parse_args() -> void:
@@ -178,6 +208,10 @@ func regenerate() -> void:
 	move_child(_generated, 0)
 	_grunge_materials.clear()
 	_skyline_views.clear()
+	if _combat != null:
+		_combat.clear()
+		_combat.world = _generated
+		_combat.style = style
 
 	_zone_generate()
 	_apply_skyline_colors()
@@ -185,13 +219,14 @@ func regenerate() -> void:
 	_apply_style_to_world()
 
 	if _player != null:
+		_reset_match()
 		_respawn()
 	if _seed_text != null:
 		_seed_text.text = "Seed actual: %d" % _zone_params().seed
 
 
 func _on_params_changed() -> void:
-	if is_node_ready():
+	if _initialized and is_node_ready():
 		regenerate()
 
 
@@ -298,9 +333,33 @@ func _build_runtime() -> void:
 	_player.landed.connect(_on_player_landed)
 	add_child(_player)
 
+	_combat = CombatController.new()
+	_combat.params = combat
+	_combat.bind_player(_player)
+	_combat.tracker = _tracker
+	_combat.hit_landed.connect(_on_hit_landed)
+	_combat.player_hurt.connect(_on_player_hurt)
+	_combat.player_bounced.connect(_on_player_bounced)
+	_combat.whiffed.connect(_on_whiffed)
+	_combat.projectile_hit.connect(_on_projectile_hit)
+	_player.dash_started.connect(_on_dash_started)
+	add_child(_combat)
+
+	_heat = HeatMeter.new()
+	_heat.params = combat
+	_heat.overheat_started.connect(_on_overheat.bind(true))
+	_heat.overheat_ended.connect(_on_overheat.bind(false))
+	_heat.exploded.connect(_on_exploded)
+	add_child(_heat)
+	_feel = GameFeel.new()
+	_feel.params = combat
+	add_child(_feel)
+	Conductor.beat.connect(_on_beat)
+
 	_camera = Camera2D.new()
 	_camera.position_smoothing_enabled = true
 	_camera.position_smoothing_speed = 6.0
+	_camera.ignore_rotation = false
 	add_child(_camera)
 	camera_zoom = _zoom_override if _zoom_override > 0.0 else _zone_default_zoom()
 
@@ -314,6 +373,8 @@ func _build_runtime() -> void:
 	var ui_layer := CanvasLayer.new()
 	ui_layer.layer = 60
 	add_child(ui_layer)
+	_heat_hud = HeatHud.new()
+	ui_layer.add_child(_heat_hud)
 	_hud = RhythmHud.new()
 	_hud.tracker = _tracker
 	ui_layer.add_child(_hud)
@@ -333,7 +394,7 @@ func _build_debug_menu() -> void:
 	var builders := {
 		"Estilo": _build_style_section, "Mapa": _build_map_section, "Cielo": _build_sky_section,
 		"Luz": _build_lighting_section, "Jugador": _build_player_section, "Efectos": _build_fx_section,
-		"Ritmo": _build_rhythm_section, "Sistema": _build_system_section,
+		"Ritmo": _build_rhythm_section, "Combate": _build_combat_section, "Sistema": _build_system_section,
 	}
 	for title in builders:
 		var section := _menu.add_section(title)
@@ -484,12 +545,21 @@ func _build_player_section(section: DebugSection) -> void:
 	section.add_slider(p, &"jump_buffer", "Buffer de salto (s)", 0.0, 0.3, 0.01)
 	section.add_group("Caídas")
 	section.add_slider(p, &"hard_landing_height", "Altura para atacar (px)", 0, 2000, 10)
-	section.add_group("Caída forzada (↓)")
+	section.add_group("Caída forzada (S en el aire)")
 	section.add_toggle(p, &"fast_fall_enabled", "Activada")
 	section.add_slider(p, &"fast_fall_speed", "Velocidad de caída", 800, 5000, 50)
 	section.add_slider(p, &"slam_points_multiplier", "Puntos si cae a tiempo (×)", 1.0, 5.0, 0.1)
 	section.add_slider(p, &"stumble_time", "Aturdimiento si falla (s)", 0.0, 2.0, 0.05)
 	section.add_slider(p, &"stumble_speed", "Velocidad aturdido (×)", 0.0, 1.0, 0.05)
+	section.add_group("Dash (Shift, solo en el suelo)")
+	section.add_toggle(p, &"dash_enabled", "Activado")
+	section.add_slider(p, &"dash_speed", "Velocidad", 400, 4000, 10)
+	section.add_slider(p, &"dash_duration", "Duración (s)", 0.05, 0.5, 0.01)
+	section.add_slider(p, &"dash_cooldown", "Espera (s)", 0.0, 15.0, 0.1)
+	section.add_group("Rebote (contra papas que aguantan)")
+	section.add_slider(p, &"recoil_x", "Rebote horizontal", 0, 1500, 10)
+	section.add_slider(p, &"recoil_y", "Rebote vertical", 0, 1500, 10)
+	section.add_slider(p, &"recoil_invulnerable", "Invulnerable tras rebotar (s)", 0.0, 2.0, 0.05)
 	section.add_group("Recompensas de ritmo")
 	section.add_slider(p, &"jump_boost_perfect", "Salto PERFECTO (×)", 1.0, 2.0, 0.01)
 	section.add_slider(p, &"jump_boost_good", "Salto BIEN (×)", 1.0, 2.0, 0.01)
@@ -557,6 +627,63 @@ func _build_rhythm_section(section: DebugSection) -> void:
 	section.add_slider(r, &"combo_timeout_beats", "Beats para perder combo", 1, 16, 1)
 
 
+## Todo lo integrado desde el prototipo `feature/gameplay-prototype`, separado del resto.
+func _build_combat_section(section: DebugSection) -> void:
+	section.add_text("Combate, calor y enemigos traídos del prototipo (feature/gameplay-prototype). " \
+			+ "Atacar: J o clic izquierdo · Dash: Shift.")
+	section.add_preset_bar(combat, "combate")
+	section.add_group("Calor (papa caliente)")
+	section.add_toggle(combat, &"heat_enabled", "Calor activado")
+	section.add_toggle(combat, &"game_over_enabled", "Game over al explotar")
+	section.add_slider(combat, &"passive_heating", "Calor pasivo (por segundo)", 0.0, 10.0, 0.1)
+	section.add_slider(combat, &"perfect_cooling", "Enfría PERFECTO", 0.0, 30.0, 0.5)
+	section.add_slider(combat, &"good_cooling", "Enfría BIEN", 0.0, 30.0, 0.5)
+	section.add_slider(combat, &"miss_heating", "Calienta FUERA", 0.0, 40.0, 0.5)
+	section.add_slider(combat, &"movement_heat_scale", "Peso de saltos y giros (×)", 0.0, 1.0, 0.05)
+	section.add_slider(combat, &"whiff_heat", "Tajo al aire fuera de ritmo", 0.0, 20.0, 0.5)
+	section.add_slider(combat, &"contact_heat", "Tocar una papa", 0.0, 40.0, 0.5)
+	section.add_slider(combat, &"projectile_heat", "Papa frita", 0.0, 40.0, 0.5)
+	section.add_slider(combat, &"fall_heat", "Caer al vacío", 0.0, 40.0, 0.5)
+	section.add_slider(combat, &"intensity_threshold", "Tensión desde (calor)", 0.0, 100.0, 1)
+	section.add_slider(combat, &"fuse_seconds", "Mecha (s)", 1.0, 30.0, 0.5)
+	section.add_buttons([
+		["Calor 0", func() -> void: _heat.change(-HeatMeter.MAX_HEAT)],
+		["Calor 90", func() -> void: _heat.change(90.0 - _heat.heat)],
+		["Calor 100", func() -> void: _heat.change(HeatMeter.MAX_HEAT)],
+	])
+	section.add_group("Ataque")
+	section.add_slider(combat, &"ground_reach", "Alcance en el suelo (px)", 40, 400, 5)
+	section.add_slider(combat, &"ground_height", "Alto del alcance (px)", 40, 300, 5)
+	section.add_slider(combat, &"air_radius", "Radio del ataque aéreo (px)", 40, 400, 5)
+	section.add_slider(combat, &"miss_recoil", "Rebote al fallar el ritmo", 0, 1200, 10)
+	section.add_slider(combat, &"stomp_radius", "Radio del stomp (px)", 40, 400, 5)
+	section.add_group("Golpe recibido")
+	section.add_slider(combat, &"hurt_invulnerable", "Invulnerable tras el golpe (s)", 0.0, 3.0, 0.05)
+	section.add_slider(combat, &"hurt_knockback_x", "Retroceso horizontal", 0, 1500, 10)
+	section.add_slider(combat, &"hurt_knockback_y", "Retroceso vertical", 0, 1500, 10)
+	section.add_group("Sensación")
+	section.add_toggle(combat, &"hitstop_enabled", "Hitstop (congela un instante)")
+	section.add_slider(combat, &"hitstop_scale", "Duración del hitstop (×)", 0.0, 3.0, 0.05)
+	section.add_slider(combat, &"zoom_punch_scale", "Zoom de impacto (×)", 0.0, 3.0, 0.05)
+	section.add_slider(combat, &"trauma_scale", "Temblor por golpes (×)", 0.0, 3.0, 0.05)
+	section.add_slider(combat, &"tension_shake_scale", "Temblor por calor (×)", 0.0, 3.0, 0.05)
+	section.add_group("Enemigos (se aplican al regenerar: R/N/P)")
+	section.add_text("Al inicio de cada zona solo hay papas comunes; luego aparece un tipo nuevo por tramo.\n" \
+			+ "Azotea: común → voladora → tiradora → embestidora. Oficinas: común → tanque → embestidora → tiradora.")
+	section.add_slider(combat, &"enemy_density", "Cantidad de enemigos", 0.0, 1.0, 0.01)
+	section.add_slider(combat, &"same_level_tolerance", "Distancia de 'mismo nivel' (px)", 10, 200, 5)
+	section.add_slider(combat, &"potato_speed", "Común: velocidad", 0, 600, 5)
+	section.add_slider(combat, &"potato_health", "Común: vida", 1, 10, 1)
+	section.add_slider(combat, &"tank_speed", "Tanque: velocidad", 0, 600, 5)
+	section.add_slider(combat, &"tank_health", "Tanque: vida", 1, 10, 1)
+	section.add_slider(combat, &"flyer_speed", "Voladora: velocidad", 0, 600, 5)
+	section.add_slider(combat, &"charger_speed", "Embestidora: velocidad de carga", 200, 2500, 10)
+	section.add_slider(combat, &"charger_recover", "Embestidora: aturdida (s)", 0.2, 3.0, 0.05)
+	section.add_slider(combat, &"thrower_bars_between", "Tiradora: compases entre ráfagas", 1, 8, 1)
+	section.add_slider(combat, &"thrower_eighths", "Tiradora: peso corcheas (negra = 1)", 0.0, 3.0, 0.05)
+	section.add_slider(combat, &"thrower_sixteenths", "Tiradora: peso semicorcheas", 0.0, 3.0, 0.05)
+
+
 func _build_system_section(section: DebugSection) -> void:
 	section.add_group("Estado")
 	_stats_text = section.add_text()
@@ -589,7 +716,7 @@ func _respawn() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if Engine.is_editor_hint() or not autorun:
+	if Engine.is_editor_hint() or not autorun or not is_playing():
 		return
 	_zone_autorun(delta)
 
@@ -601,7 +728,9 @@ func _process(delta: float) -> void:
 		return
 	if _player.position.y > _zone_kill_y():
 		_respawn()
+		_fell_into_void()
 	_camera.position = _zone_camera_target()
+	_update_heat(delta)
 
 	var pulse := Conductor.pulse()
 	var heat := _tracker.heat()
@@ -622,12 +751,15 @@ func _process(delta: float) -> void:
 	_post.set_shader_parameter("spotlight_center",
 			_player_screen_position() / get_viewport().get_visible_rect().size)
 	_camera.offset = Vector2(_fx_rng.randf_range(-1.0, 1.0), _fx_rng.randf_range(-1.0, 1.0)) \
-			* _shock * impact_fx.screen_shake
+			* _shock * impact_fx.screen_shake + _feel.camera_offset()
+	_camera.rotation = _feel.camera_rotation()
+	_camera.zoom = Vector2.ONE * camera_zoom * _feel.zoom_factor()
 
 	if _menu.visible:
-		_stats_text.text = "FPS %d · beat %d · combo %d (mejor %d) · %d pts\nposición %v" % [
+		_stats_text.text = "FPS %d · beat %d · combo %d (mejor %d) · %d pts\nposición %v · calor %.0f%s · %s" % [
 			Engine.get_frames_per_second(), Conductor.beat_index(), _tracker.combo,
-			_tracker.best_combo, _tracker.score, _player.position.round()]
+			_tracker.best_combo, _tracker.score, _player.position.round(), _heat.heat,
+			" · mecha %.1f s" % _heat.fuse_left if _heat.overheated else "", Match.keys()[_match]]
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -648,6 +780,103 @@ func _unhandled_input(event: InputEvent) -> void:
 			map.seed += 1
 		KEY_P:
 			map.seed = maxi(1, map.seed - 1)
+		KEY_ENTER, KEY_KP_ENTER:
+			# Fin de partida: reintentar la misma seed.
+			if not is_playing():
+				regenerate()
+
+
+# --- Partida: calor, game over y victoria --------------------------------------------
+
+func is_playing() -> bool:
+	return _match == Match.PLAYING
+
+
+## Vuelve a empezar la partida (al regenerar o reintentar): calor, mecha, puntaje y efectos.
+func _reset_match() -> void:
+	_match = Match.PLAYING
+	_elapsed = 0.0
+	_heat.reset()
+	_feel.reset()
+	_heat_hud.reset()
+	_tracker.reset()
+	_combat.active = true
+	_player.visible = true
+	_player.process_mode = Node.PROCESS_MODE_INHERIT
+
+
+func _update_heat(delta: float) -> void:
+	if is_playing():
+		_elapsed += delta
+		_heat.advance(delta)
+	var intensity := _heat.intensity() if combat.heat_enabled and is_playing() else 0.0
+	var overheated := _heat.overheated and is_playing()
+	_heat_hud.visible = combat.heat_enabled or not is_playing()
+	_heat_hud.set_heat(_heat.heat)
+	_heat_hud.update_fuse(_heat.fuse_left)
+	_heat_hud.set_intensity(intensity, overheated)
+	_feel.set_intensity(intensity, overheated)
+	_heat_hud.update_dash(player_params.dash_enabled and is_playing(), _player.dash_cooldown_left(),
+			not _player.is_on_floor())
+
+
+## Suma (o resta) calor durante la partida y lo anuncia sobre el jugador.
+func _add_heat(amount: float, text := "") -> void:
+	if not is_playing() or not combat.heat_enabled or amount == 0.0:
+		return
+	_heat.change(amount)
+	var at := _player_screen_position()
+	if not text.is_empty():
+		_hud.say(text, at, FreneticPalette.SKY.lightened(0.3))
+	_hud.say_heat(amount, at + Vector2(0.0, 44.0))
+
+
+func _fell_into_void() -> void:
+	_add_heat(combat.fall_heat, "¡AL VACÍO!")
+
+
+func _on_overheat(fuse_left: float, started: bool) -> void:
+	if is_playing():
+		_heat_hud.show_overheat(started, fuse_left)
+
+
+func _on_beat(index: int) -> void:
+	var accented := index % ConductorClock.BEATS_PER_BAR == 0
+	if is_playing():
+		_feel.on_beat(1.0 if accented else 0.7)
+		_heat_hud.on_beat(accented)
+
+
+## La mecha llegó a 0: la papa explota. Sin game over (pruebas) solo hay explosión y el calor
+## vuelve a empezar.
+func _on_exploded() -> void:
+	_explosion_at(_player.position + Vector2(0.0, -PlayerPrototype.SIZE.y * 0.5))
+	_heat_hud.show_overheat(false, 0.0)
+	if not combat.game_over_enabled:
+		_hud.say("¡BUM! (sin game over)", _player_screen_position(), FreneticPalette.YELLOW)
+		return
+	_match = Match.GAME_OVER
+	_end_match()
+	_player.visible = false
+	_heat_hud.show_result(false, _elapsed, _heat.heat, _tracker.score, _tracker.best_combo)
+
+
+## Llamar desde la zona al llegar a la salida.
+func finish_victory() -> void:
+	if not is_playing():
+		return
+	_match = Match.VICTORY
+	_end_match()
+	_heat_hud.show_overheat(false, 0.0)
+	_heat_hud.show_result(true, _elapsed, _heat.heat, _tracker.score, _tracker.best_combo)
+
+
+## Congela el mundo (jugador, enemigos, proyectiles) al terminar la partida.
+func _end_match() -> void:
+	_combat.active = false
+	_player.process_mode = Node.PROCESS_MODE_DISABLED
+	_generated.process_mode = Node.PROCESS_MODE_DISABLED
+	_feel.set_intensity(0.0, false)
 
 
 # --- Ritmo y recompensas -------------------------------------------------------------
@@ -692,8 +921,10 @@ func _on_player_landed(impact_speed: float, forced: bool, fall_height: float) ->
 
 
 ## Aterrizaje de caída forzada: es intencional, así que se premia fuerte o se castiga.
+## Además es el stomp: golpea a las papas cerca de los pies con el mismo juicio.
 func _on_slam() -> void:
-	match _tracker.register(&"slam", true, player_params.slam_points_multiplier):
+	var judgment := _tracker.register(&"slam", true, player_params.slam_points_multiplier)
+	match judgment:
 		ConductorClock.Judgment.PERFECT:
 			_impact(impact_fx.slam_perfect)
 		ConductorClock.Judgment.GOOD:
@@ -701,12 +932,103 @@ func _on_slam() -> void:
 		_:
 			_player.stumble()
 			_impact(impact_fx.slam_miss)
+	_combat.stomp(judgment)
 
 
 ## Ataque de caída: estallido + glitch y temblor proporcionales a la intensidad.
 func _impact(strength: float) -> void:
 	_spawn_burst(strength)
 	_shock = maxf(_shock, impact_fx.shock_for(strength))
+	if strength >= 1.0:
+		_feel.add_trauma(0.25 * strength)
+		_feel.zoom_punch(0.015 * strength)
+
+
+## Coloca un enemigo en su carril (solo en juego, no en el editor).
+func spawn_enemy(enemy: Enemy, feet: Vector2, lane_left: float, lane_right: float) -> void:
+	if _combat == null or _player == null:
+		enemy.free()
+		return
+	enemy.position = feet
+	enemy.configure(_player, lane_left, lane_right, style)
+	if enemy is FlyingEnemy:
+		enemy.set_solids(_zone_solids())
+	_generated.add_child(enemy)
+	_combat.register_enemy(enemy)
+
+
+## Golpe a una papa: estallido con sus colores, glitch, hitstop, zoom y temblor.
+func _on_hit_landed(enemy: Enemy, judgment: int, defeated: bool) -> void:
+	var perfect := judgment == ConductorClock.Judgment.PERFECT
+	var strength := (0.9 if perfect else 0.6) * (1.0 if defeated else 0.6)
+	var direction := signf(enemy.global_position.x - _player.global_position.x)
+	_burst(enemy.body_center(), strength, {
+		"angle": -PI * 0.5 + direction * 0.5,
+		"fill": impact_fx.fill_color if perfect else FreneticPalette.CREAM,
+		"debris": enemy.body_color,
+		"debris_alt": Color("f0cf86") if defeated else Color(0.85, 0.88, 0.95),
+		"ring": Color(1.0, 1.0, 1.0, 0.9) if defeated else Color.TRANSPARENT,
+	})
+	_shock = maxf(_shock, impact_fx.shock_for(strength) * 0.6)
+	_feel.hit(perfect, defeated)
+
+
+func _on_player_hurt(enemy: Enemy) -> void:
+	_hurt_fx()
+	_add_heat(combat.contact_heat * enemy.contact_heat_scale, "¡AUCH!")
+
+
+## Stomp o dash fuera de ritmo contra una papa: rebota (el calor ya lo puso el juicio).
+func _on_player_bounced(_enemy: Enemy) -> void:
+	_hurt_fx()
+
+
+func _hurt_fx() -> void:
+	_burst(_player.position + Vector2(0.0, -PlayerPrototype.SIZE.y * 0.5), 0.6, {
+		"spread": 300.0, "fill": style.blood.lightened(0.2), "debris": style.blood,
+		"debris_alt": Color("ef6657"), "ring": Color("ef6657"),
+	})
+	_shock = maxf(_shock, 0.35)
+	_feel.hurt()
+
+
+## Tajo al aire: a tiempo no pasa nada; fuera de tiempo calienta un poco sin romper el combo.
+func _on_whiffed(judgment: int) -> void:
+	if judgment == ConductorClock.Judgment.MISS:
+		_add_heat(combat.whiff_heat)
+
+
+func _on_projectile_hit(at: Vector2) -> void:
+	_burst(at, 0.35, {"spread": 360.0, "fill": Color("f2c14e"), "debris": Color("f2c14e"),
+			"debris_alt": Color("d98e2b")})
+	_feel.add_trauma(0.22)
+	_add_heat(combat.projectile_heat, "¡PAPA FRITA!")
+
+
+func _on_dash_started(direction: float) -> void:
+	_burst(_player.position + Vector2(-direction * 30.0, -10.0), 0.35, {
+		"angle": PI if direction > 0.0 else 0.0, "spread": 60.0,
+		"fill": FreneticPalette.CREAM, "debris": FreneticPalette.CREAM,
+	})
+	_feel.add_trauma(0.2)
+
+
+## La papa explota: estallido enorme en todas direcciones, glitch y sacudida máxima.
+func _explosion_at(at: Vector2) -> void:
+	_burst(at, 2.6, {
+		"spread": 360.0, "fill": Color("ff7a2f"), "debris": Color("f0cf86"),
+		"debris_alt": FreneticPalette.INK, "ring": Color(1.0, 0.95, 0.7),
+	})
+	_shock = 1.0
+	_feel.explosion()
+
+
+func _burst(at: Vector2, strength: float, look: Dictionary) -> void:
+	look["style"] = style
+	var burst := ImpactBurst.new(_fx_rng, strength, impact_fx, look)
+	burst.position = at
+	burst.z_index = 60
+	add_child(burst)
 
 
 func _spawn_burst(strength: float) -> void:
@@ -718,14 +1040,24 @@ func _spawn_burst(strength: float) -> void:
 
 
 func _on_judged(action: StringName, judgment: int, _combo: int, points: int) -> void:
-	# Los fallos de caída forzada siempre se anuncian (son el castigo visible).
-	if judgment != ConductorClock.Judgment.MISS or action == &"slam":
-		_hud.popup(judgment, _player_screen_position(), points)
+	var heat := 0.0
+	if is_playing() and combat.heat_enabled:
+		# Combate pesa 1 y moverse menos; lo demás (aterrizar, escaleras, puertas) solo enfría.
+		var is_combat := action in COMBAT_ACTIONS
+		var scale := 1.0 if is_combat else combat.movement_heat_scale
+		var before := _heat.heat
+		_heat.apply_judgment(judgment, scale, is_combat or action in MOVE_ACTIONS)
+		heat = _heat.heat - before
+	# Los fallos de combate siempre se anuncian (son el castigo visible).
+	if judgment != ConductorClock.Judgment.MISS or action in COMBAT_ACTIONS:
+		_hud.popup(judgment, _player_screen_position(), points, ACTION_LABELS.get(action, ""),
+				heat if action in COMBAT_ACTIONS else 0.0)
 
 
 ## Otros fallos solo se anuncian cuando rompen un combo: girar libremente no llena la pantalla.
 func _on_combo_broken(action: StringName, _lost_combo: int) -> void:
-	if action != &"slam":
+	# Los fallos de combate y los golpes recibidos ya tienen su propio aviso.
+	if not action in COMBAT_ACTIONS and action != &"hit":
 		_hud.popup(ConductorClock.Judgment.MISS, _player_screen_position(), 0)
 
 

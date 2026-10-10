@@ -6,6 +6,11 @@ extends ZoneLevel
 ## `player_params.hard_landing_height`.
 
 const AUTORUN_EDGE := 70.0
+const ENEMY_SALT := 0x5e11
+## Altura sobre la azotea a la que flotan las papas voladoras.
+const FLYER_HEIGHT := 220.0
+## Distancia al final de la última azotea que cuenta como salida.
+const GOAL_MARGIN := 220.0
 
 @export var params: AzoteaParams:
 	set(value):
@@ -44,6 +49,32 @@ func _zone_generate() -> void:
 	_live.setup(_data, style)
 	_generated.add_child(_live)
 	_generated.add_child(_make_colliders(_data.roofs))
+	_spawn_enemies()
+
+
+## Papas zombi sobre las azoteas (la primera es zona segura). Deterministas por seed.
+## Al principio solo papas comunes; cada tramo del recorrido presenta un tipo nuevo (EnemyRoster).
+func _spawn_enemies() -> void:
+	if Engine.is_editor_hint() or combat.enemy_density <= 0.0:
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = params.seed ^ ENEMY_SALT
+	var last := _data.roofs.size() - 1
+	for i in range(1, _data.roofs.size()):
+		var roof := _data.roofs[i]
+		var progress := float(i) / maxf(last, 1)
+		var count := floori(roof.size.x / 650.0 * combat.enemy_density * 2.0 + rng.randf())
+		for k in count:
+			var type := EnemyRoster.pick(EnemyRoster.AZOTEA, progress, rng)
+			var enemy := EnemyRoster.make(type, combat, rng)
+			var x := rng.randf_range(roof.position.x + 80.0, roof.end.x - 80.0)
+			var y := roof.position.y - (FLYER_HEIGHT if type == &"flyer" else 0.0)
+			spawn_enemy(enemy, Vector2(x, y), roof.position.x + 30.0, roof.end.x - 30.0)
+
+
+func _zone_solids() -> Array[Rect2]:
+	return _data.roofs
+
 
 
 func _zone_style_changed() -> void:
@@ -89,19 +120,33 @@ func _zone_map_controls(section: DebugSection) -> void:
 
 ## Corre a la derecha, salta en los bordes y fuerza la caída al pasar el punto más alto.
 func _zone_autorun(delta: float) -> void:
-	Input.action_press("ui_right")
-	Input.action_release("ui_down")
+	Input.action_release("attack")
+	# Golpea a la papa que tenga al alcance (toques en frames alternos).
+	if _combat.has_target() and Engine.get_physics_frames() % 2 == 0:
+		Input.action_press("attack")
+	Input.action_press("move_right")
+	Input.action_release("move_down")
 	if _player.velocity.y > 0.0:
-		Input.action_release("ui_accept")
+		Input.action_release("jump")
 		if _player.velocity.y > 300.0 and not _player.is_fast_falling() and _fx_rng.randf() < 0.05:
-			Input.action_press("ui_down")
+			Input.action_press("move_down")
 	_autorun_cooldown -= delta
 	if _autorun_cooldown > 0.0 or not _player.is_on_floor():
 		return
-	Input.action_release("ui_accept")
+	Input.action_release("jump")
 	var x := _player.position.x
 	for roof in _data.roofs:
 		if x > roof.end.x - AUTORUN_EDGE and x < roof.end.x:
-			Input.action_press("ui_accept")
+			Input.action_press("jump")
 			_autorun_cooldown = 0.3
 			return
+
+
+## Salida: llegar al final de la última azotea gana la partida.
+func _process(delta: float) -> void:
+	super(delta)
+	if Engine.is_editor_hint() or _data == null or not is_playing() or not _player.is_on_floor():
+		return
+	var last := _data.roofs[-1]
+	if _player.position.x >= last.end.x - GOAL_MARGIN and absf(_player.position.y - last.position.y) < 20.0:
+		finish_victory()

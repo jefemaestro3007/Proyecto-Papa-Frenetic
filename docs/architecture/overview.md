@@ -12,7 +12,8 @@ src/
 ├── features/
 │   ├── player/                        # PlayerPrototype + PlayerParams
 │   ├── rhythm/                        # RhythmTracker (combo/puntaje) + RhythmParams
-│   └── combat/                        # ImpactBurst + ImpactFxParams (impacto de caídas)
+│   ├── combat/                        # CombatController, HeatMeter, GameFeel, ImpactBurst + params
+│   └── enemies/                       # Enemy (común) + tanque, voladora, embestidora, tiradora, EnemyRoster
 ├── world/
 │   ├── generation/                    # generadores puros (sin nodos)
 │   │   ├── azotea_*.gd                # zona Azotea
@@ -32,7 +33,7 @@ src/
 ├── ui/
 │   ├── components/debug_section.gd    # pestaña del menú de debug (sliders, colores, presets)
 │   ├── menus/debug_menu.gd            # menú de debug con pestañas
-│   └── hud/rhythm_hud.gd              # combo, puntaje, compás, avisos
+│   └── hud/                           # RhythmHud (combo, compás, avisos) + HeatHud (manómetro, mecha, fin)
 └── shared/resources/presets/<sección>/ # presets .tres por sección del menú
 ```
 
@@ -53,6 +54,15 @@ src/
 `Conductor` (autoload) es la única fuente del tempo. Todo lo que late (cielo, luces, puertas,
 ascensores, guía sonora) lee `Conductor.pulse()` / `beat_index()` o su señal `beat`.
 `RhythmTracker` juzga acciones (`PERFECT` / `GOOD` / `MISS`) y lleva combo y puntaje.
+Las semicorcheas (`subbeat`) marcan los patrones rápidos de la tiradora. El hitstop se pide con
+`Conductor.set_hitstop()`: congela la acción sin desplazar los beats.
+
+## Combate y partida
+
+`ZoneLevel` arma `CombatController` (ataque, stomp, dash, contacto, proyectiles), `HeatMeter`
+(papa caliente), `GameFeel` (hitstop, zoom, temblor) y `HeatHud`, y lleva el estado de la
+partida (jugando / victoria / game over). Cada zona pone sus enemigos con `EnemyRoster` y llama
+`finish_victory()` al llegar a la salida. Detalle en `docs/game-design/combate.md`.
 
 ## Estilos gráficos
 
@@ -62,7 +72,7 @@ mismo en todos los modos. Detalle en `docs/game-design/art-direction/rojo-frenet
 
 ## Menú de debug y presets
 
-Tab/F1 abre el menú (pestañas Estilo, Mapa, Cielo, Luz, Jugador, Efectos, Ritmo, Sistema).
+Tab/F1 abre el menú (pestañas Estilo, Mapa, Cielo, Luz, Jugador, Efectos, Ritmo, Combate, Sistema).
 Cada pestaña enlaza sliders con campo numérico a propiedades de un `Resource` y puede
 exportar/cargar presets `.tres` (en el editor se guardan en `src/shared/resources/presets/`).
 

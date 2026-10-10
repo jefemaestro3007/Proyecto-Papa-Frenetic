@@ -10,9 +10,23 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 ### Fixed
 
 - Ventanas del skyline que quedaban flotando sobre edificios derrumbados.
+- HUD de ritmo con tamaño 0: el indicador de compás y los anuncios no se veían bien.
+- El hitstop desplazaba el beat ~1 tiempo al empezar (cambiaba la escala a mitad de frame);
+  ahora lo aplica el `Conductor`.
 
 ### Added
 
+- Papa caliente (`HeatMeter`, `HeatHud`): calor que sube con el tiempo y al fallar el ritmo,
+  mecha de 10 s que no se recarga, explosión y game over; manómetro, aviso de
+  sobrecalentamiento con cuenta atrás, viñeta roja y temblor de tensión.
+- Estados de la partida: victoria al llegar a la salida (Azotea y Oficinas), game over,
+  reintento con la misma seed (Enter).
+- Dash (Shift) juzgado por ritmo, stomp que golpea a las papas y rebote contra las que aguantan.
+- Enemigos tanque, voladora, embestidora y tiradora (patrones de negras, corcheas y
+  semicorcheas al ritmo); se presentan de a uno por tramo en cada zona (`EnemyRoster`).
+- Game feel (`GameFeel`): hitstop sin desplazar los beats, zoom de impacto, temblor; los
+  estallidos de impacto se adaptan a golpes, daño, dash y explosión según el estilo.
+- Tests `test_heat_meter` y `test_combat_match`.
 - Zona **Azotea** (`src/world/levels/azotea/`): azoteas jugables con colisión y skyline
   en ruinas con parallax, generados desde una seed (`AzoteaGenerator`, `AzoteaParams`).
 - Cielo procedural configurable (`SkyParams`): sol, estrellas, nubes, montañas, agua,

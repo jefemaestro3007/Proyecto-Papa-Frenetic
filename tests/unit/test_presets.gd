@@ -11,6 +11,7 @@ const SECTIONS := {
 	"efectos": "res://src/features/combat/impact_fx_params.gd",
 	"estilo": "res://src/world/environment/art_style.gd",
 	"oficinas": "res://src/world/generation/oficinas/oficinas_params.gd",
+	"combate": "res://src/features/combat/combat_params.gd",
 }
 const TMP_DIR := "user://test_presets/"
 

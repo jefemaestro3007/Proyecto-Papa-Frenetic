@@ -5,14 +5,25 @@ extends Node
 ## Su configuración vive en `params` (RhythmParams) y se puede cambiar en caliente.
 
 signal beat(index: int)
+## Semicorchea (SUBDIVISIONS por beat): para patrones rápidos (p. ej. la tiradora).
+signal subbeat(index: int)
 
 enum Judgment { PERFECT, GOOD, MISS }
+
+const SUBDIVISIONS := 4
+const BEATS_PER_BAR := 4
 
 var params := RhythmParams.new()
 
 var _time := 0.0
 var _bpm := 0.0
 var _last_beat := -1
+var _last_subbeat := -1
+## Parte de Engine.time_scale que viene de un hitstop: el reloj la compensa para que congelar
+## la acción no desplace los beats (la escala de tiempo de debug sí ralentiza la música).
+## Solo lectura: se pide con `set_hitstop()`.
+var hitstop_scale := 1.0
+var _pending_hitstop := 1.0
 var _click: AudioStreamPlayer
 
 
@@ -35,15 +46,35 @@ func _process(delta: float) -> void:
 		var position := beat_position()
 		_bpm = clampf(params.bpm, 60.0, 240.0)
 		_time = position * beat_length()
-	_time += delta
+	_time += delta / maxf(hitstop_scale, 0.001)
+	_apply_hitstop()
+	var sub := floori(beat_position() * SUBDIVISIONS)
+	if sub != _last_subbeat:
+		_last_subbeat = sub
+		subbeat.emit(sub)
 	var index := floori(beat_position())
 	if index != _last_beat:
 		_last_beat = index
 		beat.emit(index)
 		if params.metronome_enabled:
 			_click.volume_db = params.metronome_volume_db
-			_click.pitch_scale = 1.6 if index % 4 == 0 else 1.0
+			_click.pitch_scale = 1.6 if index % BEATS_PER_BAR == 0 else 1.0
 			_click.play()
+
+
+## Congela la acción (`scale` < 1) o la libera (1) sin mover los beats. El cambio se aplica en el
+## próximo `_process` del reloj, después de consumir el delta del frame: Godot calcula ese delta
+## con la escala vigente al empezar el frame, así que cambiarla antes desfasaría el beat.
+func set_hitstop(scale: float) -> void:
+	_pending_hitstop = clampf(scale, 0.001, 1.0)
+
+
+func _apply_hitstop() -> void:
+	if is_equal_approx(_pending_hitstop, hitstop_scale):
+		return
+	var base := Engine.time_scale / maxf(hitstop_scale, 0.001)
+	hitstop_scale = _pending_hitstop
+	Engine.time_scale = base * hitstop_scale
 
 
 func beat_length() -> float:

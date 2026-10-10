@@ -13,6 +13,8 @@ const JUDGMENT_COLOR := {
 	ConductorClock.Judgment.GOOD: FreneticPalette.CREAM,
 	ConductorClock.Judgment.MISS: Color(0.6, 0.58, 0.68),
 }
+const HEAT_UP_COLOR := Color("ff6a4d")
+const HEAT_DOWN_COLOR := Color("8fd8ff")
 
 var tracker: RhythmTracker
 var _combo_label: Label
@@ -20,7 +22,7 @@ var _score_label: Label
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_combo_label = _make_label(44)
 	_combo_label.position = Vector2(24.0, 56.0)
@@ -50,11 +52,25 @@ func _draw() -> void:
 		draw_rect(rect, FreneticPalette.INK, false, 3.0)
 
 
-## Texto de juicio que sube y se desvanece desde una posición de pantalla.
-func popup(judgment: int, screen_position: Vector2, points: int) -> void:
-	var label := _make_label(34)
-	label.text = JUDGMENT_TEXT[judgment] + ("  +%d" % points if points > 0 else "")
-	label.add_theme_color_override("font_color", JUDGMENT_COLOR[judgment])
+## Texto de juicio que sube y se desvanece desde una posición de pantalla. `prefix` nombra la
+## acción ("STOMP ", "DASH "...) y `heat` agrega una segunda línea con el calor que sumó o restó.
+func popup(judgment: int, screen_position: Vector2, points: int, prefix := "", heat := 0.0) -> void:
+	say(prefix + JUDGMENT_TEXT[judgment] + ("  +%d" % points if points > 0 else ""), screen_position,
+			JUDGMENT_COLOR[judgment])
+	if absf(heat) >= 0.5:
+		say_heat(heat, screen_position + Vector2(0.0, 44.0))
+
+
+## Calor ganado (rojo) o enfriado (celeste) bajo un texto.
+func say_heat(heat: float, screen_position: Vector2) -> void:
+	say("%+d calor" % roundi(heat), screen_position, HEAT_UP_COLOR if heat > 0.0 else HEAT_DOWN_COLOR, 26)
+
+
+## Texto flotante cualquiera sobre una posición de pantalla.
+func say(text: String, screen_position: Vector2, color: Color, font_size := 34) -> void:
+	var label := _make_label(font_size)
+	label.text = text
+	label.add_theme_color_override("font_color", color)
 	label.position = screen_position + Vector2(-80.0, -200.0)
 	label.rotation = randf_range(-0.12, 0.12)
 	var tween := label.create_tween().set_parallel()
