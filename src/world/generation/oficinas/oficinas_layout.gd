@@ -5,9 +5,9 @@ extends RefCounted
 ## Los nodos son Vector2i(piso, módulo).
 ##
 ## Elementos:
-## - Escaleras de fondo (↑ al pie sube, ↓ arriba baja); se apilan como núcleos reales.
-## - Ascensores de fondo, cerrados: ↑ frente a la puerta los llama (llegan en ≤ 2 s), adentro
-##   ↑/↓ eligen el piso y el viaje es rápido. El módulo se sigue caminando normal.
+## - Escaleras de fondo (W al pie sube, S arriba baja); se apilan como núcleos reales.
+## - Ascensores de fondo, cerrados: W frente a la puerta los llama (llegan en ≤ 2 s), adentro
+##   W/S eligen el piso y el viaje es rápido. El módulo se sigue caminando normal.
 ## - Huecos pequeños (saltables, sirven para bajar) y derrumbes (se cae, uno o más pisos).
 ## - Muros entre módulos: abiertos, con puerta, con puerta con llave o bloqueados.
 ## - Puertas al fondo: habitaciones (sin salida, pueden guardar llaves) o pasillos-atajo

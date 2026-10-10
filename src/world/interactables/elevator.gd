@@ -1,7 +1,7 @@
 class_name Elevator
 extends Node2D
-## Ascensor de fondo, cerrado. Se llama con ↑ frente a su puerta: la cabina llega (como mucho
-## en `call_seconds`) y las puertas se abren en el beat. Adentro, ↑/↓ eligen hacia dónde ir
+## Ascensor de fondo, cerrado. Se llama con W frente a su puerta: la cabina llega (como mucho
+## en `call_seconds`) y las puertas se abren en el beat. Adentro, W/S eligen hacia dónde ir
 ## (mantener sigue de piso en piso; el expreso va directo al otro extremo). El viaje completo
 ## dura como mucho `trip_seconds`. El personaje viaja como pasajero (lo mueve la zona).
 ## Tipos: local, expreso, de servicio (tarda más en llegar) y averiado (sacudidas, luz que falla).

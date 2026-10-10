@@ -112,19 +112,19 @@ func _zone_autorun(delta: float) -> void:
 	# Golpea a la papa que tenga al alcance (toques en frames alternos).
 	if _combat.has_target() and Engine.get_physics_frames() % 2 == 0:
 		Input.action_press("attack")
-	Input.action_press("ui_right")
-	Input.action_release("ui_down")
+	Input.action_press("move_right")
+	Input.action_release("move_down")
 	if _player.velocity.y > 0.0:
-		Input.action_release("ui_accept")
+		Input.action_release("jump")
 		if _player.velocity.y > 300.0 and not _player.is_fast_falling() and _fx_rng.randf() < 0.05:
-			Input.action_press("ui_down")
+			Input.action_press("move_down")
 	_autorun_cooldown -= delta
 	if _autorun_cooldown > 0.0 or not _player.is_on_floor():
 		return
-	Input.action_release("ui_accept")
+	Input.action_release("jump")
 	var x := _player.position.x
 	for roof in _data.roofs:
 		if x > roof.end.x - AUTORUN_EDGE and x < roof.end.x:
-			Input.action_press("ui_accept")
+			Input.action_press("jump")
 			_autorun_cooldown = 0.3
 			return

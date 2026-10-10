@@ -1,7 +1,7 @@
 class_name OficinasBot
 extends RefCounted
 ## Recorre el edificio hasta la salida siguiendo el plan del espacio de estados (lugar × llaves),
-## usando los controles reales del jugador: camina, salta huecos, usa escaleras (↑/↓), llama y
+## usando los controles reales del jugador: camina, salta huecos, usa escaleras (W/S), llama y
 ## maneja ascensores, entra y sale por puertas al fondo y recoge llaves (también dentro de
 ## habitaciones). Es el recorrido automático y, sobre todo, la prueba de que la física coincide
 ## con el grafo. Con la variable de entorno BOT_DEBUG imprime cada decisión nueva.
@@ -31,7 +31,7 @@ func _init(p_data: OficinasMapData) -> void:
 
 
 func step(level, delta: float) -> void:
-	for action in ["ui_left", "ui_right", "ui_accept", "ui_down", "ui_up"]:
+	for action in ["move_left", "move_right", "jump", "move_down", "move_up"]:
 		Input.action_release(action)
 	var player: PlayerPrototype = level.player()
 	var feet := player.global_position
@@ -116,10 +116,10 @@ func step(level, delta: float) -> void:
 	_intent = 0 if absf(dx) < ARRIVE else int(signf(dx))
 	_press(_intent)
 	if _intent == 0 and action != "":
-		_tap("ui_up" if action == "up" else "ui_down")
+		_tap("move_up" if action == "up" else "move_down")
 	# Al caer a propósito no se salta el hueco planeado; los demás sí.
 	if _intent != 0 and _gap_ahead(node, feet, drop_gap if wants_fall else -1):
-		Input.action_press("ui_accept")
+		Input.action_press("jump")
 
 
 ## Dentro de un área: recoger la llave si está acá, después salir por la puerta que lleva
@@ -152,19 +152,19 @@ func _walk_and(feet: Vector2, target_x: float, action: String) -> void:
 	_intent = 0 if absf(dx) < ARRIVE else int(signf(dx))
 	_press(_intent)
 	if _intent == 0 and action != "":
-		_tap("ui_up")
+		_tap("move_up")
 
 
-## En la cabina: ↑/↓ hasta el piso planeado; ahí, salir hacia donde sigue el plan.
+## En la cabina: W/S hasta el piso planeado; ahí, salir hacia donde sigue el plan.
 func _ride(lift: Elevator) -> void:
 	if lift == null:
 		return
 	if lift.is_moving():
 		if _lift_target >= 0 and lift.cabin_floor != _lift_target:
-			Input.action_press("ui_up" if _lift_target > lift.cabin_floor else "ui_down")
+			Input.action_press("move_up" if _lift_target > lift.cabin_floor else "move_down")
 		return
 	if _lift_target >= 0 and lift.cabin_floor != _lift_target:
-		Input.action_press("ui_up" if _lift_target > lift.cabin_floor else "ui_down")
+		Input.action_press("move_up" if _lift_target > lift.cabin_floor else "move_down")
 		status = "viajando a piso %d" % _lift_target
 		return
 	status = "bajando del ascensor"
@@ -221,9 +221,9 @@ func _tap(action: String) -> void:
 
 func _press(direction: int) -> void:
 	if direction < 0:
-		Input.action_press("ui_left")
+		Input.action_press("move_left")
 	elif direction > 0:
-		Input.action_press("ui_right")
+		Input.action_press("move_right")
 
 
 func _track_progress(node: Vector2i, delta: float) -> void:
@@ -233,7 +233,7 @@ func _track_progress(node: Vector2i, delta: float) -> void:
 		return
 	_since_progress += delta
 	if _since_progress > STUCK_SECONDS:
-		Input.action_press("ui_accept")
+		Input.action_press("jump")
 		_since_progress = STUCK_SECONDS * 0.5
 
 

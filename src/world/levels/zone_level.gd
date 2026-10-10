@@ -4,7 +4,7 @@ extends Node2D
 ## Base de toda zona jugable: cielo, iluminación, jugador, ritmo, efectos de impacto,
 ## modos gráficos (ArtStyle), post-proceso, HUD y menú de debug.
 ## Cada zona implementa solo lo suyo sobrescribiendo los métodos `_zone_*`.
-## En juego: ←/→ mover, Espacio saltar, ↓ en el aire caída forzada, Tab/F1 menú de debug,
+## En juego: A/D mover, Espacio saltar, J/clic atacar, S en el aire caída forzada, Tab/F1 menú de debug,
 ## F2 cambia de estilo (Default / Pixel / Isaac), R/N/P seeds.
 
 const SKY_SHADER := preload("res://src/world/environment/shaders/sky.gdshader")
@@ -119,7 +119,7 @@ func _zone_autorun(_delta: float) -> void:
 
 
 func _zone_help_text() -> String:
-	return "←/→ mover · Espacio saltar · J/clic atacar · ↓ en el aire caída forzada · Tab menú · F2 estilo · R/N/P seed"
+	return "A/D mover · Espacio saltar · J/clic atacar · S en el aire caída forzada · Tab menú · F2 estilo · R/N/P seed"
 
 
 # --- Ciclo de vida -------------------------------------------------------------------
@@ -502,7 +502,7 @@ func _build_player_section(section: DebugSection) -> void:
 	section.add_slider(p, &"jump_buffer", "Buffer de salto (s)", 0.0, 0.3, 0.01)
 	section.add_group("Caídas")
 	section.add_slider(p, &"hard_landing_height", "Altura para atacar (px)", 0, 2000, 10)
-	section.add_group("Caída forzada (↓)")
+	section.add_group("Caída forzada (S en el aire)")
 	section.add_toggle(p, &"fast_fall_enabled", "Activada")
 	section.add_slider(p, &"fast_fall_speed", "Velocidad de caída", 800, 5000, 50)
 	section.add_slider(p, &"slam_points_multiplier", "Puntos si cae a tiempo (×)", 1.0, 5.0, 0.1)

@@ -33,7 +33,7 @@ func clear() -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	if player == null or player.scripted:
+	if player == null or player.scripted or get_viewport().gui_get_focus_owner() is LineEdit:
 		return
 	if Input.is_action_just_pressed("attack"):
 		attack()
