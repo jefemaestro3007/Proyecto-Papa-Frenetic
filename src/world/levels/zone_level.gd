@@ -24,6 +24,8 @@ const LAND_MIN_SPEED := 400.0
 @export var player_params: PlayerParams
 @export var impact_fx: ImpactFxParams
 @export var style: ArtStyle
+## Combate y enemigos traídos del prototipo (pestaña "Combate").
+@export var combat: CombatParams
 
 @export_tool_button("Regenerar", "Reload") var regenerate_button := regenerate
 
@@ -43,6 +45,7 @@ var _sky_material: ShaderMaterial
 var _post: ShaderMaterial
 var _world_light: CanvasModulate
 var _tracker: RhythmTracker
+var _combat: CombatController
 var _hud: RhythmHud
 var _menu: DebugMenu
 var _seed_text: Label
@@ -57,6 +60,8 @@ var _skyline_views: Array[SkylineView] = []
 var _grunge_materials: Array[ShaderMaterial] = []
 var _sections := {}
 var _zoom_override := 0.0
+## Falso mientras _ready arma la zona: los cambios de parámetros no regeneran a mitad de camino.
+var _initialized := false
 
 
 # --- Ganchos de cada zona ------------------------------------------------------------
@@ -114,7 +119,7 @@ func _zone_autorun(_delta: float) -> void:
 
 
 func _zone_help_text() -> String:
-	return "←/→ mover · Espacio saltar · ↓ en el aire caída forzada · Tab menú · F2 estilo · R/N/P seed"
+	return "←/→ mover · Espacio saltar · J/clic atacar · ↓ en el aire caída forzada · Tab menú · F2 estilo · R/N/P seed"
 
 
 # --- Ciclo de vida -------------------------------------------------------------------
@@ -131,10 +136,13 @@ func _ready() -> void:
 		impact_fx = _load_preset("efectos", "base", ImpactFxParams.new())
 	if style == null:
 		style = _load_preset("estilo", "default", ArtStyle.new())
+	if combat == null:
+		combat = _load_preset("combate", "base", CombatParams.new())
 	if not Engine.is_editor_hint():
 		_parse_args()
 		_build_runtime()
 	regenerate()
+	_initialized = true
 
 
 func _parse_args() -> void:
@@ -178,6 +186,8 @@ func regenerate() -> void:
 	move_child(_generated, 0)
 	_grunge_materials.clear()
 	_skyline_views.clear()
+	if _combat != null:
+		_combat.clear()
 
 	_zone_generate()
 	_apply_skyline_colors()
@@ -191,7 +201,7 @@ func regenerate() -> void:
 
 
 func _on_params_changed() -> void:
-	if is_node_ready():
+	if _initialized and is_node_ready():
 		regenerate()
 
 
@@ -298,6 +308,14 @@ func _build_runtime() -> void:
 	_player.landed.connect(_on_player_landed)
 	add_child(_player)
 
+	_combat = CombatController.new()
+	_combat.params = combat
+	_combat.player = _player
+	_combat.tracker = _tracker
+	_combat.on_impact = _burst_at
+	_combat.player_hurt.connect(_on_player_hurt)
+	add_child(_combat)
+
 	_camera = Camera2D.new()
 	_camera.position_smoothing_enabled = true
 	_camera.position_smoothing_speed = 6.0
@@ -333,7 +351,7 @@ func _build_debug_menu() -> void:
 	var builders := {
 		"Estilo": _build_style_section, "Mapa": _build_map_section, "Cielo": _build_sky_section,
 		"Luz": _build_lighting_section, "Jugador": _build_player_section, "Efectos": _build_fx_section,
-		"Ritmo": _build_rhythm_section, "Sistema": _build_system_section,
+		"Ritmo": _build_rhythm_section, "Combate": _build_combat_section, "Sistema": _build_system_section,
 	}
 	for title in builders:
 		var section := _menu.add_section(title)
@@ -557,6 +575,27 @@ func _build_rhythm_section(section: DebugSection) -> void:
 	section.add_slider(r, &"combo_timeout_beats", "Beats para perder combo", 1, 16, 1)
 
 
+## Todo lo integrado desde el prototipo `feature/gameplay-prototype`, separado del resto.
+func _build_combat_section(section: DebugSection) -> void:
+	section.add_text("Ataques y enemigos traídos del prototipo (feature/gameplay-prototype). " \
+			+ "Atacar: J o clic izquierdo.")
+	section.add_preset_bar(combat, "combate")
+	section.add_group("Ataque")
+	section.add_slider(combat, &"ground_reach", "Alcance en el suelo (px)", 40, 400, 5)
+	section.add_slider(combat, &"ground_height", "Alto del alcance (px)", 40, 300, 5)
+	section.add_slider(combat, &"air_radius", "Radio del ataque aéreo (px)", 40, 400, 5)
+	section.add_slider(combat, &"miss_recoil", "Rebote al fallar el ritmo", 0, 1200, 10)
+	section.add_group("Golpe recibido")
+	section.add_slider(combat, &"hurt_invulnerable", "Invulnerable tras el golpe (s)", 0.0, 3.0, 0.05)
+	section.add_slider(combat, &"hurt_knockback_x", "Retroceso horizontal", 0, 1500, 10)
+	section.add_slider(combat, &"hurt_knockback_y", "Retroceso vertical", 0, 1500, 10)
+	section.add_group("Enemigos (se aplican al regenerar: R/N/P)")
+	section.add_slider(combat, &"enemy_density", "Cantidad de enemigos", 0.0, 1.0, 0.01)
+	section.add_slider(combat, &"potato_speed", "Papa zombi: velocidad", 0, 600, 5)
+	section.add_slider(combat, &"potato_health", "Papa zombi: vida", 1, 10, 1)
+	section.add_slider(combat, &"same_level_tolerance", "Distancia de 'mismo nivel' (px)", 10, 200, 5)
+
+
 func _build_system_section(section: DebugSection) -> void:
 	section.add_group("Estado")
 	_stats_text = section.add_text()
@@ -709,6 +748,31 @@ func _impact(strength: float) -> void:
 	_shock = maxf(_shock, impact_fx.shock_for(strength))
 
 
+## Coloca un enemigo en su carril (solo en juego, no en el editor).
+func spawn_enemy(enemy: Enemy, feet: Vector2, lane_left: float, lane_right: float) -> void:
+	if _combat == null or _player == null:
+		enemy.free()
+		return
+	enemy.position = feet
+	enemy.same_level_tolerance = combat.same_level_tolerance
+	enemy.configure(_player, lane_left, lane_right, style)
+	_generated.add_child(enemy)
+	_combat.register_enemy(enemy)
+
+
+## Impacto de un golpe a un enemigo: estallido en su posición y un poco de glitch.
+func _burst_at(at: Vector2, strength: float) -> void:
+	var burst := ImpactBurst.new(_fx_rng, strength, impact_fx)
+	burst.position = at
+	add_child(burst)
+	_shock = maxf(_shock, impact_fx.shock_for(strength) * 0.6)
+
+
+func _on_player_hurt(_enemy: Enemy) -> void:
+	_hud.say("¡AUCH!", _player_screen_position(), FreneticPalette.SKY.lightened(0.3))
+	_shock = maxf(_shock, 0.35)
+
+
 func _spawn_burst(strength: float) -> void:
 	if strength <= 0.0:
 		return
@@ -725,7 +789,8 @@ func _on_judged(action: StringName, judgment: int, _combo: int, points: int) -> 
 
 ## Otros fallos solo se anuncian cuando rompen un combo: girar libremente no llena la pantalla.
 func _on_combo_broken(action: StringName, _lost_combo: int) -> void:
-	if action != &"slam":
+	# La caída forzada fallida y los golpes recibidos ya tienen su propio aviso.
+	if action != &"slam" and action != &"hit":
 		_hud.popup(ConductorClock.Judgment.MISS, _player_screen_position(), 0)
 
 

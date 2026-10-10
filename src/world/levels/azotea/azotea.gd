@@ -6,6 +6,7 @@ extends ZoneLevel
 ## `player_params.hard_landing_height`.
 
 const AUTORUN_EDGE := 70.0
+const ENEMY_SALT := 0x5e11
 
 @export var params: AzoteaParams:
 	set(value):
@@ -44,6 +45,24 @@ func _zone_generate() -> void:
 	_live.setup(_data, style)
 	_generated.add_child(_live)
 	_generated.add_child(_make_colliders(_data.roofs))
+	_spawn_enemies()
+
+
+## Papas zombi sobre las azoteas (la primera es zona segura). Deterministas por seed.
+func _spawn_enemies() -> void:
+	if Engine.is_editor_hint() or combat.enemy_density <= 0.0:
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = params.seed ^ ENEMY_SALT
+	for i in range(1, _data.roofs.size()):
+		var roof := _data.roofs[i]
+		var count := floori(roof.size.x / 650.0 * combat.enemy_density * 2.0 + rng.randf())
+		for k in count:
+			var enemy := Enemy.new()
+			enemy.move_speed = combat.potato_speed
+			enemy.max_health = combat.potato_health
+			var x := rng.randf_range(roof.position.x + 80.0, roof.end.x - 80.0)
+			spawn_enemy(enemy, Vector2(x, roof.position.y), roof.position.x + 30.0, roof.end.x - 30.0)
 
 
 func _zone_style_changed() -> void:
@@ -89,6 +108,10 @@ func _zone_map_controls(section: DebugSection) -> void:
 
 ## Corre a la derecha, salta en los bordes y fuerza la caída al pasar el punto más alto.
 func _zone_autorun(delta: float) -> void:
+	Input.action_release("attack")
+	# Golpea a la papa que tenga al alcance (toques en frames alternos).
+	if _combat.has_target() and Engine.get_physics_frames() % 2 == 0:
+		Input.action_press("attack")
 	Input.action_press("ui_right")
 	Input.action_release("ui_down")
 	if _player.velocity.y > 0.0:

@@ -11,6 +11,7 @@ signal fast_fall_started
 signal landed(impact_speed: float, forced: bool, fall_height: float)
 
 const SIZE := Vector2(44.0, 88.0)
+const ATTACK_SECONDS := 0.16
 
 var params := PlayerParams.new()
 var facing := 1.0
@@ -28,6 +29,10 @@ var _boost := 1.0
 var _boost_left := 0.0
 var _stumble_left := 0.0
 var _collision: CollisionShape2D
+var _attack_left := 0.0
+var _attack_air := false
+var _attack_connected := false
+var _invulnerable_left := 0.0
 
 
 func _ready() -> void:
@@ -60,6 +65,29 @@ func stumble() -> void:
 	_boost_left = 0.0
 
 
+## Tajo visible del ataque (en el suelo hacia adelante, en el aire en arco amplio).
+func play_attack(airborne: bool, connected: bool) -> void:
+	_attack_left = ATTACK_SECONDS
+	_attack_air = airborne
+	_attack_connected = connected
+
+
+## Golpe recibido: retroceso, aturdimiento e invulnerabilidad breve.
+func hurt(from_x: float, knockback: Vector2, invulnerable_seconds: float) -> void:
+	stumble()
+	var side := signf(position.x - from_x)
+	if side == 0.0:
+		side = -facing
+	velocity = Vector2(side * knockback.x, -knockback.y)
+	_invulnerable_left = invulnerable_seconds
+	_fast_falling = false
+
+
+## Durante la caída forzada, el viaje guiado o tras un golpe, los enemigos no dañan.
+func is_invulnerable() -> bool:
+	return scripted or _invulnerable_left > 0.0 or _fast_falling
+
+
 func reset_state() -> void:
 	velocity = Vector2.ZERO
 	_fast_falling = false
@@ -67,6 +95,7 @@ func reset_state() -> void:
 	_boost_left = 0.0
 	_stumble_left = 0.0
 	_buffer_left = 0.0
+	_invulnerable_left = 0.0
 
 
 ## La zona toma el control (escaleras, ascensor): sin física ni colisión hasta `end_scripted`.
@@ -151,6 +180,8 @@ func _physics_process(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	_spin_left = maxf(_spin_left - delta, 0.0)
+	_attack_left = maxf(_attack_left - delta, 0.0)
+	_invulnerable_left = maxf(_invulnerable_left - delta, 0.0)
 	queue_redraw()
 
 
@@ -177,6 +208,12 @@ func _draw() -> void:
 			draw_line(Vector2(x, -SIZE.y - 20.0), Vector2(x, -SIZE.y - 90.0 - i * 20.0),
 					FreneticPalette.CREAM, 5.0)
 
+	if _attack_left > 0.0:
+		_draw_slash()
+	# Parpadeo mientras es invulnerable tras un golpe.
+	if _invulnerable_left > 0.0 and fmod(_invulnerable_left, 0.12) < 0.06:
+		return
+
 	draw_set_transform_matrix(Transform2D(0.0, squash, 0.0, Vector2.ZERO)
 			* Transform2D(angle, pivot) * Transform2D(0.0, -pivot))
 	var body := Rect2(-SIZE.x * 0.5, -SIZE.y, SIZE.x, SIZE.y)
@@ -189,3 +226,21 @@ func _draw() -> void:
 	draw_circle(Vector2(look - 8.0, -SIZE.y + 36.0), eye, FreneticPalette.INK)
 	draw_circle(Vector2(look + 8.0, -SIZE.y + 36.0), eye, FreneticPalette.INK)
 	draw_rect(body, FreneticPalette.INK, false, 4.0)
+
+
+func _draw_slash() -> void:
+	var t := 1.0 - _attack_left / ATTACK_SECONDS
+	var center := Vector2(facing * 20.0, -SIZE.y * 0.55)
+	var color := FreneticPalette.YELLOW if _attack_connected else FreneticPalette.CREAM
+	var radius := 92.0 if _attack_air else 78.0
+	var span := PI * (1.25 if _attack_air else 0.85)
+	# De arriba hacia abajo del lado al que mira (en pantalla el ángulo crece en sentido horario).
+	var base := 0.0 if facing > 0.0 else PI
+	var start := base - span * 0.5 * facing
+	var sweep := span * minf(t * 1.6, 1.0)
+	var points := PackedVector2Array()
+	for i in 12:
+		var angle := start + facing * sweep * i / 11.0
+		points.append(center + Vector2.from_angle(angle) * radius)
+	draw_polyline(points, FreneticPalette.INK, 16.0 * (1.0 - t) + 6.0)
+	draw_polyline(points, Color(color, 1.0 - t * 0.6), 10.0 * (1.0 - t) + 3.0)
