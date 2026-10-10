@@ -34,6 +34,12 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
   grafitis, aires de pared, huesos, bajantes) y rasgos por modo con controles propios:
   Gráfico (rayos, semitono, alambrados, banderines), Retro (cel shading, borde de luz,
   scanlines, CRT) y Sótano (moscas, telarañas, huesos, ladrillos).
+- Zona **Oficinas** (`src/world/levels/oficinas/`): edificio abandonado generado con recorrido
+  garantizado y no lineal (sin atascos, ni siquiera con llaves). Escaleras y ascensores de fondo
+  (llamada ≤ 2 s, viaje ≤ 1,5 s, puertas en el beat), puertas que se abren y puertas con llave,
+  habitaciones y pasillos al fondo detallados, modos de final arriba / abajo / distancia,
+  vista solo de la habitación, guía sonora hacia la salida y bot de prueba con física.
+- `ZoneLevel`: base común de las zonas; zoom de cámara configurable.
 - Menú de debug por secciones (Tab/F1) con campos numéricos y exportación/carga de
   presets por sección (`src/shared/resources/presets/`).
 - Dirección de arte en `docs/game-design/art-direction/rojo-frenetico.md`.
