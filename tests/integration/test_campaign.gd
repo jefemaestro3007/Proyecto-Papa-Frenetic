@@ -51,6 +51,8 @@ func _test_level_list() -> void:
 	Game.level_index = 1
 	Game.arrived_by_next = true
 	_check(Game.loading_image().is_empty(), "1-1 → 1-2 con la carga normal")
+	_check(Game.WORLD_LOADING.values().all(func(path: String) -> bool: return ResourceLoader.exists(path)),
+			"existen las imágenes de carga de los mundos 2 y 3")
 	Game.arrived_by_next = false
 
 

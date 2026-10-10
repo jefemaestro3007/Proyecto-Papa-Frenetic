@@ -950,3 +950,23 @@ Files: `src/world/interactables/elevator.gd`, `src/world/levels/oficinas/oficina
 Change: Causas: la cabina se movía en `_process` (cada frame de pantalla) y al pasajero se le pegaba en `_physics_process` (60 Hz); la máscara de visión seguía a la cabina con un suavizado (se quedaba atrás en los viajes rápidos y el personaje quedaba en lo oscuro), y la cámara se calculaba antes de que la cabina se moviera. Arreglo: el ascensor procesa antes que la zona (`process_priority = -1`), y en cada frame `Oficinas._sync_riding()` pone al pasajero en `riding_position()` y la máscara en la cabina sin suavizado, antes de que `ZoneLevel` ubique la cámara.
 Commit: PENDING (se commitea junto con esta entrada)
 Notes: Test nuevo en `test_campaign`: viaje real en ascensor midiendo cada frame la distancia del pasajero y de la zona visible a la cabina. Sin el arreglo falla (máscara a 2.437 px de la cabina); con el arreglo da 0. El desfase del pasajero no se ve en el test (con `--fixed-fps` la física y el dibujo van a la par), así que se comprobó con ventana a 95 de calor: 0 px durante el viaje y captura con el personaje dentro de la cabina pese al temblor y el glitch. Los 14 tests en verde. Push autorizado por el usuario.
+
+---
+
+Rama `feature/visual-fixes` (rehecha desde `develop` en `422e935`, después del merge del PR #19).
+
+**Autoría:** la ilustración de la pantalla de carga 2-2 → 3-1 es de Juan Manuel Cuero Possu (confirmado por Andrés Valencia). Archivos: `assets_src/ui/menu/carga_mundo_3.jpg` (original) y `assets/textures/ui/menu/carga_mundo_3.png` (solo convertido a PNG).
+
+### Pantalla de carga del final del mundo 2 e imágenes de carga por mundo
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: Poner esta imagen (adjunta) en el final del mundo 2, como la otra imagen (la pantalla de carga de 1-2 → 2-1).
+Task: Pantalla de carga 2-2 → 3-1, aunque el nivel 3 todavía no está en `develop`.
+Type: CODE (AI) / UX / TESTING / DOCS
+Files: `src/core/autoloads/game.gd`, `assets_src/ui/menu/carga_mundo_3.jpg`, `assets/textures/ui/menu/carga_mundo_3.png` (+ `.import`), `tests/integration/test_campaign.gd`, `docs/game-design/menu.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: Las imágenes de carga pasan de la clave `carga` de cada subnivel a `Game.WORLD_LOADING`, por número de mundo: 2 → `carga_mundo_2.png`, 3 → `carga_mundo_3.png`. `loading_image()` devuelve la del mundo nuevo solo si se llegó con NEXT LEVEL desde otro mundo. La entrada de 2-1 en `Game.LEVELS` vuelve a ser como la de la rama del nivel 3.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: El nivel 3 está en `feature/nivel-3-bienestar` (3-1 Supermercado), sin integrar; cuando entre, 2-2 → 3-1 muestra la imagen sin tocar nada. Por ir por mundo, agregar subniveles no toca la imagen y el merge de esa rama choca menos. `test_campaign` en verde: 1-2 → 2-1 sigue con su imagen, sin imagen desde el menú ni dentro del mismo mundo, y existen las imágenes de los mundos 2 y 3. Push autorizado por el usuario.
