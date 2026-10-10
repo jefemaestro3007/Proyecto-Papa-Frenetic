@@ -45,3 +45,30 @@ extends Resource
 @export_range(1, 10) var potato_health: int = 1
 ## Distancia vertical a la que una papa considera que comparte nivel con el jugador.
 @export_range(10.0, 200.0) var same_level_tolerance: float = 60.0
+## Papa tanque: lenta, grande y aguanta varios golpes.
+@export_range(0.0, 600.0) var tank_speed: float = 115.0
+@export_range(1, 10) var tank_health: int = 3
+## Papa voladora.
+@export_range(0.0, 600.0) var flyer_speed: float = 150.0
+## Papa embestidora: velocidad de la carga y aturdimiento después.
+@export_range(200.0, 2500.0) var charger_speed: float = 1000.0
+@export_range(0.2, 3.0) var charger_recover: float = 1.0
+## Papa tiradora: compases entre ráfagas y peso de los patrones rápidos (la negra pesa 1).
+@export_range(1, 8) var thrower_bars_between: int = 1
+@export_range(0.0, 3.0) var thrower_eighths: float = 0.6
+@export_range(0.0, 3.0) var thrower_sixteenths: float = 0.4
+
+@export_group("Stomp")
+## Radio alrededor de los pies en el que la caída forzada golpea al aterrizar.
+@export_range(40.0, 400.0) var stomp_radius: float = 120.0
+
+@export_group("Sensación")
+## Congela la acción un instante en cada golpe (los beats no se desplazan).
+@export var hitstop_enabled: bool = true
+@export_range(0.0, 3.0) var hitstop_scale: float = 1.0
+## Acercamiento de cámara en los impactos.
+@export_range(0.0, 3.0) var zoom_punch_scale: float = 1.0
+## Temblor de cámara por golpes ("trauma").
+@export_range(0.0, 3.0) var trauma_scale: float = 1.0
+## Temblor y balanceo continuos cuando el calor pasa el umbral de tensión.
+@export_range(0.0, 3.0) var tension_shake_scale: float = 1.0
