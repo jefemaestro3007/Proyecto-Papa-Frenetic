@@ -933,6 +933,24 @@ Change: Commit `70e5761` con el calor alto, el tutorial, la pantalla de carga y 
 Commit: PENDING (se commitea junto con esta entrada, en el commit de merge)
 Notes: Sin push hasta que el usuario lo autorice.
 
+---
+
+Rama `feature/visual-fixes` (nace de `develop` en `8dbd354`), para arreglos visuales rápidos.
+
+### Ascensores: pasajero, cabina y zona visible a destiempo
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: Hay un error visual con los ascensores: al subir se ve desfasado, el personaje queda fuera del ascensor y las capas del ascensor bugueadas, como si cada uno subiera a distinta velocidad; cerca de la explosión de la papa, con toda la vibración de pantalla, es peor: el ascensor se sacude violentamente y el personaje queda en la parte negra. Buscar cómo arreglarlo, en una nueva rama de debugs visuales rápidos.
+Task: Sincronizar el pasajero, la cabina, la máscara de visión y la cámara durante el viaje en ascensor.
+Type: CODE (AI) / BUGFIX / TESTING
+Files: `src/world/interactables/elevator.gd`, `src/world/levels/oficinas/oficinas.gd`, `tests/integration/test_campaign.gd`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: Causas: la cabina se movía en `_process` (cada frame de pantalla) y al pasajero se le pegaba en `_physics_process` (60 Hz); la máscara de visión seguía a la cabina con un suavizado (se quedaba atrás en los viajes rápidos y el personaje quedaba en lo oscuro), y la cámara se calculaba antes de que la cabina se moviera. Arreglo: el ascensor procesa antes que la zona (`process_priority = -1`), y en cada frame `Oficinas._sync_riding()` pone al pasajero en `riding_position()` y la máscara en la cabina sin suavizado, antes de que `ZoneLevel` ubique la cámara.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Test nuevo en `test_campaign`: viaje real en ascensor midiendo cada frame la distancia del pasajero y de la zona visible a la cabina. Sin el arreglo falla (máscara a 2.437 px de la cabina); con el arreglo da 0. El desfase del pasajero no se ve en el test (con `--fixed-fps` la física y el dibujo van a la par), así que se comprobó con ventana a 95 de calor: 0 px durante el viaje y captura con el personaje dentro de la cabina pese al temblor y el glitch. Los 14 tests en verde. Push autorizado por el usuario.
+
 ### Nivel 3 Bienestar U: supermercado y centro comercial en perspectiva
 
 Timestamp: N/A (timestamp oficial no disponible)
