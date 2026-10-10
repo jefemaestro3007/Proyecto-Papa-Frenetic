@@ -128,6 +128,26 @@ del tipo recién presentado). Todo es determinista por seed.
 
 "Cantidad de enemigos" (`enemy_density`) controla cuántas hay.
 
+### Papas vestidas (Bienestar U)
+
+En el nivel 3 no hay enemigos nuevos: los mismos tipos (mismo sprite) se **visten** con
+accesorios dibujados en código (`EnemyCostume`) y cambian un poco sus habilidades. Cada una es
+una subclase de su tipo, la crea `EnemyRoster.make(type, params, rng, true)`.
+
+| Tipo | Vestida | Habilidad |
+|---|---|---|
+| Común | **Cliente** (`ShopperEnemy`): bolsa de compras en la mano | Al morir se le caen las compras: el piso resbala `spill_beats` beats (cuesta arrancar y frenar; el dash se desliza más) |
+| Tiradora | **Promotora** (`PromoterEnemy`): delantal y bandeja con "GRATIS" | Muestras en llamas: el impacto suma el calor de la papa frita y el jugador **arde** `burn_beats` beats (+`burn_heat` por beat); si caen al piso dejan fuego `fire_beats` beats, y pisarlo enciende |
+| Embestidora | **Reponedor** (`StockerEnemy`): gorra y carrito | Tras el aviso **lanza el carrito** por su carril (calor ×1,5) y `cart_lead_beats` después se lanza ella; saca otro carrito al recuperarse |
+| Voladora | **Globos de oferta** (`BalloonEnemy`) | A `balloon_trigger` px se **arma** (se infla y titila) y explota en el beat siguiente con radio `balloon_blast_radius` (calor ×1,5); tocarla la hace explotar en el acto. **Golpearla no la mata**: sale despedida, deja de perseguir, muestra una cuenta atrás y explota a los `balloon_hit_fuse_beats` beats (≈2), así hay tiempo de alejarse; encendida no se le puede volver a pegar ni hace daño al tocarla. La explosión le quita **una vida** a todo lo que alcanza (el guardia aguanta; otro globo alcanzado se enciende en cadena) |
+| Tanque | **Guardia** (`GuardEnemy`): gorra de plato, banda reflectante, radio | Conserva la vida del tanque pero corre a `guard_speed`. Al alcanzarte te **empuja hacia la papa más cercana** (con un respiro tan corto que esa papa puede golpearte); si no hay otra cerca te cobra calor ×`guard_alone_scale`. Después descansa `guard_rest_beats` beats |
+
+Los peligros del piso (compras, fuego y las llamas sobre el jugador) los lleva `FloorHazards`
+(`src/features/combat/floor_hazards.gd`), con duración en beats. Todo se ajusta en la pestaña
+Combate, grupo "Bienestar U"; el interruptor "Usar papas vestidas en esta zona" las pone en
+Azotea u Oficinas para probarlas (al regenerar). Velocidades del carrito y del guardia y el calor
+por beat ardiendo siguen la dificultad.
+
 ## Game feel
 
 `GameFeel` (`src/features/combat/game_feel.gd`) y nuestro `ImpactBurst`:

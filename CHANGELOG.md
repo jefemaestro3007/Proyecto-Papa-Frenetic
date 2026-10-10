@@ -42,6 +42,13 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - Pantalla de carga propia al pasar de 1-2 a 2-1 con NEXT LEVEL (ilustración de la protagonista).
 - Peligro desde 70 de calor: canción de peligro (prod. by @1tynee) que sube de volumen hasta 100,
   mezclada con la del nivel (juntas o cruzada) y glitch leve en pantalla.
+- Papas vestidas de Bienestar U (nivel 3), sin enemigos nuevos: los tipos de siempre con
+  accesorios dibujados en código y habilidades propias. Cliente (deja sus compras y el piso
+  resbala), promotora (muestras en llamas: arde unos beats y deja fuego), reponedor (lanza el
+  carrito y carga detrás), globos de oferta (se arman y explotan con área) y guardia (rápido; te
+  empuja hacia otra papa o, solo, pega el doble). Ajustes en la pestaña Combate y vista previa en
+  `tests/test_scenes/costume_preview.tscn`.
+
 - Menú de configuración (SETTINGS), desde START y desde la pausa: volúmenes general, de música y
   de efectos (buses de audio) y silenciar; pantalla completa, VSync y límite de FPS; dos teclas
   reasignables por acción; estilo gráfico, temblor de cámara y corrección de latencia del ritmo;

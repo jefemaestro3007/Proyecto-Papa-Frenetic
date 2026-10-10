@@ -44,9 +44,9 @@ const CUSTOM_RANGES := {
 ## Monitor del sistema: apagado, solo FPS o completo.
 enum Monitor { OFF, FPS, FULL }
 const HEAT_PROPERTIES: Array[StringName] = [&"passive_heating", &"miss_heating", &"slam_miss_heat",
-		&"contact_heat", &"projectile_heat", &"fall_heat", &"whiff_heat"]
+		&"contact_heat", &"projectile_heat", &"fall_heat", &"whiff_heat", &"burn_heat"]
 const ENEMY_SPEED_PROPERTIES: Array[StringName] = [&"potato_speed", &"tank_speed", &"flyer_speed",
-		&"charger_speed"]
+		&"charger_speed", &"cart_speed", &"guard_speed"]
 const SHAKE_PROPERTIES: Array[StringName] = [&"trauma_scale", &"tension_shake_scale", &"zoom_punch_scale"]
 const WINDOW_PROPERTIES: Array[StringName] = [&"perfect_window", &"good_window"]
 ## Metadato con los valores del nivel antes de aplicar dificultad y temblor (así no se acumulan).
