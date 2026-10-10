@@ -978,3 +978,37 @@ Files: `src/world/generation/bienestar/{bienestar_map_data,bienestar_generator}.
 Change: `BienestarMapData` gana `wall_marks`/`floor_marks` (`MapMark`) y `BienestarGenerator._build_marks` siembra marcas por sección con el RNG de detalles (pared: grieta, mancha, sangre, afiche, grafiti; piso: papeles, escombros, sangre, huesos) sin cambiar el trazado. `DepthCanvas._styled_front` dibuja el frente de cada prisma con los rasgos del estilo (trazo a mano con temblor calculado sin proyectar, para que no tiemble al mover la cámara; sombra proyectada; sombreado por caras; borde de luz) y `_prism(..., variant)`; `StoreBackdrop` usa `_box`, ladrillos (`style.bricks`), marcas de pared y telarañas en esquinas de pared y góndolas. Nuevo `StoreMarksView` (marcas del piso, estático en trozos `ChunkedView`). `StoreFixturesView` pasa a `z_index` −2 para que las papas se dibujen delante. La zona crea un material `ruin_grunge` compartido por todas las vistas (con `dirt = style.grime` y `halftone_strength = style.halftone` en `_zone_style_changed`), monta la vista de marcas del piso (z −3) y una `FliesView` con esas marcas (z 3). `benchmark.gd` acepta `--hide=Clase,Clase` para medir el costo por vista. Documentado en `zonas/bienestar.md` y `perspectiva-de-oferta.md`, con viñeta en `CHANGELOG`.
 Commit: PENDING (se commitea junto con esta entrada)
 Notes: Importación sin errores (`godot --headless --path . --import`). Revisadas a ojo `3-1_default.png` y `3-1_isaac.png` (grunge, sangre y grietas en la pared, trazo a mano y sombras en Isaac, papas delante de los pallets); quedan sin revisar `3-1_pixel.png`, `3-2_isaac.png` y el patio de comidas en los tres estilos, y la suite de tests sin correr tras estos cambios. El rendimiento no empeoró (el usuario lo confirmó como no crítico). Rama `feature/nivel-3-bienestar` pusheada con autorización explícita del usuario, para que otro agente continúe desde ella (documento de traspaso `../HANDOFF_nivel3.md`). Seguimiento en `../nivel3_bienestar_u.md`.
+
+---
+
+Rama `feature/visual-fixes` (rehecha desde `develop` en `422e935`, después del merge del PR #19).
+
+**Autoría:** la ilustración de la pantalla de carga 2-2 → 3-1 es de Juan Manuel Cuero Possu (confirmado por Andrés Valencia). Archivos: `assets_src/ui/menu/carga_mundo_3.jpg` (original) y `assets/textures/ui/menu/carga_mundo_3.png` (solo convertido a PNG).
+
+### Pantalla de carga del final del mundo 2 e imágenes de carga por mundo
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: Poner esta imagen (adjunta) en el final del mundo 2, como la otra imagen (la pantalla de carga de 1-2 → 2-1).
+Task: Pantalla de carga 2-2 → 3-1, aunque el nivel 3 todavía no está en `develop`.
+Type: CODE (AI) / UX / TESTING / DOCS
+Files: `src/core/autoloads/game.gd`, `assets_src/ui/menu/carga_mundo_3.jpg`, `assets/textures/ui/menu/carga_mundo_3.png` (+ `.import`), `tests/integration/test_campaign.gd`, `docs/game-design/menu.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: Las imágenes de carga pasan de la clave `carga` de cada subnivel a `Game.WORLD_LOADING`, por número de mundo: 2 → `carga_mundo_2.png`, 3 → `carga_mundo_3.png`. `loading_image()` devuelve la del mundo nuevo solo si se llegó con NEXT LEVEL desde otro mundo. La entrada de 2-1 en `Game.LEVELS` vuelve a ser como la de la rama del nivel 3.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: El nivel 3 está en `feature/nivel-3-bienestar` (3-1 Supermercado), sin integrar; cuando entre, 2-2 → 3-1 muestra la imagen sin tocar nada. Por ir por mundo, agregar subniveles no toca la imagen y el merge de esa rama choca menos. `test_campaign` en verde: 1-2 → 2-1 sigue con su imagen, sin imagen desde el menú ni dentro del mismo mundo, y existen las imágenes de los mundos 2 y 3. Push autorizado por el usuario.
+
+### Final del mundo 3 e integración del nivel 3 en feature/visual-fixes
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (autor de Git: 14mn0t4b0t)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "pasa a esta rama (feature/visual-fixes) y terminala, hay una imagen para el nivel 3 en ."
+Task: Terminar `feature/visual-fixes` (pantallas de carga por mundo) ahora que el nivel 3 está en `develop`, y usar la ilustración nueva (`final mundo 3.png`, en la raíz del repo) como final del mundo 3.
+Type: CODE (AI) / UX / TESTING / DOCS
+Files: `src/core/autoloads/game.gd`, `src/world/levels/zone_level.gd`, `src/ui/menus/main_menu.gd`, `assets_src/ui/menu/final_mundo_3.png` (original), `assets/textures/ui/menu/final_mundo_3.png` (+ `.import`), `tests/integration/test_campaign.gd`, `docs/game-design/menu.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: `develop` (con el nivel 3, PR #20) integrado en la rama con merge; solo chocó `AI_TRACE.md` (entradas agregadas en el mismo lugar, se conservan todas). `Game.WORLD_ENDING` (3 → `final_mundo_3.png`) y `Game.ending_image()`: al ganar el último subnivel de un mundo con final, dentro de la campaña, YOU WIN → NEXT LEVEL abre la pantalla `final` del menú con la ilustración a pantalla completa, que pasa a LEVEL SELECT a los 6 s (`MainMenu.ENDING_SECONDS`) o con cualquier tecla o clic. Abriendo una zona directo sigue como antes (otra seed). La ilustración original va en `assets_src/ui/menu/` y la del juego reducida a 1600×900 como `carga_mundo_2/3`. Docs y CHANGELOG sin el "se verá cuando esté el nivel 3".
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Ilustración provista por el usuario (autoría no indicada; completar si corresponde). `test_campaign` ampliado (el final solo tras 3-2 en la campaña, la imagen existe, la pantalla pasa a LEVEL SELECT con una tecla) en verde. No se corrieron los demás tests: el cambio no toca el nivel 3 ni otras zonas (pedido del usuario para ahorrar tiempo). Sin push hasta que el usuario lo autorice.

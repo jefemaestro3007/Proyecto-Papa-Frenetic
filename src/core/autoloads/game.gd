@@ -6,17 +6,28 @@ extends Node
 const MENU_SCENE := "res://src/ui/menus/main_menu.tscn"
 const PROGRESS_FILE := "user://progreso.cfg"
 ## Subniveles en orden de juego. `nivel` es la tarjeta del menú que lo abre (entra por el primero
-## de cada nivel); al ganar, YOU WIN pasa al siguiente de la lista. `carga` (opcional) es la imagen de la
-## pantalla de carga cuando se llega a ese subnivel desde el anterior con NEXT LEVEL (p. ej. 1-2 → 2-1).
+## de cada nivel); al ganar, YOU WIN pasa al siguiente de la lista.
 const LEVELS: Array[Dictionary] = [
 	{"nivel": 1, "nombre": "1-1 Tutorial", "escena": "res://src/world/levels/azotea/azotea_tutorial.tscn"},
 	{"nivel": 1, "nombre": "1-2 Carullazo", "escena": "res://src/world/levels/azotea/azotea_prueba.tscn"},
-	{"nivel": 2, "nombre": "2-1 Subida", "escena": "res://src/world/levels/oficinas/oficinas_subida.tscn",
-			"carga": "res://assets/textures/ui/menu/carga_mundo_2.png"},
+	{"nivel": 2, "nombre": "2-1 Subida", "escena": "res://src/world/levels/oficinas/oficinas_subida.tscn"},
 	{"nivel": 2, "nombre": "2-2 Bajada", "escena": "res://src/world/levels/oficinas/oficinas_bajada.tscn"},
 	{"nivel": 3, "nombre": "3-1 Supermercado", "escena": "res://src/world/levels/bienestar/supermercado.tscn"},
 	{"nivel": 3, "nombre": "3-2 Centro comercial", "escena": "res://src/world/levels/bienestar/centro_comercial.tscn"},
 ]
+
+## Imagen de la pantalla de carga al entrar a un mundo (nivel) con NEXT LEVEL desde el anterior:
+## 1-2 → 2-1 y 2-2 → 3-1. Va por mundo y no en LEVELS: agregar o mover subniveles no la toca.
+const WORLD_LOADING := {
+	2: "res://assets/textures/ui/menu/carga_mundo_2.png",
+	3: "res://assets/textures/ui/menu/carga_mundo_3.png",
+}
+
+## Imagen del final de un mundo: al ganar su último subnivel sin otro después (3-2), NEXT LEVEL la
+## muestra a pantalla completa y vuelve a LEVEL SELECT.
+const WORLD_ENDING := {
+	3: "res://assets/textures/ui/menu/final_mundo_3.png",
+}
 
 ## Subnivel en juego (-1 = se abrió una zona directo, sin pasar por el menú).
 var level_index := -1
@@ -107,11 +118,23 @@ func next_level() -> void:
 	arrived_by_next = true
 
 
-## Imagen de la pantalla de carga del subnivel que se va a jugar (vacía = la carga normal del menú).
+## Imagen de la pantalla de carga del subnivel que se va a jugar: la del mundo nuevo si se llegó
+## con NEXT LEVEL desde otro mundo (vacía = la carga normal del menú).
 func loading_image() -> String:
-	if not arrived_by_next or level_index < 0:
+	if not arrived_by_next or level_index <= 0:
 		return ""
-	return LEVELS[level_index].get("carga", "")
+	var world: int = LEVELS[level_index]["nivel"]
+	if LEVELS[level_index - 1]["nivel"] == world:
+		return ""
+	return WORLD_LOADING.get(world, "")
+
+
+## Imagen del final del mundo que se acaba de terminar (vacía si hay otro subnivel después, si el
+## mundo no tiene final o si la zona se abrió directo, sin la campaña).
+func ending_image() -> String:
+	if not in_campaign() or has_next_level():
+		return ""
+	return WORLD_ENDING.get(LEVELS[level_index]["nivel"], "")
 
 
 func level_scene() -> String:

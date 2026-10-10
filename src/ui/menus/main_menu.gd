@@ -22,6 +22,9 @@ const BACK := {&"nuevo_juego": &"inicio", &"seleccion_nivel": &"nuevo_juego"}
 const LOADING_MIN_SECONDS := 1.5
 ## Con imagen de carga propia (p. ej. 1-2 → 2-1) dura más, para que se alcance a ver el dibujo.
 const LOADING_IMAGE_SECONDS := 3.0
+## La imagen del final de un mundo se ve al menos esto antes de pasar sola a LEVEL SELECT (antes,
+## cualquier tecla o clic la saltea).
+const ENDING_SECONDS := 6.0
 ## Música del menú: suena en todas sus pantallas y marca el beat de la protagonista y los botones.
 const MENU_MUSIC := "res://src/shared/resources/music/menu.tres"
 
@@ -72,6 +75,15 @@ func show_screen(screen_name: StringName) -> void:
 			_start_loading()
 		&"configuracion":
 			_screen = SettingsScreen.new()
+		&"final":
+			# Final del mundo (3-2 ganado): la imagen a pantalla completa y después LEVEL SELECT.
+			_screen = PsdScreen.new("")
+			var ending := Game.ending_image()
+			if ResourceLoader.exists(ending):
+				_screen.set_backdrop_image(load(ending), 0.0)
+			get_tree().create_timer(ENDING_SECONDS).timeout.connect(func() -> void:
+				if _current == &"final":
+					show_screen(&"seleccion_nivel"))
 		_:
 			_current = &"inicio"
 			# Con imagen de fondo no va la base del PSD (es solo el gris liso).
@@ -109,6 +121,11 @@ func _on_action(action_name: StringName) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _current == &"final" and event.is_pressed() and not event.is_echo() \
+			and (event is InputEventKey or event is InputEventMouseButton):
+		get_viewport().set_input_as_handled()
+		show_screen(&"seleccion_nivel")
+		return
 	var key := event as InputEventKey
 	if key != null and key.pressed and not key.echo and key.keycode == KEY_ESCAPE and BACK.has(_current):
 		show_screen(BACK[_current])

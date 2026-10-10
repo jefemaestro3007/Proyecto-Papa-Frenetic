@@ -38,6 +38,11 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Added
 
+- Pantalla de carga del final del mundo 2 (2-2 → 3-1); las imágenes de carga ahora van por mundo
+  (`Game.WORLD_LOADING`).
+- Final del mundo 3: al ganar 3-2, NEXT LEVEL muestra la ilustración de la protagonista con la gorra
+  en llamas en el centro comercial (`Game.WORLD_ENDING`) y vuelve a LEVEL SELECT (a los 6 s o con
+  cualquier tecla o clic).
 - Tutorial centrado en la premisa: al empezar 1-1 la protagonista cuenta que le pegaron una papa
   bomba (con el foco en la papa del HUD), cómo se calienta y que pelar papas zombi al ritmo la
   enfría, y luego los controles básicos; con la primera papa, que pelarla enfría la papa bomba. El

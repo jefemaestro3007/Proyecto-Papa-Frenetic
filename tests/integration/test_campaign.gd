@@ -28,6 +28,7 @@ func _ready() -> void:
 	await _test_win_stays()
 	await _test_pause()
 	await _test_progress()
+	await _test_world_ending()
 	await _test_danger()
 	await _test_elevator_sync()
 	Game.level_index = -1
@@ -57,7 +58,18 @@ func _test_level_list() -> void:
 	Game.level_index = 1
 	Game.arrived_by_next = true
 	_check(Game.loading_image().is_empty(), "1-1 → 1-2 con la carga normal")
+	_check(Game.WORLD_LOADING.values().all(func(path: String) -> bool: return ResourceLoader.exists(path)),
+			"existen las imágenes de carga de los mundos 2 y 3")
 	Game.arrived_by_next = false
+	# Final del mundo 3: solo al terminar 3-2 en la campaña.
+	_check(Game.WORLD_ENDING.values().all(func(path: String) -> bool: return ResourceLoader.exists(path)),
+			"existe la imagen del final del mundo 3")
+	Game.level_index = 5
+	_check(Game.ending_image() == Game.WORLD_ENDING[3], "al ganar 3-2, el final del mundo 3")
+	Game.level_index = 3
+	_check(Game.ending_image().is_empty(), "2-2 no tiene final (viene 3-1)")
+	Game.level_index = -1
+	_check(Game.ending_image().is_empty(), "abriendo la zona directo no hay final")
 
 
 ## 1-1: al empezar la protagonista cuenta la premisa (papa bomba, con el foco en la papa del HUD) y
@@ -223,6 +235,22 @@ func _test_progress() -> void:
 	DirAccess.remove_absolute(Game.progress_path)
 	Game.progress_path = real_path
 	Game.load_progress()
+
+
+## Pantalla del final del mundo 3: imagen a pantalla completa y una tecla pasa a LEVEL SELECT.
+func _test_world_ending() -> void:
+	Game.level_index = 5
+	Game.menu_screen = &"final"
+	var menu: MainMenu = load("res://src/ui/menus/main_menu.tscn").instantiate()
+	add_child(menu)
+	await _frames(2)
+	_check(menu.get("_current") == &"final", "NEXT LEVEL tras 3-2 abre el final del mundo")
+	await _press(KEY_ENTER)
+	_check(menu.get("_current") == &"seleccion_nivel", "una tecla pasa del final a LEVEL SELECT")
+	remove_child(menu)
+	menu.free()
+	Game.menu_screen = &"inicio"
+	Game.level_index = -1
 
 
 ## Botones ENTER de LEVEL SELECT (y que use el diseño de lo desbloqueado).
