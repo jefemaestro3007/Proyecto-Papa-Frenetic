@@ -9,7 +9,7 @@ var spawn: Vector2 = Vector2.ZERO
 ## Y por debajo de la cual se considera caída al vacío.
 var kill_y: float = 0.0
 var props: Array[Prop] = []
-var marks: Array[Mark] = []
+var marks: Array[MapMark] = []
 var cables: Array[Cable] = []
 var far: SkylineData = SkylineData.new()
 var near: SkylineData = SkylineData.new()
@@ -40,29 +40,6 @@ class Prop:
 		rect = p_rect
 		variant = p_variant
 		roof_index = p_roof_index
-
-
-## Marca sobre la fachada o el techo. `weight` (0..1) permite que cada estilo muestre
-## solo una fracción (p. ej. sangre: weight < blood_amount) sin regenerar el mapa.
-class Mark:
-	extends RefCounted
-	enum Type { BLOOD, CRACK, STAIN, RUBBLE, POSTER, GRAFFITI, WALL_UNIT, BONES }
-
-	## Las que se apoyan sobre el techo; el resto va en la fachada.
-	static func on_roof(mark_type: Type) -> bool:
-		return mark_type == Type.RUBBLE or mark_type == Type.BONES
-	var type: Type
-	var position: Vector2
-	var size: float
-	var weight: float
-	var variant: int
-
-	func _init(p_type: Type, p_position: Vector2, p_size: float, p_weight: float, p_variant: int) -> void:
-		type = p_type
-		position = p_position
-		size = p_size
-		weight = p_weight
-		variant = p_variant
 
 
 ## Cable colgado entre postes de dos azoteas vecinas.

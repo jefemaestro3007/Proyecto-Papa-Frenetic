@@ -86,6 +86,13 @@ const SKY_UNIFORMS: Array[StringName] = [&"burst_lines"]
 @export var window_dark: Color = FreneticPalette.NAVY_DARK
 @export var window_lit: Color = Color("ffb08a")
 
+@export_group("Interior")
+@export var wall_paper: Color = Color("33304d")
+@export var floor_color: Color = Color("24233a")
+@export var furniture: Color = Color("5b5878")
+@export var furniture_dark: Color = Color("2a2944")
+@export var paper: Color = FreneticPalette.CREAM
+
 @export_group("Post-proceso")
 ## Tamaño del pixel de pantalla (1 = sin pixelar).
 @export_range(1.0, 12.0) var pixel_size: float = 1.0

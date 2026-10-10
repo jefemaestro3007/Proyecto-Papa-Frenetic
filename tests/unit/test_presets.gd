@@ -10,6 +10,7 @@ const SECTIONS := {
 	"ritmo": "res://src/features/rhythm/rhythm_params.gd",
 	"efectos": "res://src/features/combat/impact_fx_params.gd",
 	"estilo": "res://src/world/environment/art_style.gd",
+	"oficinas": "res://src/world/generation/oficinas/oficinas_params.gd",
 }
 const TMP_DIR := "user://test_presets/"
 

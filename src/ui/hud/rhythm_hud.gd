@@ -63,6 +63,19 @@ func popup(judgment: int, screen_position: Vector2, points: int) -> void:
 	tween.chain().tween_callback(label.queue_free)
 
 
+## Anuncio grande y centrado (p. ej. al llegar a la salida).
+func banner(text: String) -> void:
+	var label := _make_label(72)
+	label.text = text
+	label.add_theme_color_override("font_color", FreneticPalette.YELLOW)
+	label.position = Vector2(size.x * 0.5 - 260.0, size.y * 0.35)
+	var tween := label.create_tween()
+	tween.tween_property(label, "scale", Vector2.ONE * 1.15, 0.15).from(Vector2.ONE * 0.6)
+	tween.tween_interval(1.4)
+	tween.tween_property(label, "modulate:a", 0.0, 0.5)
+	tween.tween_callback(label.queue_free)
+
+
 func _make_label(font_size: int) -> Label:
 	var label := Label.new()
 	label.add_theme_font_size_override("font_size", font_size)

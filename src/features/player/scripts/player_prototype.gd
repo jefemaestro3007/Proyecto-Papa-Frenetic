@@ -14,6 +14,8 @@ const SIZE := Vector2(44.0, 88.0)
 
 var params := PlayerParams.new()
 var facing := 1.0
+## Movido por la zona (escaleras, ascensor): sin física ni colisión.
+var scripted := false
 
 var _was_on_floor := true
 var _air_top_y := 0.0
@@ -25,15 +27,19 @@ var _spin_left := 0.0
 var _boost := 1.0
 var _boost_left := 0.0
 var _stumble_left := 0.0
+var _collision: CollisionShape2D
 
 
 func _ready() -> void:
-	var shape := RectangleShape2D.new()
-	shape.size = SIZE
-	var collision := CollisionShape2D.new()
-	collision.shape = shape
-	collision.position.y = -SIZE.y * 0.5
-	add_child(collision)
+	# Cápsula: en suelo plano es igual a un rectángulo, pero resbala de puntas y cornisas
+	# en vez de quedarse apoyada en un vértice.
+	var shape := CapsuleShape2D.new()
+	shape.radius = SIZE.x * 0.5
+	shape.height = SIZE.y
+	_collision = CollisionShape2D.new()
+	_collision.shape = shape
+	_collision.position.y = -SIZE.y * 0.5
+	add_child(_collision)
 
 
 ## Multiplica el impulso del salto en curso (llamar dentro de `jumped`).
@@ -63,24 +69,44 @@ func reset_state() -> void:
 	_buffer_left = 0.0
 
 
+## La zona toma el control (escaleras, ascensor): sin física ni colisión hasta `end_scripted`.
+func begin_scripted() -> void:
+	scripted = true
+	velocity = Vector2.ZERO
+	_fast_falling = false
+	_collision.disabled = true
+
+
+func end_scripted(at: Vector2) -> void:
+	position = at
+	scripted = false
+	velocity = Vector2.ZERO
+	_collision.disabled = false
+	_was_on_floor = true
+	_air_top_y = at.y
+
+
 func is_fast_falling() -> bool:
 	return _fast_falling
 
 
 func _physics_process(delta: float) -> void:
+	if scripted:
+		return
 	var blocked := _text_field_focused()
 	var fall_speed := velocity.y
 	var on_floor := is_on_floor()
 
 	_coyote_left = params.coyote_time if on_floor else maxf(_coyote_left - delta, 0.0)
 	_buffer_left = maxf(_buffer_left - delta, 0.0)
-	if not blocked and (Input.is_action_just_pressed("ui_accept") or Input.is_action_just_pressed("ui_up")):
+	# Solo Espacio salta: ↑ y ↓ quedan libres para escaleras, puertas y ascensores.
+	if not blocked and Input.is_action_just_pressed("ui_accept"):
 		_buffer_left = maxf(params.jump_buffer, delta)
 
 	if not on_floor:
 		var gravity := params.gravity * (params.fall_gravity_multiplier if velocity.y > 0.0 else 1.0)
 		velocity.y += gravity * delta
-		var jump_held := Input.is_action_pressed("ui_accept") or Input.is_action_pressed("ui_up")
+		var jump_held := Input.is_action_pressed("ui_accept")
 		# Salto variable: soltar mientras sube recorta el impulso una sola vez.
 		if velocity.y < 0.0 and not jump_held and not _jump_cut_done:
 			velocity.y *= params.jump_cut
