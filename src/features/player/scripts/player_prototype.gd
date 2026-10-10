@@ -2,6 +2,8 @@ class_name PlayerPrototype
 extends CharacterBody2D
 ## Prototipo jugable del personaje: toda su configuración vive en `params` (PlayerParams).
 ## Emite sus acciones para que el sistema de ritmo las juzgue y aplique recompensas o castigos.
+## Se dibuja con los sprites de `assets/textures/sprites/player/` (generados por
+## `tools/scripts/build_player_sprites.gd`); si faltan, con el dibujo provisional.
 
 signal jumped
 signal turned(direction: float)
@@ -14,6 +16,18 @@ signal dash_started(direction: float)
 
 const SIZE := Vector2(44.0, 88.0)
 const ATTACK_SECONDS := 0.16
+const SPRITE_DIR := "res://assets/textures/sprites/player/"
+## Los PNG están al doble de resolución (ver build_player_sprites.gd).
+const SPRITE_SCALE := 0.5
+const SPRITE_NAMES: Array[StringName] = [
+	&"guardia_derecha", &"guardia_izquierda", &"correr_0", &"correr_1", &"correr_2", &"correr_3",
+	&"aire", &"aterrizaje", &"dash", &"ataque_aereo",
+]
+## Cuánto dura la pose de aterrizaje.
+const LAND_POSE_SECONDS := 0.12
+## Frames de correr por beat: el paso va al ritmo.
+const RUN_FRAMES_PER_BEAT := 4
+const RUN_MIN_SPEED := 40.0
 
 var params := PlayerParams.new()
 var facing := 1.0
@@ -38,6 +52,8 @@ var _invulnerable_left := 0.0
 var _dash_left := 0.0
 var _dash_direction := 1.0
 var _dash_cooldown_left := 0.0
+var _land_left := 0.0
+var _sprites := {}
 
 
 func _ready() -> void:
@@ -50,6 +66,10 @@ func _ready() -> void:
 	_collision.shape = shape
 	_collision.position.y = -SIZE.y * 0.5
 	add_child(_collision)
+	for sprite_name in SPRITE_NAMES:
+		var path := SPRITE_DIR + sprite_name + ".png"
+		if ResourceLoader.exists(path):
+			_sprites[sprite_name] = load(path)
 
 
 ## Multiplica el impulso del salto en curso (llamar dentro de `jumped`).
@@ -220,6 +240,7 @@ func _physics_process(delta: float) -> void:
 	elif not _was_on_floor:
 		var forced := _fast_falling
 		_fast_falling = false
+		_land_left = LAND_POSE_SECONDS
 		landed.emit(fall_speed, forced, position.y - _air_top_y)
 	_was_on_floor = is_on_floor()
 
@@ -254,6 +275,7 @@ func _process(delta: float) -> void:
 	_spin_left = maxf(_spin_left - delta, 0.0)
 	_attack_left = maxf(_attack_left - delta, 0.0)
 	_invulnerable_left = maxf(_invulnerable_left - delta, 0.0)
+	_land_left = maxf(_land_left - delta, 0.0)
 	queue_redraw()
 
 
@@ -267,7 +289,8 @@ func _draw() -> void:
 	if _fast_falling:
 		squash = Vector2(0.8, 1.25)
 	if is_dashing():
-		squash = Vector2(1.35, 0.78)
+		# El sprite del dash ya viene estirado; el dibujo provisional se estira a mano.
+		squash = Vector2.ONE if _sprites.has(&"dash") else Vector2(1.35, 0.78)
 		# Estelas horizontales detrás del dash.
 		for i in 3:
 			var y := -SIZE.y * (0.25 + 0.25 * i)
@@ -288,14 +311,28 @@ func _draw() -> void:
 			draw_line(Vector2(x, -SIZE.y - 20.0), Vector2(x, -SIZE.y - 90.0 - i * 20.0),
 					FreneticPalette.CREAM, 5.0)
 
-	if _attack_left > 0.0:
+	var pose := _pose()
+	# El ataque aéreo trae su propio tajo dibujado en el sprite.
+	if _attack_left > 0.0 and pose != &"ataque_aereo":
 		_draw_slash()
 	# Parpadeo mientras es invulnerable tras un golpe.
 	if _invulnerable_left > 0.0 and fmod(_invulnerable_left, 0.12) < 0.06:
 		return
 
-	draw_set_transform_matrix(Transform2D(0.0, squash, 0.0, Vector2.ZERO)
-			* Transform2D(angle, pivot) * Transform2D(0.0, -pivot))
+	var body_transform := Transform2D(0.0, squash, 0.0, Vector2.ZERO) \
+			* Transform2D(angle, pivot) * Transform2D(0.0, -pivot)
+	var texture: Texture2D = _sprites.get(pose)
+	if texture != null:
+		# Los sprites miran a la derecha; la guardia tiene su propia pose hacia la izquierda.
+		var flip := facing < 0.0 and not String(pose).begins_with("guardia")
+		draw_set_transform_matrix(body_transform * Transform2D(0.0, Vector2(-1.0 if flip else 1.0, 1.0),
+				0.0, Vector2.ZERO))
+		var size := texture.get_size() * SPRITE_SCALE
+		draw_texture_rect(texture, Rect2(Vector2(-size.x * 0.5, -size.y), size), false)
+		draw_set_transform(Vector2.ZERO)
+		return
+
+	draw_set_transform_matrix(body_transform)
 	var body := Rect2(-SIZE.x * 0.5, -SIZE.y, SIZE.x, SIZE.y)
 	draw_rect(body, FreneticPalette.CREAM)
 	draw_rect(Rect2(body.position, Vector2(SIZE.x, 22.0)), FreneticPalette.SKY)
@@ -306,6 +343,21 @@ func _draw() -> void:
 	draw_circle(Vector2(look - 8.0, -SIZE.y + 36.0), eye, FreneticPalette.INK)
 	draw_circle(Vector2(look + 8.0, -SIZE.y + 36.0), eye, FreneticPalette.INK)
 	draw_rect(body, FreneticPalette.INK, false, 4.0)
+
+
+## Pose del sprite según el estado. El ataque en el suelo usa la guardia (espada en alto) más el tajo.
+func _pose() -> StringName:
+	if is_dashing():
+		return &"dash"
+	if _attack_left > 0.0 and _attack_air:
+		return &"ataque_aereo"
+	if not scripted and not is_on_floor():
+		return &"aire"
+	if _land_left > 0.0:
+		return &"aterrizaje"
+	if absf(velocity.x) > RUN_MIN_SPEED and not scripted:
+		return StringName("correr_%d" % posmod(floori(Conductor.beat_position() * RUN_FRAMES_PER_BEAT), 4))
+	return &"guardia_derecha" if facing > 0.0 else &"guardia_izquierda"
 
 
 func _draw_slash() -> void:

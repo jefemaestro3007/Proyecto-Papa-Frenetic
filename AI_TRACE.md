@@ -315,3 +315,17 @@ Files: `AI_TRACE.md`
 Change: Primero se creó `feature/sprites` desde `origin/develop` (`6a0385c`), con un commit local `0bc5ca4` que solo traía este archivo. Después, a pedido del usuario, esa rama se borró sin subirse y se volvió a crear `feature/sprites` desde `origin/feature/rhythm-combat-restored` (`f61baa3`). Se borró la rama local `feature/rhythm-combat`, con la etiqueta local de respaldo `respaldo-rhythm-combat` en `560262d`; `origin/feature/rhythm-combat` no se tocó. El `develop` local se actualizó a `origin/develop`. Se agregaron arriba las entradas posteriores a `f61baa3`.
 Commit: PENDING (se commitea junto con esta entrada)
 Notes: `feature/rhythm-combat-restored` no tiene los arreglos posteriores a `f61baa3` (puntos solo por combate, espera del stomp, ventana BIEN ±90 ms, W/Espacio, persecución por plataforma). Al cambiar de rama se descartaron los 4 `.wav` de develop que aparecían modificados solo por Git LFS (su contenido estaba en el commit `10fa959`) y se borraron sus `.wav.import`, que Godot había generado. Sin push.
+
+### Sprites del jugador
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "No los traigas" (no traer a esta rama los arreglos de feature/rhythm-combat). "Te acabo de subir los sprites de las acciones del personaje, necesito que los incluyas en las acciones del jugador". Mapa de poses confirmado por el usuario: imagen 1 = aire / aterrizaje; imagen 2 = correr; imagen 3 = dash; imagen 4 = de espaldas mirando a la izquierda y de frente mirando a la derecha; imagen 5 = ataque aéreo; recortar el cuadriculado del correr automáticamente.
+Task: Integrar los sprites del personaje.
+Type: CODE (AI) / ART PIPELINE / DOCS
+Files: `assets_src/sprites/player/*` (5 dibujos originales del equipo, sin modificar), `assets/textures/sprites/player/*.png` (+ `.import`), `tools/scripts/build_player_sprites.gd`, `src/features/player/scripts/player_prototype.gd`, `docs/development/sprites.md`, `docs/README.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: Herramienta que quita el fondo de cuadriculado pintado (relleno desde los bordes que se detiene en el contorno negro, huecos con los tonos del cuadriculado y manchas sueltas), separa las poses, las escala con la gorra roja como referencia y ancla los pies. `PlayerPrototype._pose()` elige la pose: dash, ataque aéreo, aire, aterrizaje (0,12 s), correr (4 frames por beat) o guardia según hacia dónde mira; el ataque en el suelo usa la guardia con el tajo dibujado. Si faltan los PNG, se dibuja el rectángulo provisional.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Los dibujos son del equipo; la IA solo los procesó. Se revisó el resultado en capturas: los frames quedaron limpios sobre fondo oscuro, y el juego se probó quieto en ambas direcciones, corriendo, atacando y en el aire. La guardia (espada en alto) se usa también como pose de reposo porque no hay una pose de reposo dibujada. Pruebas: `test_controls`, `test_presets`, `test_combat_match` y `test_oficinas_traversal` (12 casos) en verde. Sin push.

@@ -10,3 +10,4 @@
 | [game-design/zonas/oficinas.md](game-design/zonas/oficinas.md) | Zona Oficinas: controles, elementos, garantías de la generación, realismo. |
 | [development/gitflow.md](development/gitflow.md) | Flujo de ramas, commits y releases. |
 | [development/testing.md](development/testing.md) | Tests unitarios, de integración y capturas. |
+| [development/sprites.md](development/sprites.md) | Sprites del jugador: herramienta de recorte y mapa de poses. |
