@@ -535,6 +535,24 @@ Notes: Objetos LFS del menú bajados con `curl` por el mismo "connection reset" 
 
 ---
 
+Rama `feature/sfx` (nace de `develop`). Misma sesión de trabajo del 2026-10-10.
+
+### Efectos de sonido en la partida
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (autor de Git: 14mn0t4b0t)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "Vamos con los cambios en assets/audio/sfx, vamos a implementarlos, crea una rama pregunatame donde se va a implementar cada sonido". Respuestas: daño con voz al recibir daño, alternando; golpes, alternando al azar en cada golpe; FloorStamp, alternando al azar en cada stomp; ErrorSoundEffect en cualquier MISS.
+Task: Integrar los 7 WAV de `assets/audio/sfx/` (PR #7) a los eventos de la partida.
+Type: CODE (AI) / AUDIO / DOCS / TESTING
+Files: `src/features/audio/{sound_effect.gd,sfx_player.gd}` (nuevos), `src/shared/resources/sfx/*.tres` (7, nuevos), `assets/audio/sfx/*.wav.import`, `src/features/rhythm/rhythm_params.gd`, `src/world/levels/zone_level.gd`, `tests/integration/test_sfx.gd`, `tests/test_scenes/sfx.tscn`, `docs/architecture/overview.md`, `docs/development/testing.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: `SoundEffect` (stream, volumen, variación de tono) y `SfxPlayer` (agrupa los `.tres` por prefijo, variante al azar sin repetir la anterior, pool de 8 reproductores; en headless solo registra en `history`). Grupos: `hit` (golpe que entra), `stomp` (cada caída forzada), `hurt` (tocar una papa o papa frita), `miss` (cualquier MISS salvo aterrizar, que no es una acción del jugador). Los WAV duran 3,4 s con silencio y las voces empiezan a los 0,27–0,36 s: se importan con `edit/trim`. Voces +6 dB (pico −14 dB frente a −3 dB del resto). `sfx_enabled` y `sfx_volume_db` en `RhythmParams`, con controles en Ritmo → Efectos.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Los WAV no se commitean: siguen sin LFS como los de la música. Al volver a `develop` con el filtro LFS apagado las imágenes quedaron como punteros y Godot marcó sus `.import` como `valid=false`; se restauraron desde la caché de LFS y desde Git (sin cambios en el repo). Importación sin errores; 7 tests unitarios, `test_combat_match`, `test_rhythm_rewards`, `test_oficinas_traversal` y `test_sfx` en verde; Azotea y Oficinas corren con ventana sin errores. Los sonidos no se escucharon (sin salida de audio en esta sesión): falta probarlos de oído. Sin push hasta que el usuario lo autorice.
+
+---
+
 Rama `feature/levels` (nace de `develop` en `eab85ca`).
 
 ### Niveles 1 y 2 con subniveles y tutorial
@@ -564,3 +582,17 @@ Files: `assets_src/ui/menu/seleccion_nivel_{2,3}.psd` (diseños del equipo, sin 
 Change: Esc pausa el árbol y, con `Conductor.set_paused`, la canción y el beat. La pantalla PAUSE usa `PsdScreen` con `PauseArt` dibujado en código (no hay PSD de pausa), con los botones de YOU LOOSE / YOU WIN: CONTINUE (o Esc) sigue, BACK MENU vuelve al menú. `Game.unlocked_level` se guarda en `user://progreso.cfg` y entrar a un subnivel desbloquea su nivel. LEVEL SELECT usa `seleccion_nivel`, `_2` o `_3` según el progreso y pone ENTER solo en los niveles desbloqueados que tienen escena. La tercera tarjeta ya tiene su botón: el nivel 3 se conecta agregando sus subniveles a `Game.LEVELS` con `"nivel": 3`.
 Commit: PENDING (se commitea junto con esta entrada)
 Notes: La tarjeta del nivel 2 ya no deja entrar mientras está bloqueada (antes se había abierto para probar). Los PSD se convirtieron con `build_menu_screens.gd`; los PNG que ya existían quedaron iguales. `test_campaign` cubre la pausa con Esc real (nada avanza, ni el beat), el progreso con un archivo de prueba aparte y los botones de LEVEL SELECT. Capturas con ventana de PAUSE y de LEVEL SELECT 2. Todos los tests en verde. Sin push hasta que el usuario lo autorice.
+
+### Preparar feature/levels para el merge a develop
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "Prepárate para mergear con dev, con developer, pero aún no vamos a pushear. Vamos a asegurarnos primero de preparar el mergeo para poder hacer todo correctamente."
+Task: Commitear el trabajo de niveles e integrar `origin/develop` (efectos de sonido, PR #10) en `feature/levels` sin rebase, resolver conflictos y verificar.
+Type: PROCESS / DOCS / TESTING
+Files: `AI_TRACE.md`, `CHANGELOG.md`
+Change: Commit `707cc90` con los niveles, la pausa y el progreso. Merge de `origin/develop` (`6b9d691`): `zone_level.gd`, `testing.md` y el resto se combinaron solos. Los conflictos eran solo de texto: en CHANGELOG quedan las dos listas en `Added`, y en AI_TRACE el archivo de `develop` queda intacto con las entradas de `feature/levels` al final. Los `.wav.import` de los efectos, que Godot había generado sin seguimiento en esta copia, se borraron antes del merge para que entraran los de `develop`.
+Commit: PENDING (se commitea junto con esta entrada, en el commit de merge)
+Notes: Los efectos suenan desde un `SfxPlayer` hijo del nivel, así que también quedan en pausa con Esc. Sin push hasta que el usuario lo autorice.

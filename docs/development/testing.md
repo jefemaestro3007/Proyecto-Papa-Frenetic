@@ -45,12 +45,16 @@ El bot solo recorre: el test desactiva el calor y los enemigos.
 godot --headless --path . --fixed-fps 60 res://tests/test_scenes/combat_match.tscn
 godot --headless --path . --fixed-fps 60 res://tests/test_scenes/campaign.tscn
 godot --headless --path . res://tests/test_scenes/rhythm_rewards.tscn
+godot --headless --path . --fixed-fps 60 res://tests/test_scenes/sfx.tscn
 ```
 
 Juega la Azotea real: reparto de enemigos por tramo (`EnemyRoster`), calor pasivo, stomp que
 derrota a la común y rebota sobre el tanque, dash a tiempo, papa frita, hitstop que congela la
 acción sin desplazar los beats, game over al agotarse la mecha, reintento con Enter (misma seed)
 y victoria al llegar al final de la última azotea.
+
+`sfx` comprueba que los efectos de sonido cargan por grupo, que los WAV quedan recortados y qué
+evento pide cada sonido (golpe, stomp, daño, fallo; aterrizar fuera de ritmo no suena).
 
 ## Capturas para revisar lo visual
 

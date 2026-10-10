@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="SoundEffect" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/features/audio/sound_effect.gd" id="1_effect"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/FloorStampOne.wav" id="2_stream"]
+
+[resource]
+script = ExtResource("1_effect")
+stream = ExtResource("2_stream")
+volume_db = 0.0
+pitch_variation = 0.04

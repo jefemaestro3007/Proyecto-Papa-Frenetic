@@ -32,6 +32,9 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - Progreso guardado: llegar a un nivel lo desbloquea en LEVEL SELECT (diseños con 1, 2 y 3
   tarjetas); la tercera ya tiene su botón para cuando se agregue el nivel 3.
 - Test `test_campaign`; `test_oficinas_traversal` recorre también los edificios de 2-1 y 2-2.
+- Efectos de sonido (`SfxPlayer`, `SoundEffect`): golpe a una papa, stomp, daño recibido y fallo
+  de ritmo, con variantes al azar; WAV recortados al importar. Volumen en la pestaña Ritmo. Test
+  `test_sfx`.
 - Menú principal con las pantallas del equipo (START, NEW GAME, LEVEL SELECT, LOADING) como escena
   de inicio; el nivel 1 es la Azotea. YOU LOOSE y YOU WIN reemplazan el panel de texto del fin de
   partida (menú, reintentar, siguiente nivel). Herramienta `build_menu_screens.gd` que convierte los

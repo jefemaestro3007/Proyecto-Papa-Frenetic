@@ -75,6 +75,7 @@ var _tracker: RhythmTracker
 var _combat: CombatController
 var _hud: RhythmHud
 var _heat_hud: HeatHud
+var _sfx: SfxPlayer
 ## Pantalla de fin de partida (YOU WIN / YOU LOOSE del diseño), encima de todo.
 var _result_layer: CanvasLayer
 var _result: PsdScreen
@@ -350,6 +351,9 @@ func _build_runtime() -> void:
 
 	_world_light = CanvasModulate.new()
 	add_child(_world_light)
+
+	_sfx = SfxPlayer.new()
+	add_child(_sfx)
 
 	_tracker = RhythmTracker.new()
 	_tracker.judged.connect(_on_judged)
@@ -666,6 +670,9 @@ func _build_rhythm_section(section: DebugSection) -> void:
 		songs.append([track.title.get_slice(" (", 0), Conductor.play_track.bind(track)])
 	section.add_buttons(songs)
 	section.add_buttons([["Sin música", Conductor.stop_music], ["Reiniciar canción", Conductor.restart]])
+	section.add_group("Efectos")
+	section.add_toggle(r, &"sfx_enabled", "Efectos de sonido")
+	section.add_slider(r, &"sfx_volume_db", "Volumen efectos (dB)", -40, 6, 1)
 	section.add_group("Tempo")
 	section.add_slider(r, &"bpm", "BPM", 60, 240, 1)
 	section.add_toggle(r, &"metronome_enabled", "Metrónomo")
@@ -1088,6 +1095,7 @@ func _on_slam() -> void:
 	else:
 		_tracker.register_move_judgment(&"slam", judgment)
 	_stomp_cloud(1.6 if judgment == ConductorClock.Judgment.PERFECT else 1.3)
+	_sfx.play(&"stomp")
 	match judgment:
 		ConductorClock.Judgment.PERFECT:
 			_impact(impact_fx.slam_perfect)
@@ -1153,10 +1161,12 @@ func _on_hit_landed(enemy: Enemy, judgment: int, defeated: bool) -> void:
 	})
 	_shock = maxf(_shock, impact_fx.shock_for(strength) * 0.6)
 	_feel.hit(perfect, defeated)
+	_sfx.play(&"hit")
 
 
 func _on_player_hurt(enemy: Enemy) -> void:
 	_hurt_fx()
+	_sfx.play(&"hurt")
 	_add_heat(combat.contact_heat * enemy.contact_heat_scale, "¡AUCH!")
 
 
@@ -1184,6 +1194,7 @@ func _on_projectile_hit(at: Vector2) -> void:
 	_burst(at, 0.35, {"spread": 360.0, "fill": Color("f2c14e"), "debris": Color("f2c14e"),
 			"debris_alt": Color("d98e2b")})
 	_feel.add_trauma(0.22)
+	_sfx.play(&"hurt")
 	_add_heat(combat.projectile_heat, "¡PAPA FRITA!")
 
 
@@ -1222,6 +1233,9 @@ func _spawn_burst(strength: float) -> void:
 
 
 func _on_judged(action: StringName, judgment: int, _combo: int, points: int, hit: bool) -> void:
+	# Todo fallo suena, salvo aterrizar: no es una acción del jugador (ya se juzgó el salto).
+	if judgment == ConductorClock.Judgment.MISS and action != &"land":
+		_sfx.play(&"miss")
 	var heat := 0.0
 	if is_playing() and combat.heat_enabled:
 		var before := _heat.heat
