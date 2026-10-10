@@ -12,14 +12,18 @@ const SPAWN_OFFSET := 900.0
 const DETAIL_SALT := 0x0de7a11
 
 const PROP_WEIGHTS := {
-	AzoteaMapData.Prop.Type.AC_UNIT: 0.22,
-	AzoteaMapData.Prop.Type.WATER_TANK: 0.1,
-	AzoteaMapData.Prop.Type.ANTENNA: 0.14,
-	AzoteaMapData.Prop.Type.VENT: 0.2,
-	AzoteaMapData.Prop.Type.CHIMNEY: 0.1,
-	AzoteaMapData.Prop.Type.STAIR_HUT: 0.08,
-	AzoteaMapData.Prop.Type.SKYLIGHT: 0.1,
-	AzoteaMapData.Prop.Type.BILLBOARD: 0.06,
+	AzoteaMapData.Prop.Type.AC_UNIT: 0.16,
+	AzoteaMapData.Prop.Type.WATER_TANK: 0.08,
+	AzoteaMapData.Prop.Type.ANTENNA: 0.1,
+	AzoteaMapData.Prop.Type.VENT: 0.13,
+	AzoteaMapData.Prop.Type.CHIMNEY: 0.07,
+	AzoteaMapData.Prop.Type.STAIR_HUT: 0.06,
+	AzoteaMapData.Prop.Type.SKYLIGHT: 0.07,
+	AzoteaMapData.Prop.Type.BILLBOARD: 0.05,
+	AzoteaMapData.Prop.Type.BARREL: 0.1,
+	AzoteaMapData.Prop.Type.CRATES: 0.08,
+	AzoteaMapData.Prop.Type.SATELLITE_DISH: 0.05,
+	AzoteaMapData.Prop.Type.PIPE_RUN: 0.05,
 }
 ## Rangos de tamaño (ancho, alto) por tipo: [mín, máx].
 const PROP_SIZES := {
@@ -31,12 +35,20 @@ const PROP_SIZES := {
 	AzoteaMapData.Prop.Type.STAIR_HUT: [Vector2(120.0, 110.0), Vector2(160.0, 130.0)],
 	AzoteaMapData.Prop.Type.SKYLIGHT: [Vector2(90.0, 26.0), Vector2(140.0, 34.0)],
 	AzoteaMapData.Prop.Type.BILLBOARD: [Vector2(220.0, 200.0), Vector2(320.0, 260.0)],
+	AzoteaMapData.Prop.Type.BARREL: [Vector2(40.0, 54.0), Vector2(46.0, 62.0)],
+	AzoteaMapData.Prop.Type.CRATES: [Vector2(50.0, 50.0), Vector2(110.0, 104.0)],
+	AzoteaMapData.Prop.Type.SATELLITE_DISH: [Vector2(56.0, 64.0), Vector2(72.0, 84.0)],
+	AzoteaMapData.Prop.Type.PIPE_RUN: [Vector2(150.0, 30.0), Vector2(300.0, 44.0)],
 }
 const MARK_WEIGHTS := {
-	AzoteaMapData.Mark.Type.BLOOD: 0.28,
-	AzoteaMapData.Mark.Type.CRACK: 0.3,
-	AzoteaMapData.Mark.Type.STAIN: 0.24,
-	AzoteaMapData.Mark.Type.RUBBLE: 0.18,
+	AzoteaMapData.Mark.Type.BLOOD: 0.18,
+	AzoteaMapData.Mark.Type.CRACK: 0.18,
+	AzoteaMapData.Mark.Type.STAIN: 0.14,
+	AzoteaMapData.Mark.Type.RUBBLE: 0.12,
+	AzoteaMapData.Mark.Type.POSTER: 0.12,
+	AzoteaMapData.Mark.Type.GRAFFITI: 0.1,
+	AzoteaMapData.Mark.Type.WALL_UNIT: 0.08,
+	AzoteaMapData.Mark.Type.BONES: 0.08,
 }
 
 
@@ -97,11 +109,11 @@ static func _place_props(data: AzoteaMapData, rng: RandomNumberGenerator, roof: 
 
 ## Marcas: escombros sobre el techo; sangre, grietas y manchas en la fachada.
 static func _place_marks(data: AzoteaMapData, rng: RandomNumberGenerator, roof: Rect2, max_count: int) -> void:
-	for i in rng.randi_range(max_count / 3, max_count):
+	for i in rng.randi_range(max_count / 2, max_count):
 		var type: AzoteaMapData.Mark.Type = _weighted_pick(rng, MARK_WEIGHTS)
 		var x := rng.randf_range(roof.position.x + 30.0, roof.end.x - 30.0)
 		var y := roof.position.y
-		if type != AzoteaMapData.Mark.Type.RUBBLE:
+		if not AzoteaMapData.Mark.on_roof(type):
 			y += rng.randf_range(60.0, 480.0)
 		data.marks.append(AzoteaMapData.Mark.new(type, Vector2(x, y), rng.randf_range(0.6, 1.4),
 				rng.randf(), rng.randi()))

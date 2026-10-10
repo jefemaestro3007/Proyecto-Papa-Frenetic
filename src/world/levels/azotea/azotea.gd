@@ -364,7 +364,7 @@ func _build_map_section(section: DebugSection) -> void:
 	section.add_slider(params, &"max_step", "Escalón máximo (px)", 0, 200, 10)
 	section.add_group("Detalles")
 	section.add_slider(params, &"detail_density", "Densidad de objetos", 0.0, 1.0, 0.01)
-	section.add_slider(params, &"marks_per_roof", "Marcas por azotea", 0, 24, 1)
+	section.add_slider(params, &"marks_per_roof", "Marcas por azotea", 0, 32, 1)
 	section.add_slider(params, &"cable_chance", "Probabilidad de cable", 0.0, 1.0, 0.01)
 	section.add_group("Skyline")
 	section.add_slider(params, &"ruin", "Ruina", 0.0, 1.0, 0.01)

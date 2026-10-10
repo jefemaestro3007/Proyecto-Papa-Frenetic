@@ -25,7 +25,10 @@ class SkylineData:
 ## Objeto apoyado sobre una azotea. `rect` va de la base (sobre el techo) hacia arriba.
 class Prop:
 	extends RefCounted
-	enum Type { AC_UNIT, WATER_TANK, ANTENNA, VENT, CHIMNEY, STAIR_HUT, SKYLIGHT, BILLBOARD }
+	enum Type {
+		AC_UNIT, WATER_TANK, ANTENNA, VENT, CHIMNEY, STAIR_HUT, SKYLIGHT, BILLBOARD,
+		BARREL, CRATES, SATELLITE_DISH, PIPE_RUN,
+	}
 	var type: Type
 	var rect: Rect2
 	## Semilla propia para variaciones de dibujo deterministas.
@@ -43,7 +46,11 @@ class Prop:
 ## solo una fracción (p. ej. sangre: weight < blood_amount) sin regenerar el mapa.
 class Mark:
 	extends RefCounted
-	enum Type { BLOOD, CRACK, STAIN, RUBBLE }
+	enum Type { BLOOD, CRACK, STAIN, RUBBLE, POSTER, GRAFFITI, WALL_UNIT, BONES }
+
+	## Las que se apoyan sobre el techo; el resto va en la fachada.
+	static func on_roof(mark_type: Type) -> bool:
+		return mark_type == Type.RUBBLE or mark_type == Type.BONES
 	var type: Type
 	var position: Vector2
 	var size: float
