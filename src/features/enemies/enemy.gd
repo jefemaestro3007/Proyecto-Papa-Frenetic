@@ -14,6 +14,16 @@ const DEATH_LAUNCH := Vector2(620.0, 980.0)
 const SURVIVED_HIT_PUSH := 70.0
 const FACE_COLOR := Color("251d1a")
 const CHEEK_COLOR := Color("d85b4b")
+const SPRITE_DIR := "res://assets/textures/sprites/enemies/"
+## Los PNG están al doble de resolución (ver tools/scripts/build_enemy_sprites.gd).
+const SPRITE_SCALE := 0.5
+## Cuánto dura la pose de herido tras un golpe que aguanta.
+const HURT_POSE_SECONDS := 0.3
+## Distancia al jugador desde la que se muestra la pose de ataque.
+const ATTACK_POSE_DISTANCE := 150.0
+
+## Texturas compartidas por todos los enemigos: "<tipo>_<pose>" → Texture2D (o null si falta).
+static var _textures := {}
 
 @export var move_speed := 170.0
 @export var same_level_tolerance := 60.0
@@ -38,6 +48,9 @@ var _death_age := 0.0
 var _death_velocity := Vector2.ZERO
 var _spin_speed := 0.0
 var _flash := 0.0
+var _hurt_left := 0.0
+## Parte de arriba del dibujo actual (sprite o papa): ahí van los avisos y la vida.
+var _top_y := 0.0
 
 
 func _ready() -> void:
@@ -97,6 +110,7 @@ func receive_hit(direction: float, strong: bool, damage := 1) -> bool:
 		defeat(direction, strong)
 		return true
 	_flash = 1.0
+	_hurt_left = HURT_POSE_SECONDS
 	scale = Vector2(1.3, 0.75)
 	_apply_survived_hit_push(direction)
 	return false
@@ -138,6 +152,7 @@ func _process(delta: float) -> void:
 			queue_free()
 	scale = scale.lerp(Vector2.ONE, minf(1.0, delta * 12.0))
 	_flash = maxf(_flash - delta * 6.0, 0.0)
+	_hurt_left = maxf(_hurt_left - delta, 0.0)
 	_update_visuals(delta)
 	queue_redraw()
 
@@ -155,14 +170,57 @@ func _draw() -> void:
 	var squash := Vector2(1.0 + 0.1 * pulse, 1.0 - 0.12 * pulse)
 	draw_set_transform(_draw_offset(), 0.0, squash)
 	var center := Vector2(0.0, -body_radius)
-	_draw_before_body(center)
-	_draw_potato(center, body_radius, _body_color())
-	_draw_after_body(center)
-	if max_health > 1 and not _dying:
-		_draw_health_pips(center)
-	if _flash > 0.0:
-		draw_circle(center, body_radius + 2.0, Color(1.0, 1.0, 1.0, _flash))
+	var texture := sprite_texture(sprite_pose())
+	_top_y = -texture.get_height() * SPRITE_SCALE if texture != null else -body_radius * 2.0
+	if texture != null:
+		# Los dibujos miran a la izquierda: se espejan al mirar a la derecha. El golpe ilumina.
+		var size := texture.get_size() * SPRITE_SCALE
+		draw_set_transform(_draw_offset(), 0.0, squash * Vector2(-1.0 if facing > 0 else 1.0, 1.0))
+		var rect := Rect2(Vector2(-size.x * 0.5, -size.y), size)
+		# Contorno con el color del estilo: separa las papas rojas del cielo rojo.
+		var width := clampf(_outline_width() * 0.8, 2.0, 5.0)
+		for i in 8:
+			draw_texture_rect(texture, Rect2(rect.position + Vector2.from_angle(TAU * i / 8.0) * width, rect.size),
+					false, Color(_outline(), 0.9))
+		draw_texture_rect(texture, rect, false,
+				Color(1.0 + _flash, 1.0 + _flash, 1.0 + _flash))
+		draw_set_transform(_draw_offset(), 0.0, squash)
+	else:
+		_draw_before_body(center)
+		_draw_potato(center, body_radius, _body_color())
+		_draw_after_body(center)
+		if _flash > 0.0:
+			draw_circle(center, body_radius + 2.0, Color(1.0, 1.0, 1.0, _flash))
+	if not _dying:
+		_draw_indicators(center)
+		if max_health > 1:
+			_draw_health_pips(center)
 	draw_set_transform(Vector2.ZERO)
+
+
+## Pose del sprite: herido al recibir un golpe o al morir, ataque cerca del jugador, base si no.
+## Las variantes la cambian según su comportamiento (carga, lanzamiento...).
+func sprite_pose() -> StringName:
+	if _dying or _hurt_left > 0.0:
+		return &"herido"
+	if target != null and is_instance_valid(target) \
+			and body_center().distance_to(target.global_position) < ATTACK_POSE_DISTANCE + body_radius:
+		return &"ataque"
+	return &"base"
+
+
+## Textura de esta papa para una pose (null si no hay sprite: se dibuja la papa provisional).
+func sprite_texture(pose: StringName) -> Texture2D:
+	var key := "%s_%s" % [enemy_type, pose]
+	if not _textures.has(key):
+		var path := SPRITE_DIR + key + ".png"
+		_textures[key] = load(path) if ResourceLoader.exists(path) else null
+	return _textures[key]
+
+
+## Avisos de juego que se dibujan encima del sprite o de la papa provisional ("!", estrellas...).
+func _draw_indicators(_center: Vector2) -> void:
+	pass
 
 
 func _draw_offset() -> Vector2:
@@ -219,7 +277,7 @@ func _draw_potato(center: Vector2, radius: float, color: Color) -> void:
 
 func _draw_health_pips(center: Vector2) -> void:
 	for i in max_health:
-		var pip := center + Vector2((i - (max_health - 1) * 0.5) * 18.0, -body_radius - 22.0)
+		var pip := Vector2(center.x + (i - (max_health - 1) * 0.5) * 18.0, _top_y - 14.0)
 		draw_circle(pip, 7.0, Color(0.1, 0.08, 0.06, 0.85))
 		if i < health:
 			draw_circle(pip, 5.0, Color("ef6657"))

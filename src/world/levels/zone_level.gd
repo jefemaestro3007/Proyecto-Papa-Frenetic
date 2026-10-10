@@ -15,6 +15,7 @@ const PRESETS := "res://src/shared/resources/presets/"
 const MUSIC := "res://src/shared/resources/music/"
 const DEFAULT_LOOK := "rojo_frenetico"
 const STYLES: Array[String] = ["default", "pixel", "isaac"]
+const STOMP_CLOUD := "res://assets/textures/sprites/fx/stomp_nube.png"
 
 const FAR_SCROLL := Vector2(0.15, 0.08)
 const NEAR_SCROLL := Vector2(0.4, 0.22)
@@ -859,8 +860,8 @@ func _update_heat(delta: float) -> void:
 	_heat_hud.update_fuse(_heat.fuse_left)
 	_heat_hud.set_intensity(intensity, overheated)
 	_feel.set_intensity(intensity, overheated)
-	_heat_hud.update_dash(player_params.dash_enabled and is_playing(), _player.dash_cooldown_left(),
-			not _player.is_on_floor())
+	_heat_hud.update_dash(player_params.dash_enabled and is_playing(), _player.dash_cooldown_left(), player_params.dash_cooldown,
+			not _player.is_on_floor(), _player.facing)
 
 
 ## Suma (o resta) calor durante la partida y lo anuncia sobre el jugador.
@@ -972,6 +973,7 @@ func _on_slam() -> void:
 		_tracker.register_judgment(&"slam", judgment, true, player_params.slam_points_multiplier)
 	else:
 		_tracker.register_move_judgment(&"slam", judgment)
+	_stomp_cloud(1.6 if judgment == ConductorClock.Judgment.PERFECT else 1.3)
 	match judgment:
 		ConductorClock.Judgment.PERFECT:
 			_impact(impact_fx.slam_perfect)
@@ -980,6 +982,16 @@ func _on_slam() -> void:
 		_:
 			_player.stumble()
 			_impact(impact_fx.slam_miss)
+
+
+## Nube del stomp (sprite del equipo) a los pies del jugador.
+func _stomp_cloud(strength: float) -> void:
+	if not ResourceLoader.exists(STOMP_CLOUD):
+		return
+	var cloud := ImpactSprite.new(load(STOMP_CLOUD), strength)
+	cloud.position = _player.position + Vector2(0.0, 6.0)
+	cloud.z_index = 55
+	add_child(cloud)
 
 
 ## Ataque de caída: estallido + glitch y temblor proporcionales a la intensidad.

@@ -23,6 +23,13 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Added
 
+- HUD del calor: papa bomba en 5 etapas (dibujos del equipo) con el manómetro incrustado y alarma
+  desde 80 de calor (vibración, halos rojos); indicador del dash: cuadrado con flecha, verde listo,
+  rojo recargándose.
+- Sprites del jugador (guardia, correr al ritmo, aire, aterrizaje, dash, ataque aéreo) y la
+  herramienta `tools/scripts/build_player_sprites.gd` que los recorta, escala y ancla.
+- Sprites de los cinco enemigos (base, ataque, herido) con contorno del estilo, y la flecha y la
+  nube del stomp; herramienta `tools/scripts/build_enemy_sprites.gd`.
 - Música real en las zonas: `MusicTrack` (canción, BPM y primer beat medidos del audio) y el
   `Conductor` sigue la posición de reproducción para que los beats caigan sobre la música.
   Azotea: nivel uno (177 BPM); Oficinas: industrial (175 BPM). Controles en la pestaña Ritmo.
