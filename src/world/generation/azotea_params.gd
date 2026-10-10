@@ -43,6 +43,22 @@ extends Resource
 		max_step = value
 		emit_changed()
 
+@export_group("Detalles")
+## Densidad de objetos sobre las azoteas (aires, tanques, antenas...).
+@export_range(0.0, 1.0) var detail_density: float = 0.55:
+	set(value):
+		detail_density = value
+		emit_changed()
+## Marcas (sangre, grietas, manchas, escombros) por azotea, como máximo.
+@export_range(0, 24) var decals_per_roof: int = 8:
+	set(value):
+		decals_per_roof = value
+		emit_changed()
+@export_range(0.0, 1.0) var cable_chance: float = 0.6:
+	set(value):
+		cable_chance = value
+		emit_changed()
+
 @export_group("Skyline (fondo)")
 @export_range(1024, 8192) var skyline_width: int = 4096:
 	set(value):
