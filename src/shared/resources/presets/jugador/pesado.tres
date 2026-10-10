@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PlayerParams" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/features/player/resources/player_params.gd" id="1_params"]
+
+[resource]
+script = ExtResource("1_params")
+max_speed = 480.0
+fall_gravity_multiplier = 1.6
+jump_force = 1150.0
+fast_fall_speed = 3000.0
+beat_bounce = 0.16
