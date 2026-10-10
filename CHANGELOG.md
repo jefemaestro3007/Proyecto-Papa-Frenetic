@@ -45,6 +45,21 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - Pantalla de carga propia al pasar de 1-2 a 2-1 con NEXT LEVEL (ilustración de la protagonista).
 - Peligro desde 70 de calor: canción de peligro (prod. by @1tynee) que sube de volumen hasta 100,
   mezclada con la del nivel (juntas o cruzada) y glitch leve en pantalla.
+- Nivel 3 **Bienestar U**: 3-1 Supermercado y 3-2 Centro comercial, generados por seed y con
+  perspectiva de un punto ("Perspectiva de Oferta"): piso, techo, pared del fondo, góndolas y
+  escaleras mecánicas que convergen en la cámara, con tintas planas y tragaluces al cielo rojo.
+  Mecánicas: racks que se derrumban tras unos beats debajo o encima (o con un stomp), freezers
+  que enfrían con tope y frenan, piso mojado, cintas de caja que avanzan en el beat, carritos para
+  montar y atropellar, escaleras mecánicas que cambian de sentido cada 4 compases (a contramano,
+  pasos a tiempo), cortinas metálicas que bajan por beats (se pasan en dash) y freidoras que
+  salpican a tempo. Solo papas vestidas. Conectado a la campaña (tercera tarjeta, NEXT LEVEL desde
+  2-2) con la canción del centro comercial. Bot de recorrido, tests del generador, de las
+  mecánicas y de recorrido; benchmark de ambas tiendas (no crece con el tamaño).
+- El nivel 3 usa los estilos **Default / Pixel / Isaac**: textura sucia compartida
+  (`ruin_grunge`), marcas de pared (grietas, manchas, sangre, afiches, grafitis) y de piso
+  (papeles, escombros, huesos, sangre), telarañas, trazo a mano, sombras proyectadas, ladrillos y
+  borde de luz (Pixel) y moscas que rondan las marcas (Isaac). El mobiliario jugable pasa a
+  dibujarse delante de las papas.
 - Papas vestidas de Bienestar U (nivel 3), sin enemigos nuevos: los tipos de siempre con
   accesorios dibujados en código y habilidades propias. Cliente (deja sus compras y el piso
   resbala), promotora (muestras en llamas: arde unos beats y deja fuego), reponedor (lanza el
