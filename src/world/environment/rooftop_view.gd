@@ -5,7 +5,6 @@ extends StyledCanvas
 ## Es estático: solo se redibuja al cambiar los datos o el estilo.
 
 const Prop := AzoteaMapData.Prop
-const Mark := AzoteaMapData.Mark
 
 const LIP := 10.0
 const RAIL_HEIGHT := 120.0
@@ -310,32 +309,32 @@ func _draw_prop_body(prop: Prop, r: Rect2, rng: RandomNumberGenerator) -> void:
 
 # --- Marcas --------------------------------------------------------------------------
 
-func _draw_mark(mark: Mark) -> void:
+func _draw_mark(mark: MapMark) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = mark.variant
 	match mark.type:
-		Mark.Type.BLOOD:
+		MapMark.Type.BLOOD:
 			if mark.weight < _style.blood_amount:
 				_draw_splatter(mark.position, 30.0 * mark.size, rng)
-		Mark.Type.CRACK:
+		MapMark.Type.CRACK:
 			if mark.weight < _style.crack_amount:
 				_draw_crack(mark.position, 90.0 * mark.size, rng)
-		Mark.Type.STAIN:
+		MapMark.Type.STAIN:
 			if mark.weight < _style.stain_amount:
 				var radius := Vector2(70.0, 34.0) * mark.size
 				_fill(_ellipse(mark.position, radius, 16, 0.25, rng), Color(_style.structure_dark, 0.55))
 				_fill(_ellipse(mark.position + Vector2(0.0, radius.y), Vector2(radius.x * 0.2, radius.y * 2.0), 10,
 						0.2, rng), Color(_style.structure_dark, 0.4))
-		Mark.Type.RUBBLE:
+		MapMark.Type.RUBBLE:
 			if mark.weight < _style.rubble_amount:
 				_draw_rubble(mark.position, mark.size, rng)
-		Mark.Type.POSTER:
+		MapMark.Type.POSTER:
 			if mark.weight < _style.poster_amount:
 				_draw_poster(mark.position, mark.size, rng)
-		Mark.Type.GRAFFITI:
+		MapMark.Type.GRAFFITI:
 			if mark.weight < _style.graffiti_amount:
 				_draw_graffiti(mark.position, mark.size, rng)
-		Mark.Type.WALL_UNIT:
+		MapMark.Type.WALL_UNIT:
 			if mark.weight < _style.wall_unit_amount:
 				var unit := Rect2(mark.position - Vector2(32.0, 22.0), Vector2(64.0, 44.0))
 				_shape(PackedVector2Array([unit.position + Vector2(8.0, unit.size.y),
@@ -344,7 +343,7 @@ func _draw_mark(mark: Mark) -> void:
 				for k in 4:
 					var x := unit.position.x + 12.0 + k * 10.0
 					draw_line(Vector2(x, unit.position.y + 8.0), Vector2(x, unit.end.y - 8.0), _style.structure_dark, 3.0)
-		Mark.Type.BONES:
+		MapMark.Type.BONES:
 			if mark.weight < _style.bones_amount:
 				_draw_bones(mark.position, mark.size, rng)
 

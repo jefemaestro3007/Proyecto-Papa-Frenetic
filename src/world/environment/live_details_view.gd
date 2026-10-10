@@ -39,7 +39,7 @@ func setup(data: AzoteaMapData, style: ArtStyle) -> void:
 				_add_fly_anchor(prop.rect.get_center() - Vector2(0.0, 50.0), prop.variant, -1, 0.0)
 	for mark in data.marks:
 		match mark.type:
-			AzoteaMapData.Mark.Type.BLOOD, AzoteaMapData.Mark.Type.BONES, AzoteaMapData.Mark.Type.RUBBLE:
+			MapMark.Type.BLOOD, MapMark.Type.BONES, MapMark.Type.RUBBLE:
 				_add_fly_anchor(mark.position + Vector2(0.0, -20.0), mark.variant, mark.type, mark.weight)
 	queue_redraw()
 
@@ -54,11 +54,11 @@ func _add_fly_anchor(point: Vector2, variant: int, kind: int, weight: float) -> 
 
 func _anchor_visible(index: int) -> bool:
 	match _fly_kinds[index]:
-		AzoteaMapData.Mark.Type.BLOOD:
+		MapMark.Type.BLOOD:
 			return _fly_weights[index] < _style.blood_amount
-		AzoteaMapData.Mark.Type.BONES:
+		MapMark.Type.BONES:
 			return _fly_weights[index] < _style.bones_amount
-		AzoteaMapData.Mark.Type.RUBBLE:
+		MapMark.Type.RUBBLE:
 			return _fly_weights[index] < _style.rubble_amount
 	return true
 
