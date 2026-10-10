@@ -11,8 +11,9 @@ godot --path . res://src/world/levels/azotea/azotea.tscn
 
 | Acción | Tecla |
 |---|---|
-| Mover / saltar | ←/→ · Espacio |
-| Caída forzada (en el aire) | ↓ |
+| Mover / saltar | A/D (o ←/→) · Espacio |
+| Atacar | J o clic izquierdo |
+| Caída forzada (en el aire) | S (o ↓) |
 | Menú de debug · cambiar estilo | Tab · F2 |
 | Seed aleatoria / siguiente / anterior | R / N / P |
 

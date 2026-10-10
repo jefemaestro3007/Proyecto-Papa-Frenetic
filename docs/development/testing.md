@@ -7,6 +7,7 @@ Todos corren headless con el binario de Godot 4.7. Salen con código 0 si pasan.
 ```bash
 godot --headless --path . --script res://tests/unit/test_azotea_generator.gd
 godot --headless --path . --script res://tests/unit/test_presets.gd
+godot --headless --path . --script res://tests/unit/test_controls.gd
 godot --headless --path . --script res://tests/unit/test_oficinas_layout.gd
 godot --headless --path . --script res://tests/unit/test_oficinas_generator.gd
 ```
@@ -15,6 +16,7 @@ godot --headless --path . --script res://tests/unit/test_oficinas_generator.gd
 |---|---|
 | `test_azotea_generator` | Determinismo, spawn sobre azotea, escalones saltables, siluetas válidas, detalles dentro de su azotea, ventanas del skyline dentro de su edificio (verificación independiente por muestreo). |
 | `test_presets` | Todos los presets cargan con su tipo; exportar y volver a cargar conserva los valores. |
+| `test_controls` | Mapa de controles: WASD + flechas, Espacio para saltar, J o clic izquierdo para atacar. |
 | `test_oficinas_layout` | 1160 edificios (modos de final, tamaños extremos, configuraciones aleatorias): salida alcanzable, sin trampas desde ningún lugar, sin atascos por llaves (espacio de estados), determinismo, pasillos al fondo enlazados, llaves en lugares válidos, alternativas de ruta. |
 | `test_oficinas_generator` | Áreas al fondo fuera del edificio y sin superponerse, cada puerta al fondo con su área, llaves en su habitación o en el edificio, escaleras dentro de su módulo, puertas coherentes con la topología. |
 
