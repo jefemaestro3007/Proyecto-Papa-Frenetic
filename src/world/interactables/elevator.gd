@@ -40,6 +40,9 @@ var _look := []
 
 
 func setup(p_spec: OficinasMapData.ElevatorSpec, p_data: OficinasMapData, p_style: ArtStyle, params: OficinasParams) -> void:
+	# La cabina se mueve antes que la zona en cada frame: así el pasajero, la máscara de visión y la
+	# cámara se ubican sobre su posición de este frame y no la del anterior.
+	process_priority = -1
 	spec = p_spec
 	data = p_data
 	style = p_style
