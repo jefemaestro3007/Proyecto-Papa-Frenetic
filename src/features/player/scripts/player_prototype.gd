@@ -9,6 +9,8 @@ signal fast_fall_started
 ## `forced` = el aterrizaje venía de una caída forzada (su timing sí cuenta como intencional).
 ## `fall_height` = px desde el punto más alto del tramo aéreo hasta el suelo.
 signal landed(impact_speed: float, forced: bool, fall_height: float)
+## Dash iniciado (Shift, solo en el suelo) hacia `direction`.
+signal dash_started(direction: float)
 
 const SIZE := Vector2(44.0, 88.0)
 const ATTACK_SECONDS := 0.16
@@ -33,6 +35,9 @@ var _attack_left := 0.0
 var _attack_air := false
 var _attack_connected := false
 var _invulnerable_left := 0.0
+var _dash_left := 0.0
+var _dash_direction := 1.0
+var _dash_cooldown_left := 0.0
 
 
 func _ready() -> void:
@@ -83,9 +88,39 @@ func hurt(from_x: float, knockback: Vector2, invulnerable_seconds: float) -> voi
 	_fast_falling = false
 
 
-## Durante la caída forzada, el viaje guiado o tras un golpe, los enemigos no dañan.
+## Rebote contra una papa que aguanta (stomp o dash contra un tanque): sin daño ni aturdimiento.
+func recoil(from_x: float) -> void:
+	var side := signf(position.x - from_x)
+	if side == 0.0:
+		side = -facing
+	_dash_left = 0.0
+	_fast_falling = false
+	velocity = Vector2(side * params.recoil_x, -params.recoil_y)
+	_invulnerable_left = maxf(_invulnerable_left, params.recoil_invulnerable)
+
+
+## Roce de un proyectil: solo un instante de invulnerabilidad (parpadeo), sin empuje.
+func graze(invulnerable_seconds: float) -> void:
+	_invulnerable_left = maxf(_invulnerable_left, invulnerable_seconds)
+
+
+func is_dashing() -> bool:
+	return _dash_left > 0.0
+
+
+func cancel_dash() -> void:
+	_dash_left = 0.0
+
+
+## Segundos hasta poder volver a usar el dash (0 = listo).
+func dash_cooldown_left() -> float:
+	return _dash_cooldown_left
+
+
+## Durante la caída forzada, el dash, el viaje guiado o tras un golpe, los enemigos no dañan
+## (el contacto del stomp y el dash lo resuelve el combate).
 func is_invulnerable() -> bool:
-	return scripted or _invulnerable_left > 0.0 or _fast_falling
+	return scripted or _invulnerable_left > 0.0 or _fast_falling or is_dashing()
 
 
 func reset_state() -> void:
@@ -96,6 +131,8 @@ func reset_state() -> void:
 	_stumble_left = 0.0
 	_buffer_left = 0.0
 	_invulnerable_left = 0.0
+	_dash_left = 0.0
+	_dash_cooldown_left = 0.0
 
 
 ## La zona toma el control (escaleras, ascensor): sin física ni colisión hasta `end_scripted`.
@@ -103,6 +140,7 @@ func begin_scripted() -> void:
 	scripted = true
 	velocity = Vector2.ZERO
 	_fast_falling = false
+	_dash_left = 0.0
 	_collision.disabled = true
 
 
@@ -125,6 +163,14 @@ func _physics_process(delta: float) -> void:
 	var blocked := _text_field_focused()
 	var fall_speed := velocity.y
 	var on_floor := is_on_floor()
+
+	_dash_cooldown_left = maxf(_dash_cooldown_left - delta, 0.0)
+	if params.dash_enabled and not blocked and on_floor and not is_dashing() \
+			and _dash_cooldown_left <= 0.0 and Input.is_action_just_pressed("dash"):
+		_start_dash()
+	if is_dashing():
+		_process_dash(delta)
+		return
 
 	_coyote_left = params.coyote_time if on_floor else maxf(_coyote_left - delta, 0.0)
 	_buffer_left = maxf(_buffer_left - delta, 0.0)
@@ -178,6 +224,32 @@ func _physics_process(delta: float) -> void:
 	_was_on_floor = is_on_floor()
 
 
+## Dash horizontal hacia donde se apunta (o mira): sin gravedad ni control mientras dura.
+func _start_dash() -> void:
+	var direction := Input.get_axis("move_left", "move_right")
+	if direction != 0.0 and signf(direction) != facing:
+		facing = signf(direction)
+	_dash_direction = facing
+	_dash_left = params.dash_duration
+	_dash_cooldown_left = params.dash_cooldown
+	_fast_falling = false
+	_stumble_left = 0.0
+	velocity = Vector2(_dash_direction * params.dash_speed, 0.0)
+	dash_started.emit(_dash_direction)
+
+
+func _process_dash(delta: float) -> void:
+	velocity = Vector2(_dash_direction * params.dash_speed, 0.0)
+	move_and_slide()
+	_dash_left = maxf(_dash_left - delta, 0.0)
+	if not is_dashing():
+		# Conserva impulso al salir del dash.
+		velocity.x = _dash_direction * params.max_speed
+	_was_on_floor = is_on_floor()
+	if not _was_on_floor:
+		_air_top_y = position.y
+
+
 func _process(delta: float) -> void:
 	_spin_left = maxf(_spin_left - delta, 0.0)
 	_attack_left = maxf(_attack_left - delta, 0.0)
@@ -194,6 +266,14 @@ func _draw() -> void:
 	var squash := Vector2(1.0 + params.beat_bounce * pulse, 1.0 - params.beat_bounce * pulse)
 	if _fast_falling:
 		squash = Vector2(0.8, 1.25)
+	if is_dashing():
+		squash = Vector2(1.35, 0.78)
+		# Estelas horizontales detrás del dash.
+		for i in 3:
+			var y := -SIZE.y * (0.25 + 0.25 * i)
+			var back := -_dash_direction
+			draw_line(Vector2(back * SIZE.x * 0.6, y), Vector2(back * (SIZE.x * 1.6 + 30.0 * i), y),
+					FreneticPalette.CREAM, 6.0)
 	var angle := 0.0
 	if _spin_left > 0.0:
 		angle = (1.0 - _spin_left / params.spin_time) * TAU * facing

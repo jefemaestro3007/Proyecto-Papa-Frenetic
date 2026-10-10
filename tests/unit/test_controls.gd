@@ -1,5 +1,5 @@
 extends SceneTree
-## Verifica el mapa de controles del juego (WASD + flechas, Espacio, J/clic). Ejecutar:
+## Verifica el mapa de controles del juego (WASD + flechas, Espacio, J/clic, Shift/K). Ejecutar:
 ##   godot --headless --path . --script res://tests/unit/test_controls.gd
 
 const EXPECTED := {
@@ -9,6 +9,7 @@ const EXPECTED := {
 	"move_down": [KEY_S, KEY_DOWN],
 	"jump": [KEY_SPACE],
 	"attack": [KEY_J],
+	"dash": [KEY_SHIFT, KEY_K],
 }
 
 var _failures := 0
