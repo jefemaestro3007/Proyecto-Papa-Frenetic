@@ -23,6 +23,9 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Added
 
+- Efectos de sonido (`SfxPlayer`, `SoundEffect`): golpe a una papa, stomp, daño recibido y fallo
+  de ritmo, con variantes al azar; WAV recortados al importar. Volumen en la pestaña Ritmo. Test
+  `test_sfx`.
 - Menú principal con las pantallas del equipo (START, NEW GAME, LEVEL SELECT, LOADING) como escena
   de inicio; el nivel 1 es la Azotea. YOU LOOSE y YOU WIN reemplazan el panel de texto del fin de
   partida (menú, reintentar, siguiente nivel). Herramienta `build_menu_screens.gd` que convierte los
