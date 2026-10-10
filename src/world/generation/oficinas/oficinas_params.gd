@@ -60,6 +60,12 @@ enum EndMode { ARRIBA, ABAJO, DISTANCIA }
 	set(value):
 		branches = value
 		emit_changed()
+## Qué tan "edificio real" es: núcleos de escaleras y ascensores alineados, plantas que se
+## repiten piso a piso y daño concentrado en zonas (0 = todo al azar).
+@export_range(0.0, 1.0) var realism: float = 0.7:
+	set(value):
+		realism = value
+		emit_changed()
 ## Conectar zonas aisladas para que todo el edificio se pueda recorrer.
 @export var reach_everything: bool = true:
 	set(value):
@@ -80,6 +86,15 @@ enum EndMode { ARRIBA, ABAJO, DISTANCIA }
 	set(value):
 		fall_weight = value
 		emit_changed()
+## Pasillos al fondo que unen dos puertas (atajos, también entre pisos).
+@export_range(0.0, 4.0) var corridor_weight: float = 0.5:
+	set(value):
+		corridor_weight = value
+		emit_changed()
+@export_range(0, 2) var corridor_max_floors: int = 2:
+	set(value):
+		corridor_max_floors = value
+		emit_changed()
 @export_range(1, 12) var elevator_max_span: int = 5:
 	set(value):
 		elevator_max_span = value
@@ -91,8 +106,8 @@ enum EndMode { ARRIBA, ABAJO, DISTANCIA }
 		emit_changed()
 
 @export_group("Ascensores")
-## Pesos de cada comportamiento: local (para en cada piso), expreso (solo extremos),
-## a demanda (se mueve al subirse) y averiado (local con tirones y paradas).
+## Pesos de cada tipo: local (para en cada piso), expreso (solo extremos), de servicio
+## (para en cada piso, más lento en llegar) y averiado (local con sacudidas y luces que fallan).
 @export_range(0.0, 4.0) var elevator_local_weight: float = 1.0:
 	set(value):
 		elevator_local_weight = value
@@ -109,15 +124,17 @@ enum EndMode { ARRIBA, ABAJO, DISTANCIA }
 	set(value):
 		elevator_faulty_weight = value
 		emit_changed()
-@export_range(0.0, 16.0) var elevator_wait_beats: float = 4.0:
+## Tiempo máximo que tarda en llegar la cabina al llamarla.
+@export_range(0.2, 2.0) var elevator_call_seconds: float = 1.2:
 	set(value):
-		elevator_wait_beats = value
+		elevator_call_seconds = value
 		emit_changed()
-@export_range(0.25, 8.0) var elevator_beats_per_floor: float = 1.5:
+## Duración máxima de un viaje completo (de un extremo al otro).
+@export_range(0.3, 1.5) var elevator_trip_seconds: float = 1.2:
 	set(value):
-		elevator_beats_per_floor = value
+		elevator_trip_seconds = value
 		emit_changed()
-## Arrancar y frenar en el beat (si no, usa su propio reloj al mismo tempo).
+## Las puertas se abren en el beat (como mucho espera un beat).
 @export var elevator_sync_to_beat: bool = true:
 	set(value):
 		elevator_sync_to_beat = value
@@ -155,6 +172,23 @@ enum EndMode { ARRIBA, ABAJO, DISTANCIA }
 @export_range(0.0, 4.0) var wall_blocked_weight: float = 0.6:
 	set(value):
 		wall_blocked_weight = value
+		emit_changed()
+
+@export_group("Habitaciones, puertas y llaves")
+## Probabilidad por módulo libre de tener una habitación al fondo (sin salida).
+@export_range(0.0, 1.0) var room_chance: float = 0.25:
+	set(value):
+		room_chance = value
+		emit_changed()
+## Puertas con llave (cada una con su llave, como máximo 3).
+@export_range(0, 3) var locked_doors: int = 2:
+	set(value):
+		locked_doors = value
+		emit_changed()
+## Probabilidad de que una llave esté dentro de una habitación (si no, en el piso).
+@export_range(0.0, 1.0) var key_in_room_chance: float = 0.6:
+	set(value):
+		key_in_room_chance = value
 		emit_changed()
 
 @export_group("Ambientación")

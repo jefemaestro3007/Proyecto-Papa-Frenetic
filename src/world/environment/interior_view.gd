@@ -2,9 +2,10 @@
 class_name InteriorView
 extends StyledCanvas
 ## Dibuja el edificio de oficinas según un ArtStyle: pared del fondo (con ventanas y boquetes
-## por donde se ve la ciudad), marcas y objetos de pared, huecos de ascensor, escaleras,
-## mobiliario, losas, muros, puertas, bordes rotos, módulos sellados y la salida.
-## Es estático: solo se redibuja al cambiar los datos o el estilo.
+## por donde se ve la ciudad), marcas y objetos de pared, huecos de ascensor y escaleras de
+## fondo, puertas al fondo, mobiliario, losas, muros, marcos de puertas, bordes rotos, módulos
+## sellados y la salida. Es estático: solo se redibuja al cambiar los datos o el estilo.
+## Lo que cambia en juego (puertas que se abren, ascensores, llaves) lo dibujan sus nodos.
 
 const Furniture := OficinasMapData.Furniture
 const EXIT_GREEN := Color("3ddc84")
@@ -35,14 +36,17 @@ func _draw() -> void:
 			_draw_wall_mark(mark)
 	for spec in _data.elevators:
 		_draw_shaft(spec)
+	for stair in _data.stairs:
+		_draw_stair(stair)
+	for door in _data.depth_doors:
+		if door.kind != OficinasLayout.Depth.NONE:
+			_draw_depth_door(door.rect, door.kind, door.id)
 	for item in _data.furniture:
 		if _is_wall_item(item.type):
 			_draw_furniture(item)
 	for lamp in _data.lamps:
 		_draw_lamp(lamp)
 	_draw_exit()
-	for stair in _data.stairs:
-		_draw_stair(stair)
 	for item in _data.furniture:
 		if not _is_wall_item(item.type):
 			_draw_furniture(item)
@@ -50,8 +54,8 @@ func _draw() -> void:
 		_draw_slab(slab)
 	for wall_rect in _data.walls:
 		_box(wall_rect, _style.structure, int(wall_rect.position.x * 7.0 + wall_rect.position.y))
-	for opening in _data.door_openings:
-		_draw_door_frame(opening)
+	for door in _data.wall_doors:
+		_draw_door_frame(door.rect)
 	for edge in _data.broken_edges:
 		_draw_broken_edge(edge)
 	for rect in _data.sealed:
@@ -62,8 +66,7 @@ func _draw() -> void:
 
 
 static func _is_wall_item(type: Furniture.Type) -> bool:
-	return type in [Furniture.Type.WHITEBOARD, Furniture.Type.NOTICE_BOARD, Furniture.Type.CLOCK,
-			Furniture.Type.EXIT_SIGN]
+	return OficinasGenerator.is_wall_item(type)
 
 
 # --- Pared del fondo -----------------------------------------------------------------
@@ -218,20 +221,12 @@ func _draw_floor_mark(mark: MapMark) -> void:
 
 # --- Ascensores y escaleras ----------------------------------------------------------
 
+## Hueco del ascensor en el fondo: franja oscura con rieles; las puertas las dibuja el ascensor.
 func _draw_shaft(spec: OficinasMapData.ElevatorSpec) -> void:
-	var shaft := Rect2(spec.x - 10.0, spec.shaft_top, spec.width + 20.0, spec.shaft_bottom - spec.shaft_top)
-	draw_rect(shaft, _style.structure_dark.darkened(0.3))
-	for x in [shaft.position.x + 14.0, shaft.end.x - 14.0]:
-		draw_line(Vector2(x, shaft.position.y), Vector2(x, shaft.end.y), _style.structure_light, 6.0)
-		draw_line(Vector2(x, shaft.position.y), Vector2(x, shaft.end.y), _style.outline, 2.0)
-	# Puertas abiertas del ascensor en cada parada, con su indicador encima.
-	for y in spec.stop_ys:
-		var door := Rect2(spec.x + spec.width * 0.2, y - 190.0, spec.width * 0.6, 190.0)
-		draw_rect(Rect2(door.position.x - 12.0, door.position.y - 12.0, door.size.x + 24.0, door.size.y + 12.0),
-				_style.structure_light, false, 8.0)
-		draw_rect(Rect2(door.get_center().x - 30.0, door.position.y - 44.0, 60.0, 20.0), _style.outline)
-	if spec.kind == OficinasLayout.Lift.FAULTY:
-		_draw_crack(Vector2(shaft.get_center().x, shaft.position.y + 40.0), 120.0, _rng_for(spec.column))
+	draw_rect(spec.shaft, _style.structure_dark.darkened(0.35))
+	for x in [spec.shaft.position.x + 10.0, spec.shaft.end.x - 10.0]:
+		draw_line(Vector2(x, spec.shaft.position.y), Vector2(x, spec.shaft.end.y), _style.structure_light, 5.0)
+	draw_rect(spec.shaft, _style.outline, false, maxf(_style.outline_width * 0.6, 2.0))
 
 
 func _rng_for(value: int) -> RandomNumberGenerator:
@@ -240,36 +235,62 @@ func _rng_for(value: int) -> RandomNumberGenerator:
 	return rng
 
 
-## Escalera: perfil de escalones macizo bajo la rampa y pasamanos paralelo.
+## Escalera de fondo entre dos pisos: hueco oscuro, tramo de escalones con pasamanos y
+## chevrones en el piso que indican dónde se usa (↑ al pie, ↓ arriba).
 func _draw_stair(stair: OficinasMapData.Stair) -> void:
-	var dir := signf(stair.high.x - stair.low.x)
-	var rise := stair.low.y - stair.high.y
+	var dir := float(stair.dir)
+	var rise := stair.foot.y - stair.top.y
+	var run := absf(stair.top.x - stair.foot.x)
+	var well := Rect2(minf(stair.foot.x, stair.top.x) - 30.0, stair.top.y - (_data.floor_height - 40.0),
+			run + 60.0, rise + _data.floor_height - 40.0)
+	draw_rect(well, Color(_style.structure_dark, 0.55))
 	var steps := maxi(4, roundi(rise / STEP_HEIGHT))
-	var run := absf(stair.high.x - stair.low.x)
-	# Zanca: peldaños arriba y una banda paralela debajo; el hueco de abajo queda libre
-	# (la rampa es de un solo sentido y se puede pasar por debajo).
-	var profile := PackedVector2Array([stair.low])
+	var profile := PackedVector2Array([stair.foot])
 	for i in steps:
-		var x0 := stair.low.x + dir * run * i / steps
-		var x1 := stair.low.x + dir * run * (i + 1) / steps
-		var y := stair.low.y - rise * (i + 1) / steps
+		var x0 := stair.foot.x + dir * run * i / steps
+		var x1 := stair.foot.x + dir * run * (i + 1) / steps
+		var y := stair.foot.y - rise * (i + 1) / steps
 		profile.append(Vector2(x0, y))
 		profile.append(Vector2(x1, y))
-	profile.append(stair.high + Vector2(0.0, 46.0))
-	profile.append(stair.low + Vector2(dir * 70.0, 0.0))
-	_shape(profile, _style.structure_light, stair.floor * 37 + stair.column)
+	profile.append(stair.top + Vector2(0.0, 46.0))
+	profile.append(stair.foot + Vector2(dir * 70.0, 0.0))
+	_shape(profile, _style.structure_light.darkened(0.15), stair.floor * 37 + stair.column)
 	for i in steps:
-		var x := stair.low.x + dir * run * i / steps
-		var y := stair.low.y - rise * (i + 1) / steps
+		var x := stair.foot.x + dir * run * i / steps
+		var y := stair.foot.y - rise * (i + 1) / steps
 		draw_line(Vector2(x, y), Vector2(x + dir * run / steps, y), _style.edge, 3.0)
-	var rail_from := stair.low + Vector2(0.0, -RAIL_HEIGHT)
-	var rail_to := stair.high + Vector2(0.0, -RAIL_HEIGHT)
+	var rail_from := stair.foot + Vector2(0.0, -RAIL_HEIGHT)
+	var rail_to := stair.top + Vector2(0.0, -RAIL_HEIGHT)
 	draw_line(rail_from, rail_to, _style.outline, 8.0)
 	draw_line(rail_from, rail_to, _style.structure_light, 4.0)
-	for i in range(0, steps + 1, 3):
-		var t := float(i) / steps
-		var base := stair.low.lerp(stair.high, t)
-		draw_line(base, base + Vector2(0.0, -RAIL_HEIGHT), _style.outline, 3.0)
+	_draw_chevron(stair.foot + Vector2(0.0, -8.0), -1.0)
+	_draw_chevron(stair.top + Vector2(0.0, -8.0), 1.0)
+
+
+## Pequeña flecha en el piso: -1 = "↑ sube", 1 = "↓ baja".
+func _draw_chevron(at: Vector2, down: float) -> void:
+	var tip := at + Vector2(0.0, 12.0 * down)
+	draw_polyline(PackedVector2Array([at + Vector2(-12.0, -6.0 * down), tip, at + Vector2(12.0, -6.0 * down)]),
+			Color(_style.accent, 0.8), 4.0)
+
+
+## Puerta al fondo: marco y hoja cerrada, con una placa que indica si es habitación o pasillo.
+func _draw_depth_door(rect: Rect2, kind: int, variant: int) -> void:
+	draw_rect(rect.grow(10.0), _style.structure_light)
+	_box(rect, _style.furniture_dark, variant)
+	draw_rect(Rect2(rect.position + Vector2(10.0, 12.0), Vector2(rect.size.x - 20.0, rect.size.y * 0.35)),
+			_style.furniture, false, 3.0)
+	draw_circle(Vector2(rect.end.x - 18.0, rect.get_center().y + 10.0), 5.0, _style.edge)
+	var plaque := Rect2(rect.get_center().x - 34.0, rect.position.y - 34.0, 68.0, 22.0)
+	draw_rect(plaque, _style.paper if kind == OficinasLayout.Depth.ROOM else InteriorView.EXIT_GREEN)
+	draw_rect(plaque, _style.outline, false, 2.0)
+	if kind == OficinasLayout.Depth.CORRIDOR:
+		draw_polyline(PackedVector2Array([plaque.position + Vector2(18.0, 11.0), plaque.position + Vector2(50.0, 11.0),
+				plaque.position + Vector2(42.0, 5.0)]), _style.outline, 3.0)
+	else:
+		for k in 3:
+			draw_line(plaque.position + Vector2(10.0, 6.0 + k * 5.0), plaque.position + Vector2(58.0 - k * 10.0, 6.0 + k * 5.0),
+					_style.structure_dark, 2.0)
 
 
 # --- Estructura ----------------------------------------------------------------------
@@ -279,13 +300,10 @@ func _draw_slab(slab: Rect2) -> void:
 	draw_rect(Rect2(slab.position, Vector2(slab.size.x, 6.0)), _style.edge)
 
 
+## Marco de una puerta entre módulos (la hoja la dibuja el nodo de la puerta).
 func _draw_door_frame(opening: Rect2) -> void:
 	var frame := Rect2(opening.position.x - 10.0, opening.position.y, opening.size.x + 20.0, opening.size.y)
 	draw_rect(frame, _style.structure_light, false, 6.0)
-	# Hoja de la puerta abierta, en escorzo contra el marco.
-	var leaf := PackedVector2Array([frame.position + Vector2(frame.size.x, 0.0),
-			frame.position + Vector2(frame.size.x + 34.0, 14.0), frame.end + Vector2(34.0, -2.0), frame.end])
-	_shape(leaf, _style.furniture, int(opening.position.x))
 
 
 func _draw_broken_edge(point: Vector2) -> void:
@@ -473,4 +491,188 @@ func _draw_furniture(item: Furniture) -> void:
 			draw_rect(Rect2(glyph.position, Vector2(glyph.size.x * 0.35, glyph.size.y)), EXIT_GREEN)
 			draw_line(Vector2(glyph.position.x + glyph.size.x * 0.5, glyph.get_center().y),
 					Vector2(glyph.end.x, glyph.get_center().y), EXIT_GREEN, 4.0)
+		_:
+			_draw_furniture_more(item, r, rng)
 	_maybe_cobweb(r.position, 1.0, minf(26.0, r.size.x * 0.4), item.variant + 9)
+
+
+## Muebles de pasillos variados y habitaciones al fondo.
+func _draw_furniture_more(item: Furniture, r: Rect2, rng: RandomNumberGenerator) -> void:
+	var body := _style.furniture
+	var dark := _style.furniture_dark
+	var metal := _style.structure_light
+	match item.type:
+		Furniture.Type.CUBICLE:
+			_box(Rect2(r.position.x, r.position.y, 12.0, r.size.y), body.lightened(0.1), item.variant)
+			_box(Rect2(r.end.x - 12.0, r.position.y, 12.0, r.size.y), body.lightened(0.1), item.variant + 1)
+			_box(Rect2(r.position.x + 20.0, r.end.y - 70.0, r.size.x - 40.0, 12.0), body, item.variant + 2)
+			var screen := Rect2(r.get_center().x - 26.0, r.end.y - 112.0, 52.0, 40.0)
+			_box(screen, dark, item.variant + 3)
+			draw_rect(screen.grow(-6.0), _style.window_lit if rng.randf() < 0.2 else _style.window_dark)
+			for k in rng.randi_range(1, 3):
+				draw_rect(Rect2(r.position.x + 14.0, r.position.y + 14.0 + k * 22.0, 24.0, 16.0), _style.paper)
+		Furniture.Type.SOFA:
+			_box(Rect2(r.position.x, r.position.y + 24.0, r.size.x, r.size.y - 24.0), _style.blood.darkened(0.25), item.variant)
+			_box(Rect2(r.position.x + 10.0, r.position.y, r.size.x - 20.0, 30.0), _style.blood.darkened(0.1), item.variant + 1)
+			for x in [r.position.x, r.end.x - 18.0]:
+				_box(Rect2(x, r.position.y + 14.0, 18.0, r.size.y - 14.0), _style.blood.darkened(0.35), item.variant + int(x))
+			if rng.randf() < 0.5:
+				draw_line(r.position + Vector2(40.0, 40.0), r.position + Vector2(70.0, 54.0), _style.paper, 3.0)
+		Furniture.Type.COUNTER:
+			_box(Rect2(r.position.x, r.position.y + 12.0, r.size.x, r.size.y - 12.0), body, item.variant)
+			_box(Rect2(r.position.x - 8.0, r.position.y, r.size.x + 16.0, 14.0), dark, item.variant + 1)
+			for k in 3:
+				draw_rect(Rect2(r.position.x + 14.0 + k * r.size.x / 3.0, r.position.y + 28.0, r.size.x / 3.0 - 20.0,
+						r.size.y - 44.0), dark, false, 2.0)
+			if rng.randf() < 0.6:
+				_box(Rect2(r.position.x + 24.0, r.position.y - 30.0, 44.0, 30.0), dark, item.variant + 2)
+		Furniture.Type.COLUMN:
+			_box(r, _style.structure_light, item.variant)
+			_box(Rect2(r.position.x - 8.0, r.position.y, r.size.x + 16.0, 18.0), _style.structure, item.variant + 1)
+			_box(Rect2(r.position.x - 8.0, r.end.y - 18.0, r.size.x + 16.0, 18.0), _style.structure, item.variant + 2)
+			if rng.randf() < 0.5:
+				_draw_crack(Vector2(r.get_center().x, r.position.y + r.size.y * 0.4), 70.0, rng)
+		Furniture.Type.BENCH:
+			_box(Rect2(r.position.x, r.position.y, r.size.x, 12.0), body, item.variant)
+			for x in [r.position.x + 10.0, r.end.x - 20.0]:
+				draw_line(Vector2(x + 5.0, r.position.y + 12.0), Vector2(x + 5.0, r.end.y), dark, 6.0)
+		Furniture.Type.CONE:
+			_shape(PackedVector2Array([Vector2(r.position.x, r.end.y), Vector2(r.get_center().x, r.position.y),
+					Vector2(r.end.x, r.end.y)]), Color("ff7a1a"), item.variant)
+			draw_line(Vector2(r.position.x + 9.0, r.end.y - 20.0), Vector2(r.end.x - 9.0, r.end.y - 20.0), _style.paper, 5.0)
+		Furniture.Type.SCAFFOLD:
+			for x in [r.position.x, r.end.x - 8.0]:
+				draw_rect(Rect2(x, r.position.y, 8.0, r.size.y), metal)
+			for k in 3:
+				var y := r.position.y + k * r.size.y / 3.0 + 10.0
+				_box(Rect2(r.position.x - 6.0, y, r.size.x + 12.0, 10.0), _style.furniture.lerp(Color("8a6a3a"), 0.5),
+						item.variant + k)
+				draw_line(Vector2(r.position.x, y + 10.0), Vector2(r.end.x, y + r.size.y / 3.0), metal, 3.0)
+		Furniture.Type.EXTINGUISHER:
+			_box(Rect2(r.position.x, r.position.y + 10.0, r.size.x, r.size.y - 10.0), _style.blood.lightened(0.15), item.variant)
+			draw_line(r.position + Vector2(r.size.x * 0.5, 10.0), r.position + Vector2(r.size.x + 6.0, 0.0), _style.outline, 3.0)
+		Furniture.Type.PAINTING:
+			_box(r, _style.furniture.lerp(Color("8a6a3a"), 0.5), item.variant)
+			var canvas := r.grow(-8.0)
+			draw_rect(canvas, _style.window_dark.lerp(_style.accent, rng.randf() * 0.3))
+			for k in 3:
+				var a := canvas.position + Vector2(rng.randf() * canvas.size.x, rng.randf() * canvas.size.y)
+				draw_circle(a, rng.randf_range(6.0, 16.0), [_style.blood, _style.edge, _style.accent][k])
+			if rng.randf() < 0.4:
+				draw_line(canvas.position, canvas.end, _style.outline, 3.0)
+		Furniture.Type.TRASH_BIN:
+			_shape(PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), Vector2(r.end.x - 5.0, r.end.y),
+					Vector2(r.position.x + 5.0, r.end.y)]), metal.darkened(0.2), item.variant)
+			for k in 3:
+				draw_rect(Rect2(r.position.x + 4.0 + k * 9.0, r.position.y - 8.0 + k * 3.0, 9.0, 9.0), _style.paper)
+		Furniture.Type.COAT_RACK:
+			draw_line(Vector2(r.get_center().x, r.position.y), Vector2(r.get_center().x, r.end.y), dark, 6.0)
+			draw_line(Vector2(r.position.x, r.end.y), Vector2(r.end.x, r.end.y), dark, 6.0)
+			for k in [-1.0, 1.0]:
+				draw_line(Vector2(r.get_center().x, r.position.y + 10.0), Vector2(r.get_center().x + k * 16.0, r.position.y + 24.0),
+						dark, 4.0)
+			if rng.randf() < 0.6:
+				_shape(PackedVector2Array([r.position + Vector2(8.0, 20.0), r.position + Vector2(r.size.x - 8.0, 20.0),
+						r.position + Vector2(r.size.x + 4.0, 90.0), r.position + Vector2(-4.0, 90.0)]), _style.blood.darkened(0.3),
+						item.variant)
+		Furniture.Type.TV:
+			_box(r, dark, item.variant)
+			var screen := r.grow(-7.0)
+			draw_rect(screen, _style.window_dark)
+			for k in 6:
+				var y := screen.position.y + rng.randf() * screen.size.y
+				draw_line(Vector2(screen.position.x, y), Vector2(screen.end.x, y), Color(_style.paper, 0.25), 2.0)
+		Furniture.Type.SERVER_RACK:
+			_box(r, dark, item.variant)
+			for k in 12:
+				var y := r.position.y + 10.0 + k * (r.size.y - 20.0) / 12.0
+				draw_rect(Rect2(r.position.x + 6.0, y, r.size.x - 12.0, (r.size.y - 20.0) / 12.0 - 3.0), body.darkened(0.2))
+				draw_circle(Vector2(r.end.x - 14.0, y + 6.0), 2.5, [InteriorView.EXIT_GREEN, _style.accent, _style.blood][rng.randi() % 3])
+		Furniture.Type.TOILET_STALL:
+			_box(Rect2(r.position.x, r.position.y + 20.0, r.size.x, r.size.y - 40.0), metal.darkened(0.1), item.variant)
+			draw_line(Vector2(r.position.x, r.end.y - 20.0), Vector2(r.position.x, r.end.y), metal, 4.0)
+			draw_line(Vector2(r.end.x, r.end.y - 20.0), Vector2(r.end.x, r.end.y), metal, 4.0)
+			draw_circle(Vector2(r.end.x - 14.0, r.get_center().y), 4.0, _style.blood if rng.randf() < 0.5 else InteriorView.EXIT_GREEN)
+			if rng.randf() < 0.4:
+				_draw_graffiti(r.position + Vector2(14.0, 60.0), 0.5, rng)
+		Furniture.Type.SINK:
+			_box(Rect2(r.position.x, r.position.y + 30.0, r.size.x, 22.0), _style.paper, item.variant)
+			draw_line(Vector2(r.get_center().x, r.position.y + 52.0), Vector2(r.get_center().x, r.end.y), metal, 8.0)
+			draw_line(Vector2(r.get_center().x, r.position.y + 30.0), Vector2(r.get_center().x + 6.0, r.position.y + 14.0),
+					metal, 4.0)
+		Furniture.Type.MIRROR:
+			_box(r, metal, item.variant)
+			draw_rect(r.grow(-6.0), _style.window_dark.lerp(Color.WHITE, 0.15))
+			if rng.randf() < 0.6:
+				var c := r.get_center() + Vector2(rng.randf_range(-15.0, 15.0), rng.randf_range(-20.0, 20.0))
+				for k in 5:
+					draw_line(c, c + Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(15.0, 40.0), _style.outline, 1.5)
+		Furniture.Type.SAFE:
+			_box(r, metal.darkened(0.3), item.variant)
+			draw_circle(r.get_center(), 14.0, metal)
+			draw_circle(r.get_center(), 14.0, _style.outline, false, 2.0)
+			draw_line(r.get_center(), r.get_center() + Vector2(10.0, -6.0), _style.outline, 3.0)
+		Furniture.Type.EXEC_DESK:
+			_box(Rect2(r.position.x, r.position.y + 14.0, r.size.x, r.size.y - 14.0), body.lerp(Color("6a4a2a"), 0.5), item.variant)
+			_box(Rect2(r.position.x - 6.0, r.position.y, r.size.x + 12.0, 16.0), dark, item.variant + 1)
+			draw_rect(Rect2(r.position.x + 30.0, r.position.y - 26.0, 40.0, 26.0), _style.paper)
+			draw_circle(Vector2(r.end.x - 40.0, r.position.y - 6.0), 8.0, _style.accent)
+		Furniture.Type.LOCKER:
+			for k in 2:
+				var door := Rect2(r.position.x + k * r.size.x * 0.5, r.position.y, r.size.x * 0.5, r.size.y)
+				_box(door, metal.darkened(0.15), item.variant + k)
+				for v in 3:
+					draw_line(door.position + Vector2(6.0, 14.0 + v * 6.0), door.position + Vector2(door.size.x - 6.0, 14.0 + v * 6.0),
+							_style.outline, 2.0)
+		Furniture.Type.MOP_BUCKET:
+			_box(Rect2(r.position.x, r.end.y - 40.0, r.size.x, 40.0), _style.accent.darkened(0.2), item.variant)
+			draw_line(Vector2(r.get_center().x, r.end.y - 40.0), Vector2(r.get_center().x + 14.0, r.position.y), dark, 5.0)
+		Furniture.Type.PIPES:
+			for k in 3:
+				var x := r.position.x + 20.0 + k * 50.0
+				_box(Rect2(x, r.position.y, 18.0, r.size.y), metal.darkened(0.1 * k), item.variant + k)
+				draw_rect(Rect2(x - 4.0, r.position.y + 60.0 + k * 40.0, 26.0, 10.0), _style.outline)
+			if rng.randf() < 0.5:
+				draw_line(Vector2(r.position.x + 30.0, r.get_center().y), Vector2(r.position.x + 30.0, r.end.y),
+						Color("6ec8ff", 0.5), 3.0)
+		Furniture.Type.FRIDGE:
+			_box(r, _style.paper.darkened(0.15), item.variant)
+			draw_line(Vector2(r.position.x, r.position.y + r.size.y * 0.35), Vector2(r.end.x, r.position.y + r.size.y * 0.35),
+					_style.outline, 3.0)
+			draw_line(Vector2(r.end.x - 10.0, r.position.y + 20.0), Vector2(r.end.x - 10.0, r.position.y + 50.0), metal, 4.0)
+			for k in rng.randi_range(1, 3):
+				draw_rect(Rect2(r.position.x + 10.0 + k * 14.0, r.position.y + r.size.y * 0.45, 10.0, 12.0),
+						[_style.accent, _style.blood, InteriorView.EXIT_GREEN][k % 3])
+		Furniture.Type.MICROWAVE:
+			_box(r, metal, item.variant)
+			draw_rect(Rect2(r.position + Vector2(6.0, 6.0), Vector2(r.size.x * 0.6, r.size.y - 12.0)), _style.window_dark)
+		Furniture.Type.MONITOR_WALL:
+			for row in 2:
+				for col in 3:
+					var screen := Rect2(r.position.x + col * r.size.x / 3.0, r.position.y + row * r.size.y / 2.0,
+							r.size.x / 3.0 - 4.0, r.size.y / 2.0 - 4.0)
+					_box(screen, dark, item.variant + row * 3 + col)
+					draw_rect(screen.grow(-5.0), _style.window_lit if rng.randf() < 0.4 else _style.window_dark)
+		Furniture.Type.CRT_STACK:
+			var y := r.end.y
+			for k in 3:
+				var size := Vector2(r.size.x - k * 12.0, 40.0)
+				var crt := Rect2(r.position.x + k * 6.0, y - size.y, size.x, size.y)
+				_box(crt, body.lightened(0.1), item.variant + k)
+				draw_rect(crt.grow(-7.0), _style.window_dark)
+				y -= size.y
+		Furniture.Type.BLINDS:
+			_box(r, _style.paper.darkened(0.2), item.variant)
+			for k in int(r.size.y / 10.0):
+				draw_line(Vector2(r.position.x, r.position.y + k * 10.0), Vector2(r.end.x, r.position.y + k * 10.0 + rng.randf() * 4.0),
+						_style.outline, 1.5)
+		Furniture.Type.FAN:
+			draw_line(Vector2(r.get_center().x, r.position.y + 40.0), Vector2(r.get_center().x, r.end.y), dark, 5.0)
+			draw_line(Vector2(r.position.x + 10.0, r.end.y), Vector2(r.end.x - 10.0, r.end.y), dark, 5.0)
+			_shape(_ellipse(Vector2(r.get_center().x, r.position.y + 24.0), Vector2(22.0, 22.0), 12), metal, item.variant)
+		Furniture.Type.LADDER:
+			for x in [r.position.x + 6.0, r.end.x - 6.0]:
+				draw_line(Vector2(x, r.position.y), Vector2(x + (r.size.x * 0.2 if x > r.get_center().x else 0.0), r.end.y), metal, 5.0)
+			for k in 6:
+				var y := r.position.y + 20.0 + k * (r.size.y - 30.0) / 6.0
+				draw_line(Vector2(r.position.x + 6.0, y), Vector2(r.end.x - 6.0, y), metal, 4.0)
