@@ -210,3 +210,108 @@ Files: `AI_TRACE.md`
 Change: Se comprobó que `develop` solo tiene los PR #1 y #2, que la rama tiene 11 commits que no están en `develop` y que 4 de ellos (`8186597`..`66acc4f`) no estaban pusheados. Se creó este archivo.
 Commit: PENDING (se commitea junto con este archivo; el hash no puede ir dentro de su propio commit)
 Notes: Sin push, PR ni merge.
+
+---
+
+Las entradas siguientes, hasta "Push de feature/rhythm-combat", se copiaron del AI_TRACE de
+`origin/feature/rhythm-combat`. Describen commits (`44518ac`, `b7a32ac`, `d776a78`, `71a08eb`,
+`560262d`) que **no están en esta rama**: siguen en `origin/feature/rhythm-combat` y en la etiqueta
+local `respaldo-rhythm-combat`.
+
+### Guardar la versión antes de los arreglos del merge
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: Hacer un commit de lo que hay y guardarlo como "la versión merge de las 6.22 AM antes de Santiago".
+Task: Commitear el estado actual y marcarlo.
+Type: PROCESS
+Files: `project.godot` (formato guardado por el editor de Godot: solo quita líneas en blanco entre acciones de entrada)
+Change: Commit `44518ac` y etiqueta anotada local `merge-6.22am-antes-santiago`. `node_2d.tscn` (escena vacía sin trackear) quedó fuera.
+Commit: `44518ac`
+Notes: Sin push de la etiqueta ni de la rama.
+
+### Arreglos del merge: moverse no da puntos y espera del stomp
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: El enfriamiento de la papa debe venir principalmente de los enemigos, no de moverse: eliminar los puntos del movimiento (moverse a los lados, saltar, stomp sin golpear nada) como en la versión anterior, donde el stomp solo daba puntos si golpeaba algo; y agregar al stomp una espera de unos dos segundos porque se podía encadenar muy rápido.
+Task: Que solo el combate se juzgue y agregar la espera del stomp.
+Type: CODE (AI) / DEBUGGING / TESTING / DOCS
+Files: `src/world/levels/zone_level.gd`, `src/world/levels/oficinas/oficinas.gd`, `src/features/combat/combat_controller.gd`, `src/features/combat/combat_params.gd`, `src/features/player/scripts/player_prototype.gd`, `src/features/player/resources/player_params.gd`, `src/ui/hud/heat_hud.gd`, `tests/integration/test_combat_match.gd`, `README.md`, `CHANGELOG.md`, `docs/game-design/combate.md`, `docs/game-design/zonas/azotea.md`, `docs/game-design/art-direction/rojo-frenetico.md`, `AI_TRACE.md`
+Change: Saltar, girar, aterrizar, escaleras, ascensor y puertas ya no pasan por `RhythmTracker` (sin puntos, combo ni calor); saltar, girar y caer a tiempo conservan solo el impulso, el giro y el tamaño del estallido. El stomp se juzga solo si cae sobre papas (`CombatController.stomp_targets()`). Se quitó `movement_heat_scale`. Caída forzada con espera de 2 s desde que empieza (`PlayerParams.fast_fall_cooldown`), indicador "STOMP" en el HUD y slider en la pestaña Jugador. El test de partida verifica que moverse no da puntos y que el calor solo sube por el pasivo, y también la espera del stomp.
+Commit: PENDING (se commitea junto con esta entrada; el hash no puede ir dentro de su propio commit)
+Notes: La espera cuenta desde que empieza la caída forzada para cortar también la cadena de rebotes sobre un tanque. Pruebas: 6 unitarios + `test_combat_match` + `test_oficinas_traversal` (48/48) en verde.
+
+### Repaso de BPM, ventanas de juicio y calor; versión de las 6:42
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: Repasar los valores de BPM, el umbral para un golpe perfecto y uno bueno, y el calor que se suma o se quita al acertar o fallar un golpe; hacer el commit de lo nuevo como "versión de las 6 y 42 después de arreglar el sistema de puntos".
+Task: Revisión de valores (sin cambiarlos) y marca de versión.
+Type: PROCESS / DESIGN
+Files: `AI_TRACE.md`
+Change: Se reportaron al usuario los valores vigentes (`RhythmParams`: 170 BPM, PERFECTO ±0,06 s, BIEN ±0,13 s; `CombatParams`: PERFECTO −8, BIEN −4, FUERA +10, pasivo +1/s) con un análisis de su efecto. No se modificó ningún valor. Etiqueta anotada local `v6.42am-despues-arreglo-puntos` sobre este commit.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Los cambios de código de esta versión ya estaban en `b7a32ac`; este commit solo agrega la entrada. Sin push.
+
+### Ventana BIEN más estrecha (±130 ms → ±90 ms)
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "Hazlo" (aplicar la propuesta de bajar la ventana BIEN a ±90 ms).
+Task: Que golpear sin seguir el ritmo no enfríe la papa.
+Type: DESIGN / CODE (AI)
+Files: `src/features/rhythm/rhythm_params.gd`, `docs/game-design/combate.md`, `docs/game-design/art-direction/rojo-frenetico.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: `RhythmParams.good_window` 0,13 → 0,09 s. PERFECTO sigue en ±0,06 s y el preset "permisivo" no cambia (±0,18 s). A 170 BPM, golpear al azar pasa de −1,7 a +1,5 de calor promedio por golpe (34 % PERFECTO, 17 % BIEN, 49 % FUERA).
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Pruebas: `test_presets`, `test_heat_meter`, `test_combat_match`, `test_oficinas_traversal` (48/48) en verde. Sin push.
+
+### Controles W/Espacio, persecución por plataforma y voladoras más rápidas
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: Intercambiar Espacio y W (W para saltar, Espacio para interactuar con ascensores, escaleras y objetos); que los enemigos no rastreen al jugador desde todo el mapa y queden pegados al borde de su plataforma (al menos las embestidoras), sino solo cuando está en su plataforma; que voladoras y tiradoras detecten desde lejos; subir un poco la velocidad de las voladoras.
+Task: Remapear controles y cambiar la detección de los enemigos.
+Type: CODE (AI) / UX / DEBUGGING / TESTING / DOCS
+Files: `project.godot`, `tests/unit/test_controls.gd`, `src/world/levels/oficinas/oficinas.gd`, `src/world/levels/oficinas/oficinas_bot.gd`, `src/world/levels/zone_level.gd`, `src/features/player/scripts/player_prototype.gd`, `src/features/enemies/{enemy,charger_enemy,flying_enemy,enemy_roster}.gd`, `src/features/combat/combat_params.gd`, `tests/integration/test_combat_match.gd`, `README.md`, `CHANGELOG.md`, `docs/development/testing.md`, `docs/game-design/combate.md`, `docs/game-design/zonas/{azotea,oficinas}.md`, `AI_TRACE.md`
+Change: Acción `jump` = W/↑ y nueva acción `interact` = Espacio; se eliminó `move_up`. En Oficinas, Espacio sube escaleras (y baja desde arriba; S también baja), llama al ascensor y entra o sale de las áreas al fondo; en la cabina, W sube y S baja. El bot del test usa las acciones nuevas. `Enemy.is_target_on_lane()`: común, tanque y embestidora solo persiguen o cargan si el jugador está en su carril (±60 px); si no, patrullan. Voladora: 210 de velocidad (antes 150), aceleración 680 y detección a 1800 px (antes 1100). Nuevos sliders "Voladora: detecta desde" y "Tiradora: tira desde" (sigue en 1400 px).
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: El test de recorrido encontró un bug del remapeo: si el pie de una escalera coincidía con lo alto de otra, Espacio podía bajar en vez de subir; ahora subir tiene prioridad. Sin push.
+
+### Push de feature/rhythm-combat
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "haz git push de la rama".
+Task: Subir la rama al remoto.
+Type: PROCESS
+Files: N/A (solo esta entrada)
+Change: `git push origin feature/rhythm-combat` llevó el remoto de `2045929` a `560262d` (10 commits). Sin force push, sin PR ni merge, y sin cambios en `develop`/`main`. Las etiquetas locales `merge-6.22am-antes-santiago` y `v6.42am-despues-arreglo-puntos` no se subieron.
+Commit: PENDING (esta entrada queda sin commitear hasta el próximo commit)
+Notes: N/A
+
+### Rama feature/sprites desde feature/rhythm-combat-restored
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "Borra esta rama y haz una nueva con base en develop, empezaremos a trabajar en los sprites". Al avisarle que feature/rhythm-combat no estaba mergeada en develop: "Solo guarda el AI_TRACE aparte; del resto haz un feature/sprites desde el develop actual sin mergear con rhythm-combat". Después: "Mejor olvida esta rama y mejor haz la copia desde rhythm-combat-restored".
+Task: Crear la rama de sprites y conservar el registro de IA.
+Type: PROCESS
+Files: `AI_TRACE.md`
+Change: Primero se creó `feature/sprites` desde `origin/develop` (`6a0385c`), con un commit local `0bc5ca4` que solo traía este archivo. Después, a pedido del usuario, esa rama se borró sin subirse y se volvió a crear `feature/sprites` desde `origin/feature/rhythm-combat-restored` (`f61baa3`). Se borró la rama local `feature/rhythm-combat`, con la etiqueta local de respaldo `respaldo-rhythm-combat` en `560262d`; `origin/feature/rhythm-combat` no se tocó. El `develop` local se actualizó a `origin/develop`. Se agregaron arriba las entradas posteriores a `f61baa3`.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: `feature/rhythm-combat-restored` no tiene los arreglos posteriores a `f61baa3` (puntos solo por combate, espera del stomp, ventana BIEN ±90 ms, W/Espacio, persecución por plataforma). Al cambiar de rama se descartaron los 4 `.wav` de develop que aparecían modificados solo por Git LFS (su contenido estaba en el commit `10fa959`) y se borraron sus `.wav.import`, que Godot había generado. Sin push.
