@@ -13,3 +13,4 @@ end_mode = 0
 script = ExtResource("1_oficinas")
 params = SubResource("Resource_subida")
 room_only_view = true
+tutorial = &"edificio"

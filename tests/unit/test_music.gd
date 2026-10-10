@@ -24,6 +24,10 @@ func _initialize() -> void:
 		var bars: int = EXPECTED[track_name][1]
 		if track.length_beats() != bars * ConductorClock.BEATS_PER_BAR:
 			_fail("%s: %d beats, se esperaban %d compases" % [track_name, track.length_beats(), bars])
+	# La del menú no dura compases enteros (suena en bucle sin juicios de ritmo): solo su tempo.
+	var menu := load(MUSIC + "menu.tres") as MusicTrack
+	if menu == null or menu.stream == null or not is_equal_approx(menu.bpm, 190.5):
+		_fail("la canción del menú no carga o no tiene su BPM medido (190,5)")
 
 	# El autoload termina de armarse en el primer frame.
 	await process_frame

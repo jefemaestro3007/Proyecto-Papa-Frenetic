@@ -8,8 +8,10 @@ extends SceneTree
 const SOURCE := "res://assets_src/ui/menu/"
 const OUTPUT := "res://assets/textures/ui/menu/"
 ## Capas que se exportan aparte (y no van en la pantalla base): archivo → { salida: prefijo de capa }.
-## Las papas de LOADING se animan por separado.
+## Las papas de LOADING se animan por separado; el título y START de la pantalla de inicio se
+## reacomodan bajo la protagonista (ver StartScreenArt).
 const SPLIT := {
+	"inicio": {"inicio_titulo": "EDITABLE", "inicio_start": "START"},
 	"cargando": {"cargando_fase_1": "FASE 1", "cargando_fase_2": "FASE 2", "cargando_fase_3": "FASE 3"},
 }
 

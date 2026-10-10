@@ -5,7 +5,7 @@ extends Control
 ## LEVEL SELECT muestra desbloqueados los niveles a los que ya se llegó (Game.unlocked_level).
 ## Las coordenadas de los botones son las de las capas de cada PSD (ver build_menu_screens.gd).
 
-const START_BUTTON := Rect2(682, 715, 84, 36)
+const START_BUTTON := StartScreenArt.START_RECT
 const NEW_GAME_BUTTON := Rect2(539, 484, 359, 57)
 ## Botón ENTER de cada tarjeta (nivel 1, 2 y 3).
 const LEVEL_ENTER_BUTTONS: Array[Rect2] = [Rect2(155, 639, 319, 56), Rect2(546, 639, 319, 56), Rect2(936, 639, 319, 56)]
@@ -14,6 +14,8 @@ const LEVEL_SELECT_SCREENS: Array[String] = ["seleccion_nivel", "seleccion_nivel
 const BACK := {&"nuevo_juego": &"inicio", &"seleccion_nivel": &"nuevo_juego"}
 ## La carga dura al menos esto, para que se vean las tres papas.
 const LOADING_MIN_SECONDS := 1.5
+## Música del menú: suena en todas sus pantallas y marca el beat de la protagonista y los botones.
+const MENU_MUSIC := "res://src/shared/resources/music/menu.tres"
 
 var _screen: PsdScreen
 var _current := &""
@@ -24,6 +26,9 @@ var _loading_path := ""
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var track := Conductor.current_track()
+	if track == null or track.resource_path != MENU_MUSIC:
+		Conductor.play_track(load(MENU_MUSIC))
 	show_screen(Game.menu_screen)
 
 
@@ -51,7 +56,12 @@ func show_screen(screen_name: StringName) -> void:
 			_start_loading()
 		_:
 			_current = &"inicio"
-			_screen = PsdScreen.new("inicio")
+			# Con imagen de fondo no va la base del PSD (es solo el gris liso).
+			var background := ResourceLoader.exists(StartScreenArt.BACKGROUND)
+			_screen = PsdScreen.new("" if background else "inicio")
+			if background:
+				_screen.set_backdrop_image(load(StartScreenArt.BACKGROUND))
+			_screen.add_art(StartScreenArt.new())
 			_screen.add_button(START_BUTTON, &"start")
 	_screen.action.connect(_on_action)
 	add_child(_screen)
