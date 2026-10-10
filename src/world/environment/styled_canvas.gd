@@ -1,6 +1,6 @@
 @tool
 class_name StyledCanvas
-extends Node2D
+extends ChunkCanvas
 ## Primitivas de dibujo que respetan un ArtStyle: contorno, trazo a mano, sombras
 ## proyectadas, sombreado por caras y borde de luz, más motivos reutilizables
 ## (sangre, grietas, escombros, afiches, grafitis, huesos, cajas, telarañas).

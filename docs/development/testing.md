@@ -55,6 +55,19 @@ y victoria al llegar al final de la última azotea.
 `sfx` comprueba que los efectos de sonido cargan por grupo, que los WAV quedan recortados y qué
 evento pide cada sonido (golpe, stomp, daño, fallo; aterrizar fuera de ritmo no suena).
 
+## Rendimiento
+
+```bash
+godot --path . --quit-after 6000 res://tests/test_scenes/benchmark.tscn -- --scene=azotea --frames=1200
+godot --path . --quit-after 6000 res://tests/test_scenes/benchmark.tscn -- --scene=oficinas --set=floors=24 --set=modules=16 --idle
+```
+
+Con ventana (headless no dibuja), sin vsync ni límite de FPS. Abre la zona (o `--scene=menu`) con
+el recorrido automático y el calor apagado, y reporta el tiempo por frame (promedio, p95, p99,
+máximo), proceso, física, draw calls, nodos y memoria. `--idle` deja al jugador quieto y
+`--set=propiedad=valor` cambia el mapa: comparar un mapa chico con uno grande muestra si algo
+escala con el tamaño (no debería).
+
 ## Capturas para revisar lo visual
 
 ```bash

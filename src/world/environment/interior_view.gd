@@ -6,11 +6,16 @@ extends StyledCanvas
 ## fondo, puertas al fondo, mobiliario, losas, muros, marcos de puertas, bordes rotos, módulos
 ## sellados y la salida. Es estático: solo se redibuja al cambiar los datos o el estilo.
 ## Lo que cambia en juego (puertas que se abren, ascensores, llaves) lo dibujan sus nodos.
+## En juego va partida en trozos (ChunkedView, `LAYERS` capas) para dibujar solo lo visible.
 
 const Furniture := OficinasMapData.Furniture
 const EXIT_GREEN := Color("3ddc84")
 const STEP_HEIGHT := 24.0
 const RAIL_HEIGHT := 90.0
+## Capas de dibujo, en orden: pared del fondo, marcas de pared, huecos de ascensor, escaleras,
+## puertas al fondo, objetos de pared, lámparas, salida, mobiliario, losas, muros, marcos de
+## puertas, bordes rotos, módulos sellados y marcas de piso.
+const LAYERS := 15
 
 var _data: OficinasMapData
 var _seed := 0
@@ -27,42 +32,65 @@ func _draw() -> void:
 	if _data == null or _style == null:
 		return
 	var layout := _data.layout
-	for f in layout.floors:
-		for c in layout.modules:
-			if not layout.is_sealed(f, c):
-				_draw_back_wall(f, c)
-	for mark in _data.marks:
-		if not MapMark.on_floor(mark.type):
-			_draw_wall_mark(mark)
-	for spec in _data.elevators:
-		_draw_shaft(spec)
-	for stair in _data.stairs:
-		_draw_stair(stair)
-	for door in _data.depth_doors:
-		if door.kind != OficinasLayout.Depth.NONE:
-			_draw_depth_door(door.rect, door.kind, door.id)
-	for item in _data.furniture:
-		if _is_wall_item(item.type):
-			_draw_furniture(item)
-	for lamp in _data.lamps:
-		_draw_lamp(lamp)
-	_draw_exit()
-	for item in _data.furniture:
-		if not _is_wall_item(item.type):
-			_draw_furniture(item)
-	for slab in _data.slabs:
-		_draw_slab(slab)
-	for wall_rect in _data.walls:
-		_box(wall_rect, _style.structure, int(wall_rect.position.x * 7.0 + wall_rect.position.y))
-	for door in _data.wall_doors:
-		_draw_door_frame(door.rect)
-	for edge in _data.broken_edges:
-		_draw_broken_edge(edge)
-	for rect in _data.sealed:
-		_draw_sealed(rect)
-	for mark in _data.marks:
-		if MapMark.on_floor(mark.type):
-			_draw_floor_mark(mark)
+	if _in_layer(0):
+		for f in layout.floors:
+			for c in layout.modules:
+				if not layout.is_sealed(f, c) and _owns(_data.module_rect(f, c).get_center()):
+					_draw_back_wall(f, c)
+	if _in_layer(1):
+		for mark in _data.marks:
+			if not MapMark.on_floor(mark.type) and _owns(mark.position):
+				_draw_wall_mark(mark)
+	if _in_layer(2):
+		for spec in _data.elevators:
+			if _owns(spec.shaft.position):
+				_draw_shaft(spec)
+	if _in_layer(3):
+		for stair in _data.stairs:
+			if _owns(stair.foot):
+				_draw_stair(stair)
+	if _in_layer(4):
+		for door in _data.depth_doors:
+			if door.kind != OficinasLayout.Depth.NONE and _owns(door.rect.position):
+				_draw_depth_door(door.rect, door.kind, door.id)
+	if _in_layer(5):
+		for item in _data.furniture:
+			if _is_wall_item(item.type) and _owns(item.rect.position):
+				_draw_furniture(item)
+	if _in_layer(6):
+		for lamp in _data.lamps:
+			if _owns(lamp.position):
+				_draw_lamp(lamp)
+	if _in_layer(7) and _owns(_data.goal.position):
+		_draw_exit()
+	if _in_layer(8):
+		for item in _data.furniture:
+			if not _is_wall_item(item.type) and _owns(item.rect.position):
+				_draw_furniture(item)
+	if _in_layer(9):
+		for slab in _data.slabs:
+			if _owns(slab.position):
+				_draw_slab(slab)
+	if _in_layer(10):
+		for wall_rect in _data.walls:
+			if _owns(wall_rect.position):
+				_box(wall_rect, _style.structure, int(wall_rect.position.x * 7.0 + wall_rect.position.y))
+	if _in_layer(11):
+		for door in _data.wall_doors:
+			if _owns(door.rect.position):
+				_draw_door_frame(door.rect)
+	if _in_layer(12):
+		for edge in _data.broken_edges:
+			if _owns(edge):
+				_draw_broken_edge(edge)
+	if _in_layer(13):
+		for rect in _data.sealed:
+			if _owns(rect.position):
+				_draw_sealed(rect)
+	if _in_layer(14):
+		for mark in _data.marks:
+			if MapMark.on_floor(mark.type) and _owns(mark.position):
+				_draw_floor_mark(mark)
 
 
 static func _is_wall_item(type: Furniture.Type) -> bool:

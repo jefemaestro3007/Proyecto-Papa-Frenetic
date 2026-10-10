@@ -22,7 +22,7 @@ const GOAL_MARGIN := 220.0
 		_on_params_changed()
 
 var _data: AzoteaMapData
-var _roofs_view: RooftopView
+var _roofs_view: ChunkedView
 var _live: LiveDetailsView
 var _autorun_cooldown := 0.0
 
@@ -46,8 +46,11 @@ func _zone_generate() -> void:
 	_add_skyline_layer(_data.far, FAR_SCROLL)
 	_add_skyline_layer(_data.near, NEAR_SCROLL)
 
-	_roofs_view = RooftopView.new()
-	_roofs_view.setup(_data, params.seed, style)
+	_roofs_view = ChunkedView.new()
+	_roofs_view.build(func() -> RooftopView:
+		var view := RooftopView.new()
+		view.setup(_data, params.seed, style)
+		return view, _map_bounds(), RooftopView.LAYERS)
 	_roofs_view.material = _make_grunge()
 	_generated.add_child(_roofs_view)
 	_live = LiveDetailsView.new()
@@ -77,6 +80,14 @@ func _spawn_enemies() -> void:
 			spawn_enemy(enemy, Vector2(x, y), roof.position.x + 30.0, roof.end.x - 30.0)
 
 
+## Área que ocupan las azoteas (para partir su dibujo en trozos).
+func _map_bounds() -> Rect2:
+	var bounds := _data.roofs[0]
+	for roof in _data.roofs:
+		bounds = bounds.merge(roof)
+	return bounds
+
+
 func _zone_solids() -> Array[Rect2]:
 	return _data.roofs
 
@@ -85,7 +96,7 @@ func _zone_solids() -> Array[Rect2]:
 func _zone_style_changed() -> void:
 	if _roofs_view == null:
 		return
-	_roofs_view.queue_redraw()
+	_roofs_view.redraw()
 	var roof_material := _roofs_view.material as ShaderMaterial
 	roof_material.set_shader_parameter("dirt", style.grime)
 	roof_material.set_shader_parameter("halftone_strength", style.halftone)

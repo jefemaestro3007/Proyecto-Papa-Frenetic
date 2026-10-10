@@ -23,6 +23,8 @@ var _exit_node := Vector2i(-1, -1)
 var _since_progress := 0.0
 var _last_node := Vector2i(-9, -9)
 var _last_status := ""
+## Planes ya calculados por (piso, módulo, llaves): el bot pregunta cada frame y el edificio no cambia.
+var _plans := {}
 
 
 func _init(p_data: OficinasMapData) -> void:
@@ -75,7 +77,7 @@ func step(level, delta: float) -> void:
 			target_x = data.keys[_key_index(pending.id)].position.x
 			status = "recoger llave %d" % pending.id
 	else:
-		var plan := layout.plan(node, keys)
+		var plan := _plan(node, keys)
 		if plan.size() > 1:
 			var next: Vector2i = plan[1][0]
 			match plan[1][2]:
@@ -138,13 +140,20 @@ func _in_area(level, area_index: int, feet: Vector2) -> void:
 	for door in area.doors:
 		var spec := data.depth_doors[door.depth_door]
 		var node := Vector2i(spec.floor, spec.module)
-		var length := 0.0 if node == _exit_node else float(layout.plan(node, keys).size())
+		var length := 0.0 if node == _exit_node else float(_plan(node, keys).size())
 		if length < best and (length > 0.0 or node == _exit_node):
 			best = length
 			target_x = door.x
 	status = "salir del área"
 	_debug()
 	_walk_and(feet, target_x, "up")
+
+
+func _plan(node: Vector2i, keys: int) -> Array:
+	var key := Vector3i(node.x, node.y, keys)
+	if not _plans.has(key):
+		_plans[key] = layout.plan(node, keys)
+	return _plans[key]
 
 
 func _walk_and(feet: Vector2, target_x: float, action: String) -> void:
@@ -169,7 +178,7 @@ func _ride(lift: Elevator) -> void:
 		return
 	status = "bajando del ascensor"
 	var exit := 1
-	var plan := layout.plan(Vector2i(lift.cabin_floor, lift.spec.column), 0)
+	var plan := _plan(Vector2i(lift.cabin_floor, lift.spec.column), 0)
 	if plan.size() > 1 and plan[1][0].x == lift.cabin_floor:
 		exit = signi(plan[1][0].y - lift.spec.column)
 		if exit == 0:

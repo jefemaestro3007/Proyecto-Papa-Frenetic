@@ -9,6 +9,11 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Changed
 
+- Rendimiento independiente del tamaño del mapa: las vistas estáticas se dibujan en trozos
+  (`ChunkedView`) y Godot descarta los que están fuera de pantalla; las vistas animadas
+  (balizas, fuego, lámparas, carteles, moscas) solo dibujan lo cercano (`SpatialIndex`); las
+  papas lejos de la pantalla duermen; ascensores y puertas se redibujan solo al cambiar. Azotea
+  de 64 azoteas: 33,5 → 4,7 ms por frame; Oficinas 24×16: 54,8 → 3,9 ms.
 - Recompensas: golpear papas es la fuente principal (sube el combo, enfría −8/−4 y da puntos
   con multiplicador). Moverse a tiempo solo mantiene el combo, da 10/5 puntos y enfría poco con
   tope (75 % del calor pasivo): solo moviéndose no se sobrevive. Saltar o girar fuera de ritmo
@@ -16,6 +21,9 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Fixed
 
+- Tirones en Oficinas: la guía sonora buscaba el camino a la salida en cada beat (15 ms en
+  edificios grandes); ahora sigue el plan guardado y solo replanea al salirse de él. El bot de
+  recorrido guarda sus planes y las búsquedas en anchura usan un cursor en lugar de `pop_front()`.
 - Ventanas del skyline que quedaban flotando sobre edificios derrumbados.
 - HUD de ritmo con tamaño 0: el indicador de compás y los anuncios no se veían bien.
 - El hitstop desplazaba el beat ~1 tiempo al empezar (cambiaba la escala a mitad de frame);
