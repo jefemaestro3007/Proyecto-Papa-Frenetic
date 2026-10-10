@@ -50,9 +50,9 @@ extends Resource
 		detail_density = value
 		emit_changed()
 ## Marcas (sangre, grietas, manchas, escombros) por azotea, como máximo.
-@export_range(0, 24) var decals_per_roof: int = 8:
+@export_range(0, 24) var marks_per_roof: int = 8:
 	set(value):
-		decals_per_roof = value
+		marks_per_roof = value
 		emit_changed()
 @export_range(0.0, 1.0) var cable_chance: float = 0.6:
 	set(value):

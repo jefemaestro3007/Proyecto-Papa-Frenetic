@@ -32,11 +32,11 @@ const PROP_SIZES := {
 	AzoteaMapData.Prop.Type.SKYLIGHT: [Vector2(90.0, 26.0), Vector2(140.0, 34.0)],
 	AzoteaMapData.Prop.Type.BILLBOARD: [Vector2(220.0, 200.0), Vector2(320.0, 260.0)],
 }
-const DECAL_WEIGHTS := {
-	AzoteaMapData.Decal.Type.BLOOD: 0.28,
-	AzoteaMapData.Decal.Type.CRACK: 0.3,
-	AzoteaMapData.Decal.Type.STAIN: 0.24,
-	AzoteaMapData.Decal.Type.RUBBLE: 0.18,
+const MARK_WEIGHTS := {
+	AzoteaMapData.Mark.Type.BLOOD: 0.28,
+	AzoteaMapData.Mark.Type.CRACK: 0.3,
+	AzoteaMapData.Mark.Type.STAIN: 0.24,
+	AzoteaMapData.Mark.Type.RUBBLE: 0.18,
 }
 
 
@@ -65,7 +65,7 @@ static func _build_details(data: AzoteaMapData, params: AzoteaParams) -> void:
 	for r in data.roofs.size():
 		var roof := data.roofs[r]
 		_place_props(data, rng, roof, r, params.detail_density)
-		_place_decals(data, rng, roof, params.decals_per_roof)
+		_place_marks(data, rng, roof, params.marks_per_roof)
 	for r in range(1, data.roofs.size()):
 		var a := data.roofs[r - 1]
 		var b := data.roofs[r]
@@ -96,14 +96,14 @@ static func _place_props(data: AzoteaMapData, rng: RandomNumberGenerator, roof: 
 
 
 ## Marcas: escombros sobre el techo; sangre, grietas y manchas en la fachada.
-static func _place_decals(data: AzoteaMapData, rng: RandomNumberGenerator, roof: Rect2, max_count: int) -> void:
+static func _place_marks(data: AzoteaMapData, rng: RandomNumberGenerator, roof: Rect2, max_count: int) -> void:
 	for i in rng.randi_range(max_count / 3, max_count):
-		var type: AzoteaMapData.Decal.Type = _weighted_pick(rng, DECAL_WEIGHTS)
+		var type: AzoteaMapData.Mark.Type = _weighted_pick(rng, MARK_WEIGHTS)
 		var x := rng.randf_range(roof.position.x + 30.0, roof.end.x - 30.0)
 		var y := roof.position.y
-		if type != AzoteaMapData.Decal.Type.RUBBLE:
+		if type != AzoteaMapData.Mark.Type.RUBBLE:
 			y += rng.randf_range(60.0, 480.0)
-		data.decals.append(AzoteaMapData.Decal.new(type, Vector2(x, y), rng.randf_range(0.6, 1.4),
+		data.marks.append(AzoteaMapData.Mark.new(type, Vector2(x, y), rng.randf_range(0.6, 1.4),
 				rng.randf(), rng.randi()))
 
 
