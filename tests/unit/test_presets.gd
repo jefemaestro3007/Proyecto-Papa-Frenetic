@@ -9,6 +9,7 @@ const SECTIONS := {
 	"jugador": "res://src/features/player/resources/player_params.gd",
 	"ritmo": "res://src/features/rhythm/rhythm_params.gd",
 	"efectos": "res://src/features/combat/impact_fx_params.gd",
+	"estilo": "res://src/world/environment/art_style.gd",
 }
 const TMP_DIR := "user://test_presets/"
 
