@@ -1,0 +1,15 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/world/levels/azotea/azotea.gd" id="1_azotea"]
+[ext_resource type="Script" path="res://src/world/generation/azotea_params.gd" id="2_params"]
+
+[sub_resource type="Resource" id="Resource_prueba"]
+script = ExtResource("2_params")
+seed = 12
+roof_count = 36
+
+[node name="AzoteaPrueba" type="Node2D"]
+script = ExtResource("1_azotea")
+params = SubResource("Resource_prueba")
+enemy_types = Array[StringName]([&"normal", &"flyer", &"thrower", &"charger"])
+mixed_enemies = true

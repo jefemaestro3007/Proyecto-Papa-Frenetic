@@ -43,6 +43,7 @@ El bot solo recorre: el test desactiva el calor y los enemigos.
 
 ```bash
 godot --headless --path . --fixed-fps 60 res://tests/test_scenes/combat_match.tscn
+godot --headless --path . --fixed-fps 60 res://tests/test_scenes/campaign.tscn
 godot --headless --path . res://tests/test_scenes/rhythm_rewards.tscn
 godot --headless --path . --fixed-fps 60 res://tests/test_scenes/sfx.tscn
 ```

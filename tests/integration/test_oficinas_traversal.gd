@@ -7,6 +7,10 @@ extends Node
 ## tamaño, modo y conexiones aleatorios (prueba de estrés).
 
 const SCENE := "res://src/world/levels/oficinas/oficinas.tscn"
+const CAMPAIGN_SCENES: Array[String] = [
+	"res://src/world/levels/oficinas/oficinas_subida.tscn",
+	"res://src/world/levels/oficinas/oficinas_bajada.tscn",
+]
 ## Tiempo de juego máximo por edificio.
 const LIMIT_SECONDS := 420.0
 
@@ -63,6 +67,11 @@ func _build_cases() -> Array:
 			var p: OficinasParams = base.duplicate()
 			p.seed = 100 + s
 			out.append(p)
+	# Los edificios de la campaña (2-1 subida y 2-2 bajada), tal cual están en sus escenas.
+	for path in CAMPAIGN_SCENES:
+		var level: Node = load(path).instantiate()
+		out.append(level.params.duplicate())
+		level.free()
 	return out
 
 
