@@ -28,6 +28,7 @@ func _ready() -> void:
 	await _test_win_stays()
 	await _test_pause()
 	await _test_progress()
+	await _test_danger()
 	Game.level_index = -1
 	print("test_campaign: %s" % ("OK" if _failures == 0 else "%d FALLOS" % _failures))
 	get_tree().quit(1 if _failures > 0 else 0)
@@ -46,38 +47,61 @@ func _test_level_list() -> void:
 	_check(Game.has_next_level(), "después de 2-2 viene 3-1")
 	Game.level_index = 5
 	_check(not Game.has_next_level(), "3-2 es el último")
+	# Pantalla de carga propia de 1-2 → 2-1: solo llegando con NEXT LEVEL.
+	Game.level_index = 2
+	Game.arrived_by_next = true
+	_check(ResourceLoader.exists(Game.loading_image()), "1-2 → 2-1 con su imagen de carga")
+	Game.arrived_by_next = false
+	_check(Game.loading_image().is_empty(), "entrando a 2-1 desde el menú, la carga normal")
+	Game.level_index = 1
+	Game.arrived_by_next = true
+	_check(Game.loading_image().is_empty(), "1-1 → 1-2 con la carga normal")
+	Game.arrived_by_next = false
 
 
-## 1-1: la protagonista explica lo básico al empezar (fondo oscuro, juego en pausa) y el combate
-## al acercarse la primera papa (sin fondo oscuro). Devuelve dónde termina el mapa.
+## 1-1: al empezar la protagonista cuenta la premisa (papa bomba, con el foco en la papa del HUD) y
+## los controles básicos, sobre fondo oscuro y con el juego en pausa; con la primera papa, que
+## golpearla enfría la papa bomba (sin fondo oscuro). 1-2: stomp y dash. 2-1: escaleras y
+## ascensores. Devuelve dónde termina el mapa de 1-1.
 func _test_tutorial() -> float:
 	var level := await _open(0, true)
 	var data: AzoteaMapData = level.get("_data")
 	_check(level.tutorial == &"azotea", "1-1 tiene el tutorial de la azotea")
 	_check(_track(level) == MUSIC_LEVEL_ONE, "1-1 con la canción del nivel uno")
 	var hints: TutorialHints = level.get("_tutorial")
-	_check(hints != null, "1-1 muestra el tutorial")
+	_check(hints != null and hints.focus == level.get("_heat_hud").potato, "el foco del tutorial es la papa bomba del HUD")
 	if hints != null:
 		var player: PlayerPrototype = level.get("_player")
 		await _frames(40)
-		_check(hints.current() == &"basicos", "al empezar aparece la protagonista con lo básico")
+		_check(hints.current() == &"premisa", "al empezar, la premisa de la papa bomba")
 		_check(get_tree().paused and Conductor.is_paused(), "el diálogo pausa el juego y la canción")
-		_check(hints.get("_backdrop").color.a > 0.8, "lo básico va sobre fondo oscuro")
+		var spot: ShaderMaterial = hints.get("_backdrop").material
+		_check(spot.get_shader_parameter("darkness") > 0.8, "la premisa va sobre fondo oscuro")
+		_check(spot.get_shader_parameter("hole_radius") > 0.0, "la primera página ilumina la papa bomba")
 		var beat := Conductor.beat_position()
 		await _press(KEY_SPACE)
-		_check(hints.is_open(), "la primera tecla solo termina de escribir")
+		_check(hints.is_open() and hints.page() == 0, "la primera tecla solo termina de escribir")
 		await _frames(30)
 		_check(Conductor.beat_position() == beat, "con el diálogo abierto no avanza el beat")
 		await _press(KEY_SPACE)
+		_check(hints.page() == 1, "la segunda tecla pasa de página")
+		for page in [1, 2]:
+			await _press(KEY_SPACE)
+			await _frames(32)
+			await _press(KEY_SPACE)
+			if page == 1:
+				_check(hints.page() == 2, "la tercera página son los controles")
+				_check(spot.get_shader_parameter("hole_radius") == 0.0, "los controles van sin foco")
 		await _frames(15)
-		_check(not hints.is_open() and not get_tree().paused and not Conductor.is_paused(), "Espacio cierra y sigue el juego")
+		_check(not hints.is_open() and not get_tree().paused and not Conductor.is_paused(), "la última página cierra y sigue el juego")
 		_check(player.is_on_floor(), "la tecla que cierra no hace saltar")
 		var enemy := Enemy.new()
 		enemy.position = player.position + Vector2(300.0, 0.0)
 		var enemies: Array[Enemy] = [enemy]
 		hints.update(player, enemies, true)
-		_check(hints.current() == &"combate", "la primera papa trae el diálogo de combate")
-		_check(hints.get("_backdrop").color.a < 0.5, "el de combate va sin fondo oscuro")
+		_check(hints.current() == &"primera_papa", "la primera papa trae el diálogo de golpearla para enfriar")
+		_check(spot != hints.get("_backdrop").material, "cada diálogo arma su fondo")
+		_check(hints.get("_backdrop").material.get_shader_parameter("darkness") < 0.5, "el de la primera papa va sin fondo oscuro")
 		hints.close()
 		await _frames(15)
 		hints.reset()
@@ -87,15 +111,15 @@ func _test_tutorial() -> float:
 		enemy.free()
 	var end := data.roofs[-1].end.x
 	_close(level)
-	# 2-1: escaleras y ascensores.
-	level = await _open(2, true)
-	hints = level.get("_tutorial")
-	await _frames(40)
-	_check(hints != null and hints.current() == &"edificio", "2-1: la protagonista explica escaleras y ascensores")
-	if hints != null:
-		hints.close()
-		await _frames(15)
-	_close(level)
+	for pair in [[1, &"trucos"], [2, &"edificio"]]:
+		level = await _open(pair[0], true)
+		hints = level.get("_tutorial")
+		await _frames(40)
+		_check(hints != null and hints.current() == pair[1], "%s: diálogo %s" % [Game.LEVELS[pair[0]]["nombre"], pair[1]])
+		if hints != null:
+			hints.close()
+			await _frames(15)
+		_close(level)
 	return end
 
 
@@ -106,7 +130,7 @@ func _test_rooftop_trial(tutorial_end: float) -> void:
 	var length := data.roofs[-1].end.x
 	_check(length >= tutorial_end * 2.0 and length <= tutorial_end * 3.2,
 			"1-2 mide %.1f veces el tutorial" % (length / tutorial_end))
-	_check(_scene_tutorial(1) == &"", "1-2 sin tutorial")
+	_check(_scene_tutorial(1) == &"prueba", "1-2 con el tutorial de stomp y dash")
 	_check(_track(level) == MUSIC_LEVEL_ONE, "1-2 sigue con la canción del nivel uno")
 	var types := _enemy_types(level)
 	_check(types.size() == AZOTEA_ONE.size() and types.all(func(t): return t in AZOTEA_ONE),
@@ -227,6 +251,22 @@ func _press_escape() -> void:
 	release.pressed = false
 	Input.parse_input_event(release)
 	await _frames(2)
+
+
+## Desde 70 de calor sube el peligro (canción de peligro y glitch) hasta el máximo en 100.
+func _test_danger() -> void:
+	var level := await _open(0)
+	var heat: HeatMeter = level.get("_heat")
+	for pair in [[69.0, 0.0], [85.0, 0.5], [99.0, 29.0 / 30.0]]:
+		heat.change(pair[0] - heat.heat)
+		_check(is_equal_approx(level.danger_amount(), pair[1]), "calor %.0f → peligro %.2f (%.2f)" % [pair[0], pair[1], level.danger_amount()])
+	heat.change(10.0)
+	_check(heat.overheated and level.danger_amount() == 1.0, "con la mecha encendida el peligro es máximo")
+	await _frames(2)
+	_check(Conductor.get("_danger_target") == 1.0, "la zona le pasa el peligro al Conductor")
+	level.finish_victory()
+	_check(level.danger_amount() == 0.0, "al terminar la partida no hay peligro")
+	_close(level)
 
 
 ## Abre un subnivel; salvo `with_tutorial`, sin los diálogos (pausan el juego).

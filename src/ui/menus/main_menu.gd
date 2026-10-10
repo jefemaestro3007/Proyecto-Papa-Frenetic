@@ -20,6 +20,8 @@ const LEVEL_SELECT_SCREENS: Array[String] = ["seleccion_nivel", "seleccion_nivel
 const BACK := {&"nuevo_juego": &"inicio", &"seleccion_nivel": &"nuevo_juego"}
 ## La carga dura al menos esto, para que se vean las tres papas.
 const LOADING_MIN_SECONDS := 1.5
+## Con imagen de carga propia (p. ej. 1-2 → 2-1) dura más, para que se alcance a ver el dibujo.
+const LOADING_IMAGE_SECONDS := 3.0
 ## Música del menú: suena en todas sus pantallas y marca el beat de la protagonista y los botones.
 const MENU_MUSIC := "res://src/shared/resources/music/menu.tres"
 
@@ -28,6 +30,7 @@ var _current := &""
 var _loading_phases: Array[TextureRect] = []
 var _loading_time := 0.0
 var _loading_path := ""
+var _loading_min := LOADING_MIN_SECONDS
 
 
 func _ready() -> void:
@@ -54,11 +57,18 @@ func show_screen(screen_name: StringName) -> void:
 				if Game.can_play(i + 1):
 					_screen.add_button(LEVEL_ENTER_BUTTONS[i], StringName("nivel_%d" % (i + 1)))
 		&"cargando":
-			_screen = PsdScreen.new("cargando")
-			for i in 3:
-				var phase := _screen.add_layer("cargando_fase_%d" % (i + 1))
-				phase.modulate.a = 0.0
-				_loading_phases.append(phase)
+			var image := Game.loading_image()
+			if not image.is_empty() and ResourceLoader.exists(image):
+				_screen = PsdScreen.new("")
+				_screen.set_backdrop_image(load(image), 0.0)
+				_loading_min = LOADING_IMAGE_SECONDS
+			else:
+				_screen = PsdScreen.new("cargando")
+				for i in 3:
+					var phase := _screen.add_layer("cargando_fase_%d" % (i + 1))
+					phase.modulate.a = 0.0
+					_loading_phases.append(phase)
+				_loading_min = LOADING_MIN_SECONDS
 			_start_loading()
 		&"configuracion":
 			_screen = SettingsScreen.new()
@@ -121,7 +131,7 @@ func _process(delta: float) -> void:
 	var loaded: float = progress[0] if not progress.is_empty() else 0.0
 	if status == ResourceLoader.THREAD_LOAD_LOADED:
 		loaded = 1.0
-	var shown := minf(loaded, _loading_time / LOADING_MIN_SECONDS)
+	var shown := minf(loaded, _loading_time / _loading_min)
 	for i in _loading_phases.size():
 		var target := 1.0 if shown >= (i + 1) / 3.0 - 0.001 else 0.0
 		_loading_phases[i].modulate.a = move_toward(_loading_phases[i].modulate.a, target, delta * 6.0)
@@ -129,7 +139,7 @@ func _process(delta: float) -> void:
 		push_error("No se pudo cargar " + _loading_path)
 		set_process(false)
 		show_screen(&"seleccion_nivel")
-	elif status == ResourceLoader.THREAD_LOAD_LOADED and _loading_time >= LOADING_MIN_SECONDS + 0.2:
+	elif status == ResourceLoader.THREAD_LOAD_LOADED and _loading_time >= _loading_min + 0.2:
 		set_process(false)
 		get_tree().change_scene_to_packed(ResourceLoader.load_threaded_get(_loading_path))
 

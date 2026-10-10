@@ -35,7 +35,7 @@ START ──▶ NEW GAME ──▶ LEVEL SELECT ──▶ LOADING ──▶ nive
 | SETTINGS (`configuracion`) | Pestañas · BACK · DEFAULTS | Configuración del jugador (ver abajo). BACK o Esc vuelve a donde se abrió |
 | NEW GAME (`nuevo_juego`) | NEW GAME | Pasa a LEVEL SELECT |
 | LEVEL SELECT (`seleccion_nivel`, `_2`, `_3`) | ENTER de cada nivel desbloqueado | Juega el nivel desde su primer subnivel (1-1, 2-1…). El diseño cambia según hasta dónde se llegó: al empezar solo el nivel 1; al llegar a los edificios (2-1) queda desbloqueado el 2, también al volver al menú o reabrir el juego |
-| LOADING (`cargando`) | — | Carga el nivel en segundo plano; las tres papas aparecen de izquierda a derecha (mínimo 1,5 s) |
+| LOADING (`cargando`) | — | Carga el nivel en segundo plano; las tres papas aparecen de izquierda a derecha (mínimo 1,5 s). Si el subnivel tiene imagen de carga (`carga` en `Game.LEVELS`) y se llega con NEXT LEVEL, se ve esa imagen a pantalla completa durante 3 s: 1-2 → 2-1 muestra a la protagonista preocupada frente a la ciudad (`carga_mundo_2.png`) |
 | YOU LOOSE (`perdiste`) | BACK MENU · TRY AGAIN? | Al explotar la papa: volver al menú o reintentar con la misma seed |
 | YOU WIN (`ganaste`) | BACK MENU · NEXT LEVEL | Al llegar a la salida: volver al menú o pasar al siguiente subnivel (1-1 → 1-2 → 2-1 → 2-2; después de 2-2, la misma zona con otra seed) |
 | PAUSE (en juego, Esc) | BACK MENU · CONTINUE · SETTINGS | Congela el juego y la canción. CONTINUE o Esc sigue donde iba; BACK MENU vuelve al menú principal; SETTINGS abre la configuración sobre la partida pausada. No tiene PSD: se dibuja en código (`PauseArt`) con los botones de YOU LOOSE / YOU WIN; si llega un diseño, se reemplaza por su PNG |
@@ -60,15 +60,18 @@ las opciones de `ZoneLevel` del grupo "Subnivel" (`tutorial`, `start_style`, `en
 | 2-2 Bajada | `oficinas/oficinas_bajada.tscn` | Torre de 14 pisos y 10 módulos, de arriba hacia abajo, con el estilo Isaac | Comunes, tanques, embestidoras y tiradoras | Nivel dos (industrial) |
 
 El tutorial (`TutorialHints`) pausa el juego y la canción, y la protagonista (retrato
-`assets/textures/ui/protagonista_retrato.png`) aparece en el centro y explica los controles en un
-globo de diálogo; Espacio, Enter, J o clic terminan de escribir el texto y cierran. El guion lo
-elige cada escena con `tutorial`:
+`assets/textures/ui/protagonista_retrato.png`) aparece en el centro y habla en un globo de diálogo
+de una o más páginas; Espacio, Enter, J o clic terminan de escribir, pasan de página y cierran. Las
+páginas con foco iluminan la papa bomba del HUD (el resto de la pantalla queda oscuro) y la rodean
+con un anillo. Primero se cuenta la premisa y después los controles, de a poco: el guion lo elige
+cada escena con `tutorial`:
 
-| Guion | Subnivel | Cuándo | Qué explica |
+| Guion | Subnivel | Cuándo | Qué dice |
 |---|---|---|---|
-| `azotea` | 1-1 | Al empezar, sobre fondo oscuro | A/D moverse, Espacio saltar, clic/J golpear |
-| `azotea` | 1-1 | Cuando se acerca la primera papa, sin fondo oscuro | S en el aire stomp, clic/J en el aire ataque aéreo, Shift dash |
-| `edificio` | 2-1 | Al empezar, sobre fondo oscuro | W subir y S bajar por escaleras y ascensores, A/D salir del ascensor (frente a un ascensor W lo llama; adentro W y S eligen el piso) |
+| `azotea` | 1-1 | Al empezar, fondo oscuro, 3 páginas | Le pegaron una papa bomba (foco en la papa); se calienta sola y más si pierde el ritmo, solo la enfría pelar papas zombi al ritmo y si llega al rojo explota (foco); hay que salir de la ciudad: A/D moverse, Espacio saltar, clic/J golpear, clic/J en el aire golpe aéreo |
+| `azotea` | 1-1 | Cuando se acerca la primera papa, sin fondo oscuro | Pelarla al ritmo enfría la papa bomba (foco) |
+| `prueba` | 1-2 | Al empezar, fondo oscuro | Dos trucos para pelarlas antes de que explote: S en el aire stomp, Shift dash |
+| `edificio` | 2-1 | Al empezar, fondo oscuro | W subir y S bajar por escaleras y ascensores, A/D salir del ascensor |
 
 Cada diálogo sale una vez por partida: reintentar no lo repite. Jugando desde el menú no se ve la
 línea de ayuda de debug ni Oficinas cambia sola de seed al ganar.

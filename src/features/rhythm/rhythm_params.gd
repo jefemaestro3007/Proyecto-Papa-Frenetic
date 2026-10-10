@@ -7,6 +7,10 @@ extends Resource
 @export_range(60.0, 240.0) var bpm: float = 170.0
 @export var music_enabled: bool = true
 @export_range(-40.0, 6.0) var music_volume_db: float = -6.0
+## Canción de peligro (calor alto): volumen extra, y si reemplaza a la del nivel (mezcla cruzada)
+## o suena encima de ella (juntas; la del nivel solo baja un poco para no saturar).
+@export_range(-40.0, 6.0) var danger_volume_db: float = 0.0
+@export var danger_crossfade: bool = false
 @export var sfx_enabled: bool = true
 @export_range(-40.0, 6.0) var sfx_volume_db: float = -4.0
 @export var metronome_enabled: bool = true

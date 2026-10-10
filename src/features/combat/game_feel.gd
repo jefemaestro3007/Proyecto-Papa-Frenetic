@@ -9,9 +9,10 @@ const HITSTOP_TIME_SCALE := 0.05
 const MAX_SHAKE := 42.0
 const TRAUMA_DECAY := 1.7
 const ZOOM_DECAY := 9.0
-const TENSION_SHAKE := 9.0
-const TENSION_JITTER := 3.5
-const TENSION_SWAY_DEGREES := 1.3
+## Temblor por calor (50 % más fuerte que el del prototipo: el calor alto tiene que notarse).
+const TENSION_SHAKE := 13.5
+const TENSION_JITTER := 5.25
+const TENSION_SWAY_DEGREES := 1.95
 ## Durante la mecha todo se mueve más.
 const OVERHEAT_MULTIPLIER := 1.7
 

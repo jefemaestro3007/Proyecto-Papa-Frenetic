@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MusicTrack" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/features/rhythm/music_track.gd" id="1_track"]
+[ext_resource type="AudioStream" path="res://assets/audio/music/IntensidadCalor.wav" id="2_stream"]
+
+[resource]
+script = ExtResource("1_track")
+title = "Peligro: ambient dnb breakcore (prod. by @1tynee)"
+stream = ExtResource("2_stream")
+bpm = 137.1
+volume_db = -6.0

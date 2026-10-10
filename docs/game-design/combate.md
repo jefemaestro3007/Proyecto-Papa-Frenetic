@@ -53,8 +53,18 @@ Otros: tocar una papa +10 (embestidora ×1,5) y rompe el combo; papa frita +5; c
 El combo vence si pasan `combo_timeout_beats` beats sin ninguna acción a tiempo. El
 multiplicador (×1 a ×4, sube cada 8 de combo) solo crece golpeando.
 
-**Tensión:** desde 50 de calor la cámara tiembla y se balancea, el HUD tiembla y una viñeta roja
-late con el beat; durante la mecha todo es más fuerte.
+**Tensión:** desde 50 de calor la cámara tiembla y se balancea (50 % más fuerte que en el prototipo),
+el HUD tiembla y una viñeta roja late con el beat; durante la mecha todo es más fuerte.
+
+**Peligro** (desde 70 de calor, `danger_from`; máximo en 100 o con la mecha): en todos los niveles
+empieza la canción de peligro (`peligro.tres`: "ambient dnb breakcore x experimental type beat",
+prod. by @1tynee, ~137 BPM) con poquito volumen y sube hasta el máximo en 100, y la pantalla se
+glitchea un poco a ratos (franjas finas corridas y algo de separación de color, mucho menos que en
+un golpe). Dos mezclas, en la pestaña Ritmo: **juntas** (por defecto; la canción del nivel solo baja
+3 dB al máximo) o **cruzada** (la del nivel baja hasta callarse). La canción de peligro va 6 dB por
+debajo de su volumen original, porque suena más fuerte que las de los niveles, y entra y sale de a
+poco. Va a otro tempo que las de los niveles; el beat del juego sigue siendo el de la canción del
+nivel.
 
 **HUD** (`src/ui/hud/heat_hud.gd`): abajo a la derecha la papa bomba (`HeatPotato`, cinco dibujos,
 uno cada 20 de calor) con el manómetro de presión incrustado (`HeatGauge`; con la mecha el cristal
