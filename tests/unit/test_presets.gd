@@ -8,6 +8,7 @@ const SECTIONS := {
 	"iluminacion": "res://src/world/environment/lighting_params.gd",
 	"jugador": "res://src/features/player/resources/player_params.gd",
 	"ritmo": "res://src/features/rhythm/rhythm_params.gd",
+	"efectos": "res://src/features/combat/impact_fx_params.gd",
 }
 const TMP_DIR := "user://test_presets/"
 

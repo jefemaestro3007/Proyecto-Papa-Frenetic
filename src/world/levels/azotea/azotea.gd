@@ -4,6 +4,8 @@ extends Node2D
 ## En el editor funciona como laboratorio: cambia los parámetros en el Inspector y se regenera.
 ## En juego: ←/→ mover, Espacio saltar, ↓ en el aire caída forzada, Tab/F1 menú de debug, R/N/P seeds.
 ## Saltar, girar y aterrizar en el beat suma combo; la caída forzada se premia o castiga según su timing.
+## Solo "atacan" (estallido, glitch, temblor) las caídas forzadas y las que superan
+## `player_params.hard_landing_height`.
 
 const SKY_SHADER := preload("res://src/world/environment/shaders/sky.gdshader")
 const GRUNGE_SHADER := preload("res://src/world/environment/shaders/ruin_grunge.gdshader")
@@ -13,7 +15,7 @@ const DEFAULT_LOOK := "rojo_frenetico"
 
 const FAR_SCROLL := Vector2(0.15, 0.08)
 const NEAR_SCROLL := Vector2(0.4, 0.22)
-const BURST_MIN_SPEED := 900.0
+## Aterrizajes más suaves que esto (saltitos) ni siquiera se juzgan.
 const LAND_MIN_SPEED := 400.0
 const AUTORUN_EDGE := 70.0
 
@@ -29,6 +31,7 @@ const AUTORUN_EDGE := 70.0
 @export var sky: SkyParams
 @export var lighting: LightingParams
 @export var player_params: PlayerParams
+@export var impact_fx: ImpactFxParams
 
 @export_tool_button("Regenerar", "Reload") var regenerate_button := regenerate
 
@@ -64,6 +67,8 @@ func _ready() -> void:
 		lighting = _load_preset("iluminacion", DEFAULT_LOOK, LightingParams.new())
 	if player_params == null:
 		player_params = PlayerParams.new()
+	if impact_fx == null:
+		impact_fx = _load_preset("efectos", "base", ImpactFxParams.new())
 	if not Engine.is_editor_hint():
 		_parse_args()
 		_build_runtime()
@@ -216,6 +221,7 @@ func _build_debug_menu() -> void:
 	_build_sky_section(_menu.add_section("Cielo"))
 	_build_lighting_section(_menu.add_section("Luz"))
 	_build_player_section(_menu.add_section("Jugador"))
+	_build_fx_section(_menu.add_section("Efectos"))
 	_build_rhythm_section(_menu.add_section("Ritmo"))
 	_build_system_section(_menu.add_section("Sistema"))
 	_menu.get_node("Tabs").current_tab = _initial_tab
@@ -292,6 +298,8 @@ func _build_player_section(section: DebugSection) -> void:
 	section.add_slider(p, &"jump_cut", "Corte al soltar salto (×)", 0.1, 1.0, 0.05)
 	section.add_slider(p, &"coyote_time", "Coyote time (s)", 0.0, 0.3, 0.01)
 	section.add_slider(p, &"jump_buffer", "Buffer de salto (s)", 0.0, 0.3, 0.01)
+	section.add_group("Caídas")
+	section.add_slider(p, &"hard_landing_height", "Altura para atacar (px)", 0, 2000, 10)
 	section.add_group("Caída forzada (↓)")
 	section.add_toggle(p, &"fast_fall_enabled", "Activada")
 	section.add_slider(p, &"fast_fall_speed", "Velocidad de caída", 800, 5000, 50)
@@ -307,6 +315,48 @@ func _build_player_section(section: DebugSection) -> void:
 	section.add_slider(p, &"spin_time", "Duración del giro (s)", 0.05, 1.0, 0.01)
 	section.add_group("Visual")
 	section.add_slider(p, &"beat_bounce", "Rebote al compás", 0.0, 0.4, 0.01)
+
+
+func _build_fx_section(section: DebugSection) -> void:
+	var fx := impact_fx
+	section.add_preset_bar(fx, "efectos")
+	section.add_group("Intensidad por caída")
+	section.add_slider(fx, &"hard_landing_perfect", "Caída alta PERFECTO", 0.0, 4.0, 0.05)
+	section.add_slider(fx, &"hard_landing_good", "Caída alta BIEN", 0.0, 4.0, 0.05)
+	section.add_slider(fx, &"hard_landing_miss", "Caída alta fuera de tiempo", 0.0, 4.0, 0.05)
+	section.add_slider(fx, &"slam_perfect", "Caída forzada PERFECTO", 0.0, 4.0, 0.05)
+	section.add_slider(fx, &"slam_good", "Caída forzada BIEN", 0.0, 4.0, 0.05)
+	section.add_slider(fx, &"slam_miss", "Caída forzada fallida", 0.0, 4.0, 0.05)
+	section.add_slider(fx, &"jump_spark", "Chispa de salto a tiempo", 0.0, 2.0, 0.05)
+	section.add_group("Rayos")
+	section.add_slider(fx, &"ray_count_min", "Cantidad mínima", 0, 48, 1)
+	section.add_slider(fx, &"ray_count_max", "Cantidad máxima", 0, 48, 1)
+	section.add_slider(fx, &"ray_length_min", "Largo mínimo (px)", 10, 600, 5)
+	section.add_slider(fx, &"ray_length_max", "Largo máximo (px)", 10, 600, 5)
+	section.add_slider(fx, &"ray_width_min", "Grosor mínimo (px)", 2, 80, 1)
+	section.add_slider(fx, &"ray_width_max", "Grosor máximo (px)", 2, 80, 1)
+	section.add_slider(fx, &"spread_degrees", "Apertura (°)", 10, 360, 1)
+	section.add_slider(fx, &"jaggedness", "Dentado (px)", 0, 40, 1)
+	section.add_slider(fx, &"ray_lifetime", "Duración (s)", 0.0, 1.0, 0.01)
+	section.add_slider(fx, &"scale_start", "Escala inicial", 0.1, 3.0, 0.05)
+	section.add_slider(fx, &"scale_end", "Escala final", 0.1, 3.0, 0.05)
+	section.add_slider(fx, &"outline_width", "Contorno (px)", 0, 12, 0.5)
+	section.add_color(fx, &"fill_color", "Relleno")
+	section.add_color(fx, &"outline_color", "Contorno")
+	section.add_group("Escombros")
+	section.add_slider(fx, &"debris_count", "Cantidad", 0, 120, 1)
+	section.add_slider(fx, &"debris_speed_min", "Velocidad mínima", 0, 2000, 10)
+	section.add_slider(fx, &"debris_speed_max", "Velocidad máxima", 0, 2000, 10)
+	section.add_slider(fx, &"debris_gravity", "Gravedad", 0, 6000, 50)
+	section.add_slider(fx, &"debris_size_min", "Tamaño mínimo (px)", 1, 40, 1)
+	section.add_slider(fx, &"debris_size_max", "Tamaño máximo (px)", 1, 40, 1)
+	section.add_slider(fx, &"debris_lifetime", "Duración (s)", 0.05, 3.0, 0.05)
+	section.add_color(fx, &"debris_color", "Color principal")
+	section.add_color(fx, &"debris_color_alt", "Color secundario")
+	section.add_group("Pantalla")
+	section.add_slider(fx, &"screen_shake", "Temblor de cámara (px)", 0, 60, 1)
+	section.add_slider(fx, &"glitch_strength", "Glitch", 0.0, 2.0, 0.05)
+	section.add_buttons([["Probar impacto", func() -> void: _impact(impact_fx.slam_perfect)]])
 
 
 func _build_rhythm_section(section: DebugSection) -> void:
@@ -398,7 +448,7 @@ func _process(delta: float) -> void:
 
 	_shock = move_toward(_shock, 0.0, delta * 2.5)
 	_post.set_shader_parameter("shock", _shock)
-	_camera.offset = Vector2(_fx_rng.randf_range(-1.0, 1.0), _fx_rng.randf_range(-1.0, 1.0)) * _shock * 18.0
+	_camera.offset = Vector2(_fx_rng.randf_range(-1.0, 1.0), _fx_rng.randf_range(-1.0, 1.0)) * _shock * impact_fx.screen_shake
 
 	if _menu.visible:
 		_stats_text.text = "FPS %d · beat %d · combo %d (mejor %d) · %d pts\nposición %v" % [
@@ -428,10 +478,10 @@ func _on_player_jumped() -> void:
 	match judgment:
 		ConductorClock.Judgment.PERFECT:
 			_player.boost_jump(player_params.jump_boost_perfect)
-			_spawn_burst(0.6)
+			_spawn_burst(impact_fx.jump_spark)
 		ConductorClock.Judgment.GOOD:
 			_player.boost_jump(player_params.jump_boost_good)
-			_spawn_burst(0.45)
+			_spawn_burst(impact_fx.jump_spark * 0.75)
 
 
 func _on_player_turned(_direction: float) -> void:
@@ -442,42 +492,48 @@ func _on_player_turned(_direction: float) -> void:
 			_player.spin(player_params.turn_boost_good)
 
 
-func _on_player_landed(impact_speed: float, forced: bool) -> void:
+func _on_player_landed(impact_speed: float, forced: bool, fall_height: float) -> void:
 	if forced:
 		_on_slam()
 		return
-	if impact_speed < LAND_MIN_SPEED:
+	var attacks := fall_height >= player_params.hard_landing_height
+	if impact_speed < LAND_MIN_SPEED and not attacks:
 		return
-	match _tracker.register(&"land", false):
+	# Aterrizar a tiempo siempre suma, pero solo una caída alta produce el ataque.
+	var judgment := _tracker.register(&"land", false)
+	if not attacks:
+		return
+	match judgment:
 		ConductorClock.Judgment.PERFECT:
-			_spawn_burst(1.6)
-			_shock = maxf(_shock, 0.8)
+			_impact(impact_fx.hard_landing_perfect)
 		ConductorClock.Judgment.GOOD:
-			_spawn_burst(1.15)
-			_shock = maxf(_shock, 0.45)
+			_impact(impact_fx.hard_landing_good)
 		_:
-			if impact_speed >= BURST_MIN_SPEED:
-				_spawn_burst(0.7)
-				_shock = maxf(_shock, 0.2)
+			_impact(impact_fx.hard_landing_miss)
 
 
 ## Aterrizaje de caída forzada: es intencional, así que se premia fuerte o se castiga.
 func _on_slam() -> void:
 	match _tracker.register(&"slam", true, player_params.slam_points_multiplier):
 		ConductorClock.Judgment.PERFECT:
-			_spawn_burst(2.1)
-			_shock = 1.0
+			_impact(impact_fx.slam_perfect)
 		ConductorClock.Judgment.GOOD:
-			_spawn_burst(1.5)
-			_shock = maxf(_shock, 0.6)
+			_impact(impact_fx.slam_good)
 		_:
 			_player.stumble()
-			_spawn_burst(0.5)
-			_shock = maxf(_shock, 0.15)
+			_impact(impact_fx.slam_miss)
+
+
+## Ataque de caída: estallido + glitch y temblor proporcionales a la intensidad.
+func _impact(strength: float) -> void:
+	_spawn_burst(strength)
+	_shock = maxf(_shock, impact_fx.shock_for(strength))
 
 
 func _spawn_burst(strength: float) -> void:
-	var burst := ImpactBurst.new(_fx_rng, strength)
+	if strength <= 0.0:
+		return
+	var burst := ImpactBurst.new(_fx_rng, strength, impact_fx)
 	burst.position = _player.position
 	add_child(burst)
 

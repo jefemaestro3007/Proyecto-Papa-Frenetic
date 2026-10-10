@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ImpactFxParams" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/features/combat/impact_fx_params.gd" id="1_params"]
+
+[resource]
+script = ExtResource("1_params")
+ray_count_min = 6
+ray_count_max = 9
+ray_length_max = 120.0
+ray_width_max = 18.0
+debris_count = 5
+screen_shake = 6.0
+glitch_strength = 0.4
+hard_landing_miss = 0.0
