@@ -1,6 +1,7 @@
 class_name GameSettings
 extends Node
-## Configuración del jugador (autoload `Settings`): audio, video, controles, juego y dificultad.
+## Configuración del jugador (autoload `Settings`): audio, video, controles, juego, dificultad y
+## opciones de desarrollador (menú de debug en la campaña y monitor del sistema).
 ## Se guarda en `user://configuracion.cfg` y se aplica al cambiar: los volúmenes van a los buses
 ## de audio, el video a la ventana, las teclas al InputMap y lo de la partida (estilo, temblor,
 ## latencia, dificultad) a la zona que esté abierta, que escucha `changed`.
@@ -9,8 +10,8 @@ extends Node
 signal changed
 
 const FILE := "user://configuracion.cfg"
-const MUSIC_BUS := &"Musica"
-const SFX_BUS := &"Efectos"
+const MUSIC_BUS := AudioBuses.MUSIC
+const SFX_BUS := AudioBuses.SFX
 ## Acciones que se pueden reasignar, en el orden del menú: [acción, nombre].
 const ACTIONS := [
 	[&"move_left", "Move left"], [&"move_right", "Move right"],
@@ -24,15 +25,24 @@ const RESERVED_KEYS: Array[int] = [KEY_ESCAPE, KEY_TAB, KEY_F1]
 const FPS_LIMITS: Array[int] = [0, 30, 60, 120, 144, 240]
 ## Estilos gráficos: "" respeta el del nivel.
 const STYLES: Array[String] = ["", "default", "pixel", "isaac"]
-const DIFFICULTIES: Array[StringName] = [&"facil", &"normal", &"dificil"]
+## La última es la personalizada: usa los multiplicadores de `custom_difficulty`.
+const DIFFICULTIES: Array[StringName] = [&"facil", &"normal", &"dificil", &"personalizada"]
 ## Multiplicadores de cada dificultad sobre los valores del nivel:
 ## `heat` = calor que suma todo (pasivo, fallos, golpes); `fuse` = segundos de mecha;
-## `windows` = ventanas de PERFECTO/BIEN; `enemy_speed` = velocidad de las papas.
+## `windows` = ventanas de PERFECTO/BIEN; `enemy_speed` = velocidad de las papas;
+## `enemies` = cantidad de papas (se nota al empezar o reintentar el nivel).
 const DIFFICULTY := {
-	&"facil": {"heat": 0.7, "fuse": 1.5, "windows": 1.25, "enemy_speed": 0.85},
-	&"normal": {"heat": 1.0, "fuse": 1.0, "windows": 1.0, "enemy_speed": 1.0},
-	&"dificil": {"heat": 1.3, "fuse": 0.7, "windows": 0.8, "enemy_speed": 1.15},
+	&"facil": {"heat": 0.7, "fuse": 1.5, "windows": 1.25, "enemy_speed": 0.85, "enemies": 0.7},
+	&"normal": {"heat": 1.0, "fuse": 1.0, "windows": 1.0, "enemy_speed": 1.0, "enemies": 1.0},
+	&"dificil": {"heat": 1.3, "fuse": 0.7, "windows": 0.8, "enemy_speed": 1.15, "enemies": 1.3},
 }
+## Rango de cada multiplicador en la dificultad personalizada.
+const CUSTOM_RANGES := {
+	"heat": Vector2(0.25, 2.0), "fuse": Vector2(0.5, 3.0), "windows": Vector2(0.5, 2.0),
+	"enemy_speed": Vector2(0.5, 2.0), "enemies": Vector2(0.0, 2.5),
+}
+## Monitor del sistema: apagado, solo FPS o completo.
+enum Monitor { OFF, FPS, FULL }
 const HEAT_PROPERTIES: Array[StringName] = [&"passive_heating", &"miss_heating", &"slam_miss_heat",
 		&"contact_heat", &"projectile_heat", &"fall_heat", &"whiff_heat"]
 const ENEMY_SPEED_PROPERTIES: Array[StringName] = [&"potato_speed", &"tank_speed", &"flyer_speed",
@@ -60,11 +70,18 @@ var screen_shake := 1.0
 var input_offset_ms := 0
 # Dificultad.
 var difficulty := &"normal"
+var custom_difficulty := {}
+# Desarrollador.
+## En la campaña habilita el menú de debug (Tab/F1), F2, R/N/P y la línea de ayuda.
+var developer_mode := false
+var monitor := Monitor.OFF
 ## Acción → teclas (keycodes físicos, 0 = vacía), `SLOTS` por acción.
 var bindings := {}
 
 var _default_bindings := {}
 var _persist := true
+var _monitor_layer: CanvasLayer
+var _monitor: SystemMonitor
 
 
 func _ready() -> void:
@@ -74,6 +91,12 @@ func _ready() -> void:
 	for pair in ACTIONS:
 		_default_bindings[pair[0]] = _keys_in_input_map(pair[0])
 	bindings = _default_bindings.duplicate(true)
+	custom_difficulty = DIFFICULTY[&"normal"].duplicate()
+	_monitor_layer = CanvasLayer.new()
+	_monitor_layer.layer = 120
+	add_child(_monitor_layer)
+	_monitor = SystemMonitor.new()
+	_monitor_layer.add_child(_monitor)
 	load_settings()
 	apply()
 
@@ -102,6 +125,15 @@ func apply() -> void:
 	_apply_audio()
 	_apply_video()
 	_apply_bindings()
+	if _monitor != null:
+		_monitor.mode = monitor
+
+
+## Multiplicadores de la dificultad elegida (la personalizada usa los suyos).
+func difficulty_factors() -> Dictionary:
+	if difficulty == &"personalizada":
+		return custom_difficulty
+	return DIFFICULTY.get(difficulty, DIFFICULTY[&"normal"])
 
 
 # --- Audio ---------------------------------------------------------------------------
@@ -204,9 +236,9 @@ static func key_name(keycode: int) -> String:
 ## Aplica dificultad, temblor y latencia a los parámetros de una partida. Guarda en cada
 ## recurso sus valores originales la primera vez, así cambiar de opción no acumula.
 func apply_to_match(combat: CombatParams, rhythm: RhythmParams) -> void:
-	var factors: Dictionary = DIFFICULTY.get(difficulty, DIFFICULTY[&"normal"])
+	var factors := difficulty_factors()
 	var base := _base_values(combat, HEAT_PROPERTIES + ENEMY_SPEED_PROPERTIES + SHAKE_PROPERTIES
-			+ [&"fuse_seconds"])
+			+ [&"fuse_seconds", &"enemy_density"])
 	for property in HEAT_PROPERTIES:
 		combat.set(property, base[property] * factors["heat"])
 	for property in ENEMY_SPEED_PROPERTIES:
@@ -214,6 +246,7 @@ func apply_to_match(combat: CombatParams, rhythm: RhythmParams) -> void:
 	for property in SHAKE_PROPERTIES:
 		combat.set(property, base[property] * screen_shake)
 	combat.fuse_seconds = base[&"fuse_seconds"] * factors["fuse"]
+	combat.enemy_density = base[&"enemy_density"] * factors["enemies"]
 	var rhythm_base := _base_values(rhythm, WINDOW_PROPERTIES)
 	for property in WINDOW_PROPERTIES:
 		rhythm.set(property, rhythm_base[property] * factors["windows"])
@@ -243,6 +276,9 @@ func _reset_values() -> void:
 	screen_shake = 1.0
 	input_offset_ms = 0
 	difficulty = &"normal"
+	custom_difficulty = DIFFICULTY[&"normal"].duplicate()
+	developer_mode = false
+	monitor = Monitor.OFF
 	bindings = _default_bindings.duplicate(true)
 
 
@@ -261,6 +297,9 @@ func save_settings(path := FILE) -> void:
 	file.set_value("game", "screen_shake", screen_shake)
 	file.set_value("game", "input_offset_ms", input_offset_ms)
 	file.set_value("game", "difficulty", String(difficulty))
+	file.set_value("game", "custom_difficulty", custom_difficulty)
+	file.set_value("developer", "enabled", developer_mode)
+	file.set_value("developer", "monitor", monitor)
 	for action: StringName in bindings:
 		file.set_value("controls", action, bindings[action])
 	file.save(path)
@@ -282,7 +321,14 @@ func load_settings(path := FILE) -> void:
 	screen_shake = clampf(file.get_value("game", "screen_shake", screen_shake), 0.0, 1.0)
 	input_offset_ms = clampi(file.get_value("game", "input_offset_ms", input_offset_ms), -200, 200)
 	var saved_difficulty := StringName(file.get_value("game", "difficulty", String(difficulty)))
-	difficulty = saved_difficulty if DIFFICULTY.has(saved_difficulty) else &"normal"
+	difficulty = saved_difficulty if DIFFICULTIES.has(saved_difficulty) else &"normal"
+	var saved_custom: Variant = file.get_value("game", "custom_difficulty", {})
+	if saved_custom is Dictionary:
+		for factor: String in CUSTOM_RANGES:
+			var limits: Vector2 = CUSTOM_RANGES[factor]
+			custom_difficulty[factor] = clampf(saved_custom.get(factor, 1.0), limits.x, limits.y)
+	developer_mode = file.get_value("developer", "enabled", developer_mode)
+	monitor = clampi(file.get_value("developer", "monitor", monitor), Monitor.OFF, Monitor.FULL)
 	for action: StringName in bindings:
 		var keys: Variant = file.get_value("controls", action, null)
 		if keys is Array and keys.size() == SLOTS:

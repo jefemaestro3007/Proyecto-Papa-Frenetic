@@ -1,20 +1,29 @@
 class_name SettingsScreen
 extends PsdScreen
 ## Pantalla de configuración (no hay PSD: se dibuja en código con MenuStyle, en coordenadas del
-## diseño 1440×1024). Pestañas AUDIO, VIDEO, CONTROLS, GAME y DIFFICULTY; cada opción es una
+## diseño 1440×1024). Pestañas AUDIO, VIDEO, CONTROLS, GAME, DIFFICULTY y DEVELOPER; cada opción es una
 ## SettingsRow que lee y escribe en `Settings` y lo aplica al instante. Se abre desde START y
 ## desde la pausa; BACK o Esc emiten `action(&"volver")`. Q/E cambian de pestaña.
 
-const TABS: Array[String] = ["AUDIO", "VIDEO", "CONTROLS", "GAME", "DIFFICULTY"]
-const TAB_SIZE := Vector2(196.0, 52.0)
-const TAB_GAP := 14.0
+const TABS: Array[String] = ["AUDIO", "VIDEO", "CONTROLS", "GAME", "DIFFICULTY", "DEVELOPER"]
+const TAB_GAP := 12.0
+const TAB_SIZE := Vector2((1036.0 - TAB_GAP * 5.0) / 6.0, 52.0)
 const TAB_Y := 206.0
 const PANEL := Rect2(202.0, 292.0, 1036.0, 520.0)
 const BACK_BUTTON := Rect2(438.0, 902.0, 278.0, 58.0)
 const DEFAULTS_BUTTON := Rect2(725.0, 902.0, 281.0, 58.0)
 const STYLE_NAMES: Array[String] = ["Level's own", "Default", "Pixel", "Isaac"]
 const FPS_NAMES: Array[String] = ["Unlimited", "30", "60", "120", "144", "240"]
-const DIFFICULTY_NAMES: Array[String] = ["Easy", "Normal", "Hard"]
+const DIFFICULTY_NAMES: Array[String] = ["Easy", "Normal", "Hard", "Custom"]
+const MONITOR_NAMES: Array[String] = ["Off", "FPS", "Full"]
+## Multiplicadores de la dificultad: [clave, nombre, ayuda].
+const FACTORS := [
+	["heat", "Heat you gain", "Heat from the passive rise, misses and hits taken."],
+	["fuse", "Fuse before exploding", "Seconds you get at full heat before the potato explodes."],
+	["windows", "Timing windows", "How wide PERFECT and GOOD are around the beat."],
+	["enemy_speed", "Potato speed", "How fast the potatoes walk, fly and charge."],
+	["enemies", "Potato amount", "How many potatoes each level has (from the next start or retry)."],
+]
 
 var tab := 0
 var _tabs: Array[DrawnButton] = []
@@ -147,11 +156,34 @@ func _build_rows(name: String) -> Array[SettingsRow]:
 					func(v: float) -> String: return "%+d ms" % roundi(v))
 					.with_help("If your hits are judged late, move it to +. If early, to −."))
 		"DIFFICULTY":
-			out.append(SettingsRow.choice("Difficulty", DIFFICULTY_NAMES,
+			var difficulty_row: SettingsRow = SettingsRow.choice("Difficulty", DIFFICULTY_NAMES,
 					func() -> int: return maxi(GameSettings.DIFFICULTIES.find(s.difficulty), 0),
 					func(i: int) -> void: s.difficulty = GameSettings.DIFFICULTIES[i])
-					.with_help("Applies right away, also in the middle of a level."))
+			difficulty_row.with_help("Applies right away; the potato amount, from the next start or retry.")
+			# Al pasar a Custom (o salir de ella) aparecen o se van sus deslizadores.
+			difficulty_row.value_changed.connect(_rebuild_keeping_focus, CONNECT_DEFERRED)
+			out.append(difficulty_row)
+			if s.difficulty == &"personalizada":
+				for factor: Array in FACTORS:
+					var key: String = factor[0]
+					var limits: Vector2 = GameSettings.CUSTOM_RANGES[key]
+					out.append(SettingsRow.slider(factor[1], func() -> float: return s.custom_difficulty[key],
+							func(v: float) -> void: s.custom_difficulty[key] = v, limits.x, limits.y, 0.05)
+							.with_help(factor[2] + " 100% = Normal."))
+		"DEVELOPER":
+			out.append(SettingsRow.toggle("Developer mode", func() -> bool: return s.developer_mode,
+					func(v: bool) -> void: s.developer_mode = v)
+					.with_help("In levels: debug menu (Tab/F1), F2 style, R/N/P seeds, G/V in the offices, help line."))
+			out.append(SettingsRow.choice("System monitor", MONITOR_NAMES, func() -> int: return s.monitor,
+					func(i: int) -> void: s.monitor = i)
+					.with_help("Shows FPS, frame time, draw calls, nodes, memory and more in the top right."))
 	return out
+
+
+## Vuelve a armar la pestaña con el foco en la primera opción (la que cambió).
+func _rebuild_keeping_focus() -> void:
+	show_tab(tab)
+	focus_first()
 
 
 func _on_key_chosen(action_name: StringName, slot: int, keycode: int) -> void:
@@ -185,8 +217,14 @@ func _reset_tab() -> void:
 			s.input_offset_ms = fresh.input_offset_ms
 		"DIFFICULTY":
 			s.difficulty = fresh.difficulty
+			s.custom_difficulty = fresh.custom_difficulty
+		"DEVELOPER":
+			s.developer_mode = fresh.developer_mode
+			s.monitor = fresh.monitor
 	fresh.free()
 	s.commit()
+	if TABS[tab] == "DIFFICULTY":
+		_rebuild_keeping_focus()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -212,7 +250,7 @@ class SettingsArt extends Control:
 		MenuStyle.text(self, "SETTINGS", Vector2(center, 160.0), 110, MenuStyle.CREAM, 16)
 		MenuStyle.tag(self, Vector2(center + 250.0, 100.0), "OwO")
 		MenuStyle.box(self, PANEL, MenuStyle.PANEL, 3.0)
-		if TABS[screen.tab] == "DIFFICULTY":
+		if TABS[screen.tab] == "DIFFICULTY" and Settings.difficulty != &"personalizada":
 			_draw_difficulty()
 		MenuStyle.text(self, screen.focused_help(), Vector2(center, 858.0), 26, Color(MenuStyle.CREAM, 0.85))
 		MenuStyle.text(self, "Q / E  change tab     ←/→  change value     Esc  back", Vector2(center, 1000.0), 22,
@@ -220,14 +258,15 @@ class SettingsArt extends Control:
 
 	## Tabla con lo que cambia la dificultad elegida respecto de Normal.
 	func _draw_difficulty() -> void:
-		var factors: Dictionary = GameSettings.DIFFICULTY[Settings.difficulty]
+		var factors := Settings.difficulty_factors()
 		var lines := [
 			["Heat you gain", factors["heat"], false],
 			["Fuse before exploding", factors["fuse"], true],
 			["PERFECT / GOOD timing windows", factors["windows"], true],
 			["Potato speed", factors["enemy_speed"], false],
+			["Potato amount", factors["enemies"], false],
 		]
-		var top := PANEL.position.y + 120.0
+		var top := PANEL.position.y + 100.0
 		for i in lines.size():
 			var row := Rect2(PANEL.position.x + 60.0, top + i * 58.0, PANEL.size.x - 120.0, 50.0)
 			var factor: float = lines[i][1]

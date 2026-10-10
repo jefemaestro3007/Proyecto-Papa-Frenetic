@@ -1,7 +1,8 @@
 extends Node
-## Configuración del jugador: buses de audio, teclas (con intercambio), dificultad y temblor sin
-## acumularse, guardar/cargar, la pantalla con sus pestañas y teclado, y abrirla desde la pausa
-## y desde START. Corre como escena (necesita los autoloads). Ejecutar:
+## Configuración del jugador: buses de audio, teclas (con intercambio), dificultad (también la
+## personalizada y la cantidad de papas) y temblor sin acumularse, guardar/cargar, la pantalla con
+## sus pestañas y teclado, abrirla desde la pausa y desde START, el modo developer en la campaña y
+## el monitor del sistema. Corre como escena (necesita los autoloads). Ejecutar:
 ##   godot --headless --path . --fixed-fps 60 res://tests/test_scenes/settings.tscn
 
 const LEVEL := "res://src/world/levels/azotea/azotea.tscn"
@@ -20,25 +21,27 @@ func _ready() -> void:
 	await _test_screen()
 	await _test_pause()
 	await _test_menu()
+	await _test_developer()
+	await _test_monitor()
 	Settings.use_defaults()
 	print("test_settings: %s" % ("OK" if _failures == 0 else "%d FALLOS" % _failures))
 	get_tree().quit(1 if _failures > 0 else 0)
 
 
 func _test_audio() -> void:
-	for bus in [GameSettings.MUSIC_BUS, GameSettings.SFX_BUS]:
+	for bus in [AudioBuses.MUSIC, AudioBuses.SFX]:
 		var index := AudioServer.get_bus_index(bus)
 		_check(index > 0 and AudioServer.get_bus_send(index) == &"Master", "bus %s hacia Master" % bus)
-	_check(Conductor._music.bus == GameSettings.MUSIC_BUS, "la música va al bus Musica")
-	_check(Conductor._click.bus == GameSettings.SFX_BUS, "el metrónomo va al bus Efectos")
+	_check(Conductor._music.bus == AudioBuses.MUSIC, "la música va al bus Musica")
+	_check(Conductor._click.bus == AudioBuses.SFX, "el metrónomo va al bus Efectos")
 	Settings.music_volume = 0.5
 	Settings.commit()
-	var music := AudioServer.get_bus_index(GameSettings.MUSIC_BUS)
+	var music := AudioServer.get_bus_index(AudioBuses.MUSIC)
 	_check(absf(AudioServer.get_bus_volume_db(music) - linear_to_db(0.5)) < 0.01, "volumen de música al 50 %")
 	Settings.sfx_volume = 0.0
 	Settings.muted = true
 	Settings.commit()
-	_check(AudioServer.is_bus_mute(AudioServer.get_bus_index(GameSettings.SFX_BUS)), "efectos en 0 = silencio")
+	_check(AudioServer.is_bus_mute(AudioServer.get_bus_index(AudioBuses.SFX)), "efectos en 0 = silencio")
 	_check(AudioServer.is_bus_mute(0), "silenciar todo apaga Master")
 	Settings.use_defaults()
 	_check(not AudioServer.is_bus_mute(0) and AudioServer.get_bus_volume_db(music) == 0.0, "valores por defecto")
@@ -75,6 +78,15 @@ func _test_match() -> void:
 	Settings.difficulty = &"facil"
 	Settings.apply_to_match(combat, rhythm)
 	_check(is_equal_approx(combat.fuse_seconds, fuse * 1.5), "fácil: más mecha")
+	var density := combat.enemy_density
+	_check(is_equal_approx(density, CombatParams.new().enemy_density * 0.7), "fácil: menos papas")
+	Settings.difficulty = &"personalizada"
+	Settings.custom_difficulty["enemies"] = 2.0
+	Settings.custom_difficulty["fuse"] = 3.0
+	Settings.apply_to_match(combat, rhythm)
+	_check(is_equal_approx(combat.enemy_density, CombatParams.new().enemy_density * 2.0), "personalizada: el doble de papas")
+	_check(is_equal_approx(combat.fuse_seconds, fuse * 3.0), "personalizada: mecha ×3")
+	_check(is_equal_approx(combat.passive_heating, passive), "personalizada: lo demás al 100 %")
 	Settings.difficulty = &"normal"
 	Settings.screen_shake = 0.0
 	Settings.input_offset_ms = 40
@@ -90,6 +102,9 @@ func _test_file() -> void:
 	Settings.master_volume = 0.3
 	Settings.difficulty = &"dificil"
 	Settings.style = "pixel"
+	Settings.developer_mode = true
+	Settings.monitor = GameSettings.Monitor.FULL
+	Settings.custom_difficulty["heat"] = 0.5
 	Settings.bindings[&"attack"][1] = KEY_L
 	Settings.save_settings(TEMP_FILE)
 	Settings.use_defaults()
@@ -97,6 +112,8 @@ func _test_file() -> void:
 	_check(is_equal_approx(Settings.master_volume, 0.3), "se carga el volumen")
 	_check(Settings.difficulty == &"dificil" and Settings.style == "pixel", "se carga dificultad y estilo")
 	_check(Settings.bindings[&"attack"][1] == KEY_L, "se cargan las teclas")
+	_check(Settings.developer_mode and Settings.monitor == GameSettings.Monitor.FULL, "se carga lo de developer")
+	_check(is_equal_approx(Settings.custom_difficulty["heat"], 0.5), "se carga la dificultad personalizada")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEMP_FILE))
 	Settings.use_defaults()
 
@@ -105,7 +122,8 @@ func _test_screen() -> void:
 	var screen := SettingsScreen.new()
 	add_child(screen)
 	await get_tree().process_frame
-	var counts := {"AUDIO": 4, "VIDEO": 3, "CONTROLS": GameSettings.ACTIONS.size(), "GAME": 3, "DIFFICULTY": 1}
+	var counts := {"AUDIO": 4, "VIDEO": 3, "CONTROLS": GameSettings.ACTIONS.size(), "GAME": 3, "DIFFICULTY": 1,
+			"DEVELOPER": 2}
 	for i in SettingsScreen.TABS.size():
 		screen.show_tab(i)
 		_check(screen.rows().size() == counts[SettingsScreen.TABS[i]], "filas de %s" % SettingsScreen.TABS[i])
@@ -127,9 +145,20 @@ func _test_screen() -> void:
 	_key(KEY_Q)
 	_key(KEY_Q)
 	await get_tree().process_frame
-	_check(screen.tab == SettingsScreen.TABS.size() - 1, "Q da la vuelta a DIFFICULTY")
+	_check(screen.tab == SettingsScreen.TABS.size() - 1, "Q da la vuelta a la última pestaña")
+	screen.show_tab(SettingsScreen.TABS.find("DIFFICULTY"))
+	screen.focus_first()
+	await get_tree().process_frame
 	_press(&"ui_right")
 	_check(Settings.difficulty == &"dificil", "→ en dificultad pasa a Hard")
+	_press(&"ui_right")
+	await get_tree().process_frame
+	_check(Settings.difficulty == &"personalizada", "→ otra vez pasa a Custom")
+	_check(screen.rows().size() == 1 + SettingsScreen.FACTORS.size(), "Custom muestra sus deslizadores")
+	_check(screen.first_row().has_focus(), "el foco sigue en la dificultad")
+	_press(&"ui_left")
+	await get_tree().process_frame
+	_check(screen.rows().size() == 1, "Hard esconde los deslizadores")
 	# Reasignar una tecla desde la pantalla.
 	screen.show_tab(SettingsScreen.TABS.find("CONTROLS"))
 	screen.focus_first()
@@ -201,6 +230,48 @@ func _test_menu() -> void:
 	_check(menu.get("_current") == &"inicio", "BACK vuelve a START")
 	menu.queue_free()
 	await get_tree().process_frame
+
+
+## En la campaña, Tab/F1 y R/N/P solo funcionan con el modo developer.
+func _test_developer() -> void:
+	Game.level_index = 0
+	var level: ZoneLevel = load(LEVEL).instantiate()
+	add_child(level)
+	await get_tree().process_frame
+	var menu: Control = level.get("_menu")
+	var help: Label = level.get("_help")
+	var seed: int = level.params.seed
+	_check(not menu.visible and not help.visible, "en la campaña el menú de debug arranca oculto")
+	_key(KEY_TAB)
+	_key(KEY_N)
+	_check(not menu.visible and level.params.seed == seed, "sin modo developer, Tab y N no hacen nada")
+	Settings.developer_mode = true
+	Settings.commit()
+	_check(help.visible, "con modo developer se ve la línea de ayuda")
+	_key(KEY_TAB)
+	_check(menu.visible, "con modo developer, Tab abre el menú de debug")
+	Settings.developer_mode = false
+	Settings.commit()
+	_check(not menu.visible and not help.visible, "al apagarlo se cierra el menú")
+	level.queue_free()
+	Game.level_index = -1
+	Settings.use_defaults()
+	await get_tree().process_frame
+
+
+func _test_monitor() -> void:
+	var monitor: SystemMonitor = Settings.get("_monitor")
+	_check(monitor != null and not monitor.visible, "monitor apagado por defecto")
+	Settings.monitor = GameSettings.Monitor.FPS
+	Settings.commit()
+	_check(monitor.visible and monitor.lines().size() == 1 and monitor.lines()[0].begins_with("FPS"), "modo FPS")
+	Settings.monitor = GameSettings.Monitor.FULL
+	Settings.commit()
+	await get_tree().create_timer(0.3).timeout
+	var text := "\n".join(monitor.lines())
+	_check(monitor.lines().size() > 5 and "Draw calls" in text and "Memoria" in text, "modo completo:\n" + text)
+	Settings.use_defaults()
+	_check(not monitor.visible, "use_defaults lo apaga")
 
 
 func _screen_of(layer: CanvasLayer) -> PsdScreen:

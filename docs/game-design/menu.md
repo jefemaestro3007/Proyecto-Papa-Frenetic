@@ -89,13 +89,14 @@ pestaña actual.
 | VIDEO | Pantalla completa, VSync, límite de FPS (sin límite, 30, 60, 120, 144, 240) |
 | CONTROLS | Dos teclas por acción (mover, arriba/usar, abajo/stomp, saltar, atacar, dash). Enter o clic en una casilla y apretar la tecla nueva; Esc cancela, Retroceso la borra. Si la tecla ya era de otra acción, intercambian. Esc, Tab y F1 no se pueden asignar. El clic de atacar se mantiene |
 | GAME | Estilo gráfico ("Level's own" respeta el de cada nivel, o Default / Pixel / Isaac para todos), temblor de cámara (0–100 %), corrección de latencia del ritmo (±200 ms) |
-| DIFFICULTY | Easy / Normal / Hard (tabla abajo). Se aplica al instante, también en medio de un nivel |
+| DIFFICULTY | Easy / Normal / Hard (tabla abajo) o Custom, con un deslizador por multiplicador (calor 25–200 %, mecha 50–300 %, ventanas 50–200 %, velocidad 50–200 %, cantidad de papas 0–250 %). Se aplica al instante, también en medio de un nivel; la cantidad de papas, al empezar o reintentar |
+| DEVELOPER | Modo developer: en la campaña habilita el menú de debug (Tab/F1), F2 (estilo), R/N/P (seed), G/V en las oficinas y la línea de ayuda; sin él esas teclas no hacen nada (al abrir una zona directo siempre funcionan). Monitor del sistema: Off, FPS (FPS y tiempo por frame) o Full (además proceso y física, draw calls, nodos, objetos de física, memoria, latencia de audio, ventana, BPM y beat), arriba a la derecha en todas las pantallas |
 
-| Dificultad | Calor que se suma | Mecha | Ventanas PERFECTO/BIEN | Velocidad de las papas |
-|---|---|---|---|---|
-| Easy | ×0,7 | ×1,5 | ×1,25 | ×0,85 |
-| Normal | ×1 | ×1 | ×1 | ×1 |
-| Hard | ×1,3 | ×0,7 | ×0,8 | ×1,15 |
+| Dificultad | Calor que se suma | Mecha | Ventanas PERFECTO/BIEN | Velocidad de las papas | Cantidad de papas |
+|---|---|---|---|---|---|
+| Easy | ×0,7 | ×1,5 | ×1,25 | ×0,85 | ×0,7 |
+| Normal | ×1 | ×1 | ×1 | ×1 | ×1 |
+| Hard | ×1,3 | ×0,7 | ×0,8 | ×1,15 | ×1,3 |
 
 Los multiplicadores están en `GameSettings.DIFFICULTY` y se aplican sobre los valores de cada
 nivel (no se acumulan al cambiar de opción). `Settings` (autoload, `src/core/autoloads/settings.gd`)

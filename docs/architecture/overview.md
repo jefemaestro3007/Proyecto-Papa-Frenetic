@@ -37,7 +37,7 @@ src/
 │   ├── components/debug_section.gd    # pestaña del menú de debug (sliders, colores, presets)
 │   ├── menus/debug_menu.gd            # menú de debug con pestañas
 │   ├── menus/settings_screen.gd       # SETTINGS (SettingsRow, DrawnButton, MenuStyle)
-│   └── hud/                           # RhythmHud (combo, compás, avisos) + HeatHud (manómetro, mecha, fin)
+│   └── hud/                           # RhythmHud (combo, compás, avisos) + HeatHud (manómetro, mecha, fin) + SystemMonitor
 └── shared/resources/
     ├── presets/<sección>/             # presets .tres por sección del menú
     ├── music/                         # MusicTrack de cada canción

@@ -46,10 +46,10 @@ func _ready() -> void:
 	_bpm = params.bpm
 	_click = AudioStreamPlayer.new()
 	_click.stream = _make_click()
-	_click.bus = GameSettings.SFX_BUS
+	_click.bus = AudioBuses.SFX
 	add_child(_click)
 	_music = AudioStreamPlayer.new()
-	_music.bus = GameSettings.MUSIC_BUS
+	_music.bus = AudioBuses.MUSIC
 	add_child(_music)
 
 

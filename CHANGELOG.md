@@ -35,8 +35,11 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - Menú de configuración (SETTINGS), desde START y desde la pausa: volúmenes general, de música y
   de efectos (buses de audio) y silenciar; pantalla completa, VSync y límite de FPS; dos teclas
   reasignables por acción; estilo gráfico, temblor de cámara y corrección de latencia del ritmo;
-  dificultad Easy / Normal / Hard. Se guarda en `user://configuracion.cfg` y se aplica al
-  instante. Dibujado en código con la letra Jersey 20 de los diseños (licencia OFL).
+  dificultad Easy / Normal / Hard o Custom (calor, mecha, ventanas de juicio, velocidad y
+  cantidad de papas); pestaña DEVELOPER con el modo developer (menú de debug y teclas de
+  desarrollo en la campaña) y el monitor del sistema (FPS, tiempos, draw calls, nodos, memoria).
+  Se guarda en `user://configuracion.cfg` y se aplica al instante. Dibujado en código con la
+  letra Jersey 20 de los diseños (licencia OFL).
 - Niveles 1 y 2 con subniveles: 1-1 tutorial (textos de movimientos básicos y, con la primera papa,
   de stomp, ataque aéreo y dash), 1-2 la azotea unas 2,6 veces más larga con los cuatro tipos
   mezclados, 2-1 torre de 13 pisos hacia arriba con neblina de habitación y 2-2 torre de 14 pisos

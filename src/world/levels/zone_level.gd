@@ -94,6 +94,7 @@ var _initial_tab := 0
 var _style_name := "default"
 ## Estilo del nivel (escena, `start_style` o `--style`) y el último que pidió la configuración.
 var _level_style := "default"
+var _help: Label
 var _settings_style := ""
 var _hide_menu := false
 var _style_signature := 0
@@ -419,12 +420,13 @@ func _build_runtime() -> void:
 	_hud.tracker = _tracker
 	ui_layer.add_child(_hud)
 	var help := Label.new()
+	_help = help
 	help.text = _zone_help_text()
 	help.position = Vector2(24.0, 18.0)
 	help.add_theme_color_override("font_color", FreneticPalette.CREAM)
 	help.add_theme_color_override("font_outline_color", FreneticPalette.INK)
 	help.add_theme_constant_override("outline_size", 8)
-	help.visible = not Game.in_campaign()
+	help.visible = developer_enabled()
 	ui_layer.add_child(help)
 	if tutorial:
 		_tutorial = TutorialHints.new()
@@ -453,6 +455,12 @@ func _build_debug_menu() -> void:
 	_menu.get_node("Tabs").current_tab = _initial_tab
 	# Entrando desde el menú principal el menú de debug arranca cerrado (Tab lo abre).
 	_menu.visible = not _hide_menu and not Game.in_campaign()
+
+
+## Menú de debug y teclas de desarrollo (Tab/F1, F2, R/N/P): siempre al abrir una zona directo;
+## en la campaña, solo con el modo developer de la configuración.
+func developer_enabled() -> bool:
+	return not Game.in_campaign() or Settings.developer_mode
 
 
 func _build_style_section(section: DebugSection) -> void:
@@ -853,6 +861,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if key == null or not key.pressed or key.echo:
 		return
 	var map := _zone_params()
+	if not developer_enabled() and key.keycode in [KEY_TAB, KEY_F1, KEY_F2, KEY_R, KEY_N, KEY_P]:
+		return
 	match key.keycode:
 		KEY_TAB, KEY_F1:
 			_menu.visible = not _menu.visible
@@ -1006,6 +1016,10 @@ func _on_result_action(action_name: StringName) -> void:
 ## aplicar cada vez que cambia (también desde la pausa).
 func _apply_settings() -> void:
 	Settings.apply_to_match(combat, Conductor.params)
+	if _help != null:
+		_help.visible = developer_enabled()
+	if _menu != null and not developer_enabled():
+		_menu.visible = false
 	var wanted := Settings.style if not Settings.style.is_empty() else _level_style
 	if wanted != _settings_style:
 		_settings_style = wanted

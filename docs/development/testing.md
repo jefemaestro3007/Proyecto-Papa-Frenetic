@@ -72,7 +72,9 @@ escala con el tamaño (no debería).
 
 `settings` comprueba la configuración del jugador: buses de audio, teclas (con intercambio y el
 clic de atacar intacto), dificultad y temblor sin acumularse, guardar y cargar, la pantalla
-(pestañas, teclado, reasignar una tecla, DEFAULTS) y abrirla desde la pausa y desde START.
+(pestañas, teclado, reasignar una tecla, DEFAULTS, Custom con sus deslizadores), abrirla desde la
+pausa y desde START, el modo developer en la campaña (Tab y N bloqueadas sin él) y el monitor del
+sistema.
 Los tests de integración empiezan con `Settings.use_defaults()`: no leen ni escriben la
 configuración guardada del jugador.
 
