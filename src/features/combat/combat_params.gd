@@ -84,6 +84,8 @@ extends Resource
 @export_range(40.0, 600.0) var balloon_trigger: float = 150.0
 @export_range(60.0, 800.0) var balloon_blast_radius: float = 230.0
 @export_range(0.5, 4.0) var balloon_blast_scale: float = 1.5
+## Golpeada no muere: explota unos beats después (tiempo para alejarse).
+@export_range(1.0, 4.0) var balloon_hit_fuse_beats: float = 2.0
 ## Guardia: corre rápido; al tocarte te empuja hacia la papa más cercana y, si está solo, pega más.
 @export_range(0.0, 900.0) var guard_speed: float = 380.0
 @export_range(100.0, 2000.0) var guard_push_range: float = 750.0

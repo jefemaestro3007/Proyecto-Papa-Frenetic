@@ -99,6 +99,11 @@ func _move(delta: float) -> void:
 	position.x = clampf(position.x + direction * move_speed * delta, lane_left, lane_right)
 
 
+## Se le puede pegar (ataque, stomp, dash). Los globos encendidos ya no.
+func is_hittable() -> bool:
+	return active
+
+
 func is_same_level_as_target() -> bool:
 	return absf(target.global_position.y - global_position.y) <= same_level_tolerance
 

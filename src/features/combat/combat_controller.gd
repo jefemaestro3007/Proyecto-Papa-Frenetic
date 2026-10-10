@@ -89,6 +89,7 @@ func register_enemy(enemy: Enemy) -> void:
 		enemy.cart_thrown.connect(_throw_cart)
 	if enemy is BalloonEnemy:
 		enemy.trigger_distance = params.balloon_trigger
+		enemy.struck_fuse_beats = params.balloon_hit_fuse_beats
 		enemy.detonated.connect(_explode)
 	if enemy is GuardEnemy:
 		enemy.rest_seconds = params.guard_rest_beats * Conductor.beat_length()
@@ -166,7 +167,7 @@ func targets(airborne: bool) -> Array[Enemy]:
 	var feet := player.global_position
 	var center := feet + Vector2(0.0, -PlayerPrototype.SIZE.y * 0.5)
 	for enemy in enemies:
-		if not is_instance_valid(enemy) or not enemy.active:
+		if not is_instance_valid(enemy) or not enemy.is_hittable():
 			continue
 		var offset := enemy.body_center() - center
 		if offset.x * player.facing < -BEHIND_MARGIN:
@@ -211,7 +212,7 @@ func stomp(judgment: int) -> bool:
 	var feet := player.global_position
 	var list: Array[Enemy] = []
 	for enemy in enemies:
-		if is_instance_valid(enemy) and enemy.active \
+		if is_instance_valid(enemy) and enemy.is_hittable() \
 				and enemy.body_center().distance_to(feet) <= params.stomp_radius + enemy.body_radius:
 			list.append(enemy)
 	if list.is_empty():
@@ -243,7 +244,7 @@ func _check_dash_contacts() -> void:
 	var rect := Rect2(player.global_position - Vector2(PlayerPrototype.SIZE.x * 0.5, PlayerPrototype.SIZE.y),
 			PlayerPrototype.SIZE)
 	for enemy in enemies.duplicate():
-		if not is_instance_valid(enemy) or not enemy.active or _dash_hit.has(enemy):
+		if not is_instance_valid(enemy) or not enemy.is_hittable() or _dash_hit.has(enemy):
 			continue
 		if not rect.grow(enemy.body_radius).has_point(enemy.body_center()):
 			continue
@@ -273,7 +274,9 @@ func _on_contact(enemy: Enemy) -> void:
 	if not active or not enemy.active or player == null or player.is_invulnerable():
 		return
 	if enemy is BalloonEnemy:
-		(enemy as BalloonEnemy).detonate()
+		# Encendida por un golpe ya no persigue: tocarla no la adelanta (hay tiempo de alejarse).
+		if not (enemy as BalloonEnemy).is_struck():
+			(enemy as BalloonEnemy).detonate()
 		return
 	if enemy is GuardEnemy:
 		_guard_contact(enemy as GuardEnemy)
@@ -379,7 +382,8 @@ func _on_cart_hit(cart: ShoppingCart) -> void:
 	hazard_hurt.emit(params.contact_heat * 1.5, "¡CARRITO!", player.global_position)
 
 
-## Explotan los globos: el jugador y las papas dentro del radio reciben el golpe.
+## Explotan los globos: todo lo que está dentro del radio pierde una vida (el jugador recibe el
+## golpe con su calor; otro globo alcanzado se enciende).
 func _explode(balloon: BalloonEnemy) -> void:
 	if not active:
 		return
@@ -389,7 +393,7 @@ func _explode(balloon: BalloonEnemy) -> void:
 	for enemy in enemies.duplicate():
 		if enemy != balloon and is_instance_valid(enemy) and enemy.active \
 				and enemy.body_center().distance_to(at) <= radius + enemy.body_radius:
-			enemy.receive_hit(signf(enemy.global_position.x - at.x), true, 99)
+			enemy.receive_hit(signf(enemy.global_position.x - at.x), true, 1)
 	if player == null or player.is_invulnerable():
 		return
 	var center := player.global_position + Vector2(0.0, -PlayerPrototype.SIZE.y * 0.5)

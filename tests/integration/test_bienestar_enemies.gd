@@ -169,6 +169,31 @@ func _test_balloon() -> void:
 			"la explosión suma %.1f de calor (%.1f)" % [combat.contact_heat * combat.balloon_blast_scale, _heat.heat - before])
 	_combat.clear()
 	await _frames(30)
+	# Golpeada no muere: se enciende, sale despedida y explota unos dos beats después. La explosión
+	# le quita una sola vida a lo que alcanza (el guardia aguanta).
+	_player.reset_state()
+	var guard := _place(&"tank", _player.position + Vector2(-200.0, 0.0))
+	guard.set_physics_process(false)
+	var struck := _place(&"flyer", _player.position + Vector2(-150.0, -140.0)) as BalloonEnemy
+	struck.set_physics_process(false)
+	await _frames(1)
+	_check(not struck.receive_hit(-1.0, true), "golpearla no la derrota")
+	_check(struck.active and struck.is_struck() and struck.is_armed(), "golpeada se enciende")
+	_check(not struck.is_hittable(), "encendida ya no se le puede pegar")
+	var fuse := float(struck.get("_fuse_left")) / Conductor.beat_length()
+	_check(fuse >= combat.balloon_hit_fuse_beats - 0.26 and fuse < combat.balloon_hit_fuse_beats + 0.76,
+			"explota en ~%.0f beats (%.2f)" % [combat.balloon_hit_fuse_beats, fuse])
+	_combat.call(&"_on_contact", struck)
+	_check(struck.active, "tocarla encendida no la adelanta")
+	struck.set_physics_process(true)
+	_player.position.x += 900.0
+	await _beats(fuse + 0.5)
+	_check(not struck.active, "explota al terminar la mecha")
+	_check(guard.active and guard.health == guard.max_health - 1, "la explosión quita una vida (guardia %d/%d)" % [
+			guard.health, guard.max_health])
+	guard.defeat()
+	_combat.clear()
+	await _frames(30)
 
 
 func _test_guard() -> void:

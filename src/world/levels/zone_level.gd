@@ -773,6 +773,7 @@ func _build_combat_section(section: DebugSection) -> void:
 	section.add_slider(combat, &"balloon_trigger", "Globos: distancia para armarse (px)", 40, 600, 5)
 	section.add_slider(combat, &"balloon_blast_radius", "Globos: radio de la explosión (px)", 60, 800, 5)
 	section.add_slider(combat, &"balloon_blast_scale", "Globos: calor (× tocar)", 0.5, 4.0, 0.1)
+	section.add_slider(combat, &"balloon_hit_fuse_beats", "Globos golpeados: beats hasta explotar", 1.0, 4.0, 0.25)
 	section.add_slider(combat, &"guard_speed", "Guardia: velocidad", 0, 900, 5)
 	section.add_slider(combat, &"guard_push_range", "Guardia: alcance del empujón (px)", 100, 2000, 10)
 	section.add_slider(combat, &"guard_push", "Guardia: fuerza del empujón", 100, 2000, 10)
