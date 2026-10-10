@@ -163,6 +163,11 @@ func _zone_autorun(_delta: float) -> void:
 	pass
 
 
+## Agarre del piso de la zona bajo el jugador (1 = normal; piso mojado, carrito...).
+func _zone_traction() -> float:
+	return 1.0
+
+
 ## Rectángulos sólidos con los que chocan las papas voladoras.
 func _zone_solids() -> Array[Rect2]:
 	return []
@@ -228,6 +233,8 @@ func _parse_args() -> void:
 			_zoom_override = arg.trim_prefix("--zoom=").to_float()
 		elif arg == "--hide-menu":
 			_hide_menu = true
+		elif arg == "--no-enemies":
+			combat.enemy_density = 0.0
 		elif arg.begins_with("--style="):
 			apply_style(arg.trim_prefix("--style="))
 		elif arg.begins_with("--look="):
@@ -836,7 +843,10 @@ func _respawn() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if Engine.is_editor_hint() or not autorun or not is_playing():
+	if Engine.is_editor_hint():
+		return
+	_player.traction = minf(_combat.hazard_traction, _zone_traction())
+	if not autorun or not is_playing():
 		return
 	_zone_autorun(delta)
 

@@ -41,8 +41,11 @@ var params := PlayerParams.new()
 var facing := 1.0
 ## Movido por la zona (escaleras, ascensor): sin física ni colisión.
 var scripted := false
-## Agarre del piso (1 = normal). Menos resbala: cuesta arrancar y frenar (compras en el piso).
+## Agarre del piso (1 = normal). Menos resbala: cuesta arrancar y frenar (compras, piso mojado,
+## carrito). Lo pone la zona en cada frame de física.
 var traction := 1.0
+## Multiplica la velocidad máxima (escarcha de un freezer, carrito). Lo pone la zona.
+var speed_scale := 1.0
 
 var _was_on_floor := true
 var _air_top_y := 0.0
@@ -162,6 +165,7 @@ func is_invulnerable() -> bool:
 func reset_state() -> void:
 	velocity = Vector2.ZERO
 	traction = 1.0
+	speed_scale = 1.0
 	_fast_falling = false
 	_spin_left = 0.0
 	_boost_left = 0.0
@@ -243,7 +247,7 @@ func _physics_process(delta: float) -> void:
 
 	_boost_left = maxf(_boost_left - delta, 0.0)
 	_stumble_left = maxf(_stumble_left - delta, 0.0)
-	var speed := params.max_speed
+	var speed := params.max_speed * speed_scale
 	if _stumble_left > 0.0:
 		speed *= params.stumble_speed
 	elif _boost_left > 0.0:

@@ -4,11 +4,14 @@ extends Node
 ## draw calls, nodos y memoria. Sin vsync ni límite de FPS, para medir el costo real. Ejecutar
 ## con ventana (headless no dibuja):
 ##   godot --path . --quit-after 6000 res://tests/test_scenes/benchmark.tscn -- --scene=azotea --frames=1200
-## `--idle` deja al jugador quieto (sin recorrido automático); `--set=propiedad=valor` cambia el mapa.
+## `--idle` deja al jugador quieto (sin recorrido automático); `--set=propiedad=valor` cambia el mapa;
+## `--hide=Clase,Clase` oculta esas vistas (para ver cuánto cuesta cada una).
 
 const SCENES := {
 	"azotea": "res://src/world/levels/azotea/azotea.tscn",
 	"oficinas": "res://src/world/levels/oficinas/oficinas.tscn",
+	"supermercado": "res://src/world/levels/bienestar/supermercado.tscn",
+	"centro_comercial": "res://src/world/levels/bienestar/centro_comercial.tscn",
 	"menu": "res://src/ui/menus/main_menu.tscn",
 }
 const WARMUP := 120
@@ -23,6 +26,8 @@ var _draws: PackedFloat64Array = []
 var _last := 0
 var _count := 0
 var _node: Node
+## Clases de nodos a ocultar (`--hide=A,B`): para aislar cuánto cuesta cada vista.
+var _hide: PackedStringArray = []
 
 
 func _ready() -> void:
@@ -35,6 +40,8 @@ func _ready() -> void:
 			_frames = arg.get_slice("=", 1).to_int()
 		elif arg == "--idle":
 			_idle = true
+		elif arg.begins_with("--hide="):
+			_hide = arg.get_slice("=", 1).split(",")
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	Engine.max_fps = 0
 	Conductor.params.metronome_enabled = false
@@ -54,6 +61,8 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	var now := Time.get_ticks_usec()
 	_count += 1
+	if _count == 2 and not _hide.is_empty():
+		_hide_nodes(_node)
 	if _count > WARMUP:
 		_times.append((now - _last) / 1000.0)
 		_proc.append(Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0)
@@ -63,6 +72,15 @@ func _process(_delta: float) -> void:
 	if _count >= WARMUP + _frames:
 		_report()
 		get_tree().quit()
+
+
+func _hide_nodes(node: Node) -> void:
+	for child in node.get_children():
+		var script: Script = child.get_script()
+		var name := script.get_global_name() if script != null else child.get_class()
+		if name in _hide and child is CanvasItem:
+			child.visible = false
+		_hide_nodes(child)
 
 
 func _report() -> void:

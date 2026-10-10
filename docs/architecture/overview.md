@@ -15,24 +15,28 @@ src/
 │   ├── rhythm/                        # RhythmTracker (combo/puntaje) + RhythmParams + MusicTrack
 │   ├── audio/                         # SfxPlayer + SoundEffect (efectos de sonido)
 │   ├── combat/                        # CombatController, HeatMeter, GameFeel, ImpactBurst + params
-│   └── enemies/                       # Enemy (común) + tanque, voladora, embestidora, tiradora, EnemyRoster
+│   └── enemies/                       # Enemy (común) + tanque, voladora, embestidora, tiradora, EnemyRoster;
+│                                      # papas vestidas de Bienestar U (EnemyCostume + subclases, ShoppingCart)
 ├── world/
 │   ├── generation/                    # generadores puros (sin nodos)
 │   │   ├── azotea_*.gd                # zona Azotea
 │   │   ├── oficinas/                  # zona Oficinas (layout = topología, generator = geometría)
+│   │   ├── bienestar/                 # zona Bienestar U (supermercado y centro comercial)
 │   │   └── map_mark.gd, frenetic_palette.gd
 │   ├── environment/                   # dibujo y ambiente
 │   │   ├── styled_canvas.gd           # primitivas con ArtStyle (contorno, trazo a mano...)
 │   │   ├── rooftop_view.gd, interior_view.gd, area_view.gd, skyline_view.gd
 │   │   ├── *_live_view.gd, flies_view.gd, vision_mask.gd
 │   │   ├── chunk_canvas.gd, chunked_view.gd, spatial_index.gd   # dibujar solo lo visible
+│   │   ├── depth_canvas.gd, depth_plane.gd, store_*.gd          # perspectiva de un punto (nivel 3)
 │   │   ├── art_style.gd, sky_params.gd, lighting_params.gd
 │   │   └── shaders/                   # sky, ruin_grunge, frenetic_post
 │   ├── interactables/                 # Elevator, WallDoorNode, KeyPickup
 │   └── levels/
 │       ├── zone_level.gd              # ZoneLevel: base común de todas las zonas
 │       ├── azotea/                    # escena + script de la zona
-│       └── oficinas/                  # escena + script + bot + vista del grafo
+│       ├── oficinas/                  # escena + script + bot + vista del grafo
+│       └── bienestar/                 # escenas 3-1/3-2 + zona + mecánicas (BienestarWorld) + bot
 ├── ui/
 │   ├── components/debug_section.gd    # pestaña del menú de debug (sliders, colores, presets)
 │   ├── menus/debug_menu.gd            # menú de debug con pestañas
@@ -46,7 +50,8 @@ src/
 
 ## Capas de una zona
 
-1. **Generador puro** (`AzoteaGenerator`, `OficinasLayout` + `OficinasGenerator`): recibe un
+1. **Generador puro** (`AzoteaGenerator`, `OficinasLayout` + `OficinasGenerator`,
+   `BienestarGenerator`): recibe un
    `Resource` de parámetros y devuelve datos (rectángulos, polígonos, grafos). No crea nodos,
    así que se testea headless.
 2. **Vistas** (`*View`): dibujan esos datos con `_draw()` según el `ArtStyle` activo. Lo
@@ -95,7 +100,7 @@ nada pero el tempo es el de la canción, así los tests juegan igual.
 |---|---|---|
 | Azotea | `nivel_uno` (DirtyLoveSongLevelOneRemake.wav, empieza de una: primer beat a 0,15 s, 229 beats) | 177 |
 | Oficinas | `industrial` (SecondLevelIndustrial.wav, 21 compases) | 175 |
-| (futura) | `centro_comercial` (NivelTresCentroComercial.wav, 22 compases) | 140 |
+| Bienestar U | `centro_comercial` (NivelTresCentroComercial.wav, 22 compases) | 140 |
 
 El BPM se midió analizando el audio y todas empiezan en el beat (`first_beat` = 0). Pestaña
 Ritmo → Música: cambiar de canción, volumen, reiniciarla, y "Metrónomo sobre la música" para
@@ -142,7 +147,7 @@ exportar/cargar presets `.tres` (en el editor se guardan en `src/shared/resource
 
 Se pasan después de `--`: `--seed=N`, `--style=default|pixel|isaac`, `--set=propiedad=valor`
 (cualquier parámetro del mapa), `--zoom=1.5`, `--autorun`, `--hide-menu`, `--debug-tab=N`,
-y en Oficinas `--graph` y `--room-view`.
+`--no-enemies`; en Oficinas `--graph` y `--room-view`; en Bienestar U `--start-x=` y `--start-floor=`.
 
 ## Decisiones
 
