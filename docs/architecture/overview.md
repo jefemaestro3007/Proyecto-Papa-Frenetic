@@ -57,6 +57,25 @@ ascensores, guía sonora) lee `Conductor.pulse()` / `beat_index()` o su señal `
 Las semicorcheas (`subbeat`) marcan los patrones rápidos de la tiradora. El hitstop se pide con
 `Conductor.set_hitstop()`: congela la acción sin desplazar los beats.
 
+### Música
+
+Cada zona elige su canción (`_zone_music()`, un `MusicTrack` en `src/shared/resources/music/`
+con el audio, el BPM y el primer beat). `Conductor.play_track()` la reproduce en bucle y pone su
+tempo; desde entonces el reloj sigue la posición de reproducción del audio (corrige suave y
+nunca hacia atrás), así los beats del juego caen sobre la música. El hitstop no frena la música;
+el BPM y la escala de tiempo de debug sí (cambian la velocidad y el tono). En headless no suena
+nada pero el tempo es el de la canción, así los tests juegan igual.
+
+| Zona | Canción | BPM |
+|---|---|---|
+| Azotea | `nivel_uno` (DirtyLoveSongLevelOne.wav, 65 compases) | 177 |
+| Oficinas | `industrial` (SecondLevelIndustrial.wav, 21 compases) | 175 |
+| (futura) | `centro_comercial` (NivelTresCentroComercial.wav, 22 compases) | 140 |
+
+El BPM se midió analizando el audio y todas empiezan en el beat (`first_beat` = 0). Pestaña
+Ritmo → Música: cambiar de canción, volumen, reiniciarla, y "Metrónomo sobre la música" para
+comprobar la sincronía de oído. `MenuSongStart.wav` (≈191 BPM) queda para el menú.
+
 ## Combate y partida
 
 `ZoneLevel` arma `CombatController` (ataque, stomp, dash, contacto, proyectiles), `HeatMeter`

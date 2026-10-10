@@ -31,6 +31,11 @@ func _zone_params() -> Resource:
 	return params
 
 
+## Primera zona: la canción del nivel uno.
+func _zone_music() -> MusicTrack:
+	return load(MUSIC + "nivel_uno.tres")
+
+
 func _zone_ensure_params() -> void:
 	if params == null:
 		params = AzoteaParams.new()

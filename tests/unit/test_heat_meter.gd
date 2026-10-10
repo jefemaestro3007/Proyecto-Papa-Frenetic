@@ -8,6 +8,7 @@ var _failures := 0
 
 func _initialize() -> void:
 	_test_passive_and_judgments()
+	_test_movement_cannot_sustain()
 	_test_fuse_does_not_refill()
 	_test_explodes_and_no_game_over()
 	_test_disabled()
@@ -38,6 +39,27 @@ func _test_passive_and_judgments() -> void:
 	_check(is_equal_approx(meter.heat, 12.5), "acciones que solo enfrían no calientan: %f" % meter.heat)
 	meter.change(50.0)
 	_check(is_equal_approx(meter.intensity(), (62.5 - 50.0) / 50.0), "intensidad desde 50: %f" % meter.intensity())
+	meter.free()
+
+
+## Solo moviéndose a tiempo (todo PERFECTO, a cualquier ritmo) el calor igual sube.
+func _test_movement_cannot_sustain() -> void:
+	var meter := _meter()
+	meter.change(50.0)
+	for second in 60:
+		for i in 6:
+			meter.advance(1.0 / 6.0)
+			meter.cool_movement(ConductorClock.Judgment.PERFECT)
+	var floor_rate := meter.params.passive_heating * (1.0 - meter.params.movement_cooling_share)
+	_check(meter.heat >= 50.0 + 60.0 * floor_rate - 2.5,
+			"moverse a tiempo no salva: %f tras 60 s" % meter.heat)
+	_check(meter.heat < 50.0 + 60.0, "pero frena el calor: %f" % meter.heat)
+	var before := meter.heat
+	meter.advance(2.0)
+	var cooled := meter.cool_movement(ConductorClock.Judgment.PERFECT)
+	_check(is_equal_approx(cooled, -meter.params.movement_cooling_perfect), "un movimiento enfría lo suyo: %f" % cooled)
+	_check(meter.cool_movement(ConductorClock.Judgment.MISS) == 0.0, "fallar no enfría")
+	_check(meter.heat > before, "con tope: %f → %f" % [before, meter.heat])
 	meter.free()
 
 

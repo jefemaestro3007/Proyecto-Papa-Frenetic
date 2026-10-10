@@ -12,6 +12,7 @@ const SKY_SHADER := preload("res://src/world/environment/shaders/sky.gdshader")
 const GRUNGE_SHADER := preload("res://src/world/environment/shaders/ruin_grunge.gdshader")
 const POST_SHADER := preload("res://src/world/environment/shaders/frenetic_post.gdshader")
 const PRESETS := "res://src/shared/resources/presets/"
+const MUSIC := "res://src/shared/resources/music/"
 const DEFAULT_LOOK := "rojo_frenetico"
 const STYLES: Array[String] = ["default", "pixel", "isaac"]
 const STOMP_CLOUD := "res://assets/textures/sprites/fx/stomp_nube.png"
@@ -22,9 +23,10 @@ const NEAR_SCROLL := Vector2(0.4, 0.22)
 const LAND_MIN_SPEED := 400.0
 ## Nombre de cada acción en los textos de juicio.
 const ACTION_LABELS := {&"air_attack": "AÉREO ", &"slam": "STOMP ", &"dash": "DASH "}
-## Acciones de combate: pesan 1 en el calor y sus fallos siempre se anuncian.
+## Acciones de combate: sus fallos siempre se anuncian con el calor que suman.
 const COMBAT_ACTIONS: Array[StringName] = [&"attack", &"air_attack", &"slam", &"dash"]
-## Acciones de movimiento: pesan `movement_heat_scale` en el calor.
+## Movimientos intencionales: fallarlos calienta `movement_heat_scale` (aterrizar, escaleras,
+## ascensores y puertas nunca castigan).
 const MOVE_ACTIONS: Array[StringName] = [&"jump", &"turn"]
 
 ## Estado de la partida (del prototipo, adaptado): jugando, llegó a la salida o explotó la papa.
@@ -76,6 +78,7 @@ var _style_signature := 0
 var _skyline_views: Array[SkylineView] = []
 var _grunge_materials: Array[ShaderMaterial] = []
 var _sections := {}
+var _music_text: Label
 var _zoom_override := 0.0
 ## Falso mientras _ready arma la zona: los cambios de parámetros no regeneran a mitad de camino.
 var _initialized := false
@@ -138,6 +141,11 @@ func _zone_autorun(_delta: float) -> void:
 ## Rectángulos sólidos con los que chocan las papas voladoras.
 func _zone_solids() -> Array[Rect2]:
 	return []
+
+
+## Canción de la zona (`MusicTrack`): pone el tempo del Conductor.
+func _zone_music() -> MusicTrack:
+	return null
 
 
 func _zone_help_text() -> String:
@@ -389,6 +397,12 @@ func _build_runtime() -> void:
 	_menu = DebugMenu.new()
 	ui_layer.add_child(_menu)
 	_build_debug_menu()
+	Conductor.play_track(_zone_music())
+
+
+func _exit_tree() -> void:
+	if not Engine.is_editor_hint():
+		Conductor.stop_music()
 
 
 func _build_debug_menu() -> void:
@@ -617,15 +631,35 @@ func _build_fx_section(section: DebugSection) -> void:
 func _build_rhythm_section(section: DebugSection) -> void:
 	var r := Conductor.params
 	section.add_preset_bar(r, "ritmo")
+	section.add_group("Música")
+	_music_text = section.add_text()
+	section.add_toggle(r, &"music_enabled", "Música")
+	section.add_slider(r, &"music_volume_db", "Volumen música (dB)", -40, 6, 1)
+	var songs := [["Zona", func() -> void: Conductor.play_track(_zone_music())]]
+	for track in _music_tracks():
+		songs.append([track.title.get_slice(" (", 0), Conductor.play_track.bind(track)])
+	section.add_buttons(songs)
+	section.add_buttons([["Sin música", Conductor.stop_music], ["Reiniciar canción", Conductor.restart]])
 	section.add_group("Tempo")
 	section.add_slider(r, &"bpm", "BPM", 60, 240, 1)
 	section.add_toggle(r, &"metronome_enabled", "Metrónomo")
+	section.add_toggle(r, &"metronome_over_music", "Metrónomo sobre la música")
 	section.add_slider(r, &"metronome_volume_db", "Volumen metrónomo (dB)", -40, 6, 1)
 	section.add_slider(r, &"input_offset", "Latencia (s)", -0.2, 0.2, 0.005)
 	section.add_group("Juicio")
 	section.add_slider(r, &"perfect_window", "Ventana PERFECTO (s)", 0.01, 0.2, 0.005)
 	section.add_slider(r, &"good_window", "Ventana BIEN (s)", 0.02, 0.3, 0.005)
 	section.add_slider(r, &"combo_timeout_beats", "Beats para perder combo", 1, 16, 1)
+
+
+static func _music_tracks() -> Array[MusicTrack]:
+	var out: Array[MusicTrack] = []
+	for file in ResourceLoader.list_directory(MUSIC):
+		if file.ends_with(".tres"):
+			var track := load(MUSIC + file) as MusicTrack
+			if track != null:
+				out.append(track)
+	return out
 
 
 ## Todo lo integrado desde el prototipo `feature/gameplay-prototype`, separado del resto.
@@ -640,7 +674,11 @@ func _build_combat_section(section: DebugSection) -> void:
 	section.add_slider(combat, &"perfect_cooling", "Enfría PERFECTO", 0.0, 30.0, 0.5)
 	section.add_slider(combat, &"good_cooling", "Enfría BIEN", 0.0, 30.0, 0.5)
 	section.add_slider(combat, &"miss_heating", "Calienta FUERA", 0.0, 40.0, 0.5)
-	section.add_slider(combat, &"movement_heat_scale", "Peso de saltos y giros (×)", 0.0, 1.0, 0.05)
+	section.add_slider(combat, &"movement_heat_scale", "Fallar salto o giro (× fallo)", 0.0, 1.0, 0.05)
+	section.add_slider(combat, &"movement_cooling_perfect", "Moverse PERFECTO enfría", 0.0, 5.0, 0.1)
+	section.add_slider(combat, &"movement_cooling_good", "Moverse BIEN enfría", 0.0, 5.0, 0.1)
+	section.add_slider(combat, &"movement_cooling_share", "Tope: parte del calor pasivo", 0.0, 0.95, 0.05)
+	section.add_slider(combat, &"slam_miss_heat", "Caída forzada fuera de ritmo", 0.0, 40.0, 0.5)
 	section.add_slider(combat, &"whiff_heat", "Tajo al aire fuera de ritmo", 0.0, 20.0, 0.5)
 	section.add_slider(combat, &"contact_heat", "Tocar una papa", 0.0, 40.0, 0.5)
 	section.add_slider(combat, &"projectile_heat", "Papa frita", 0.0, 40.0, 0.5)
@@ -757,6 +795,10 @@ func _process(delta: float) -> void:
 	_camera.zoom = Vector2.ONE * camera_zoom * _feel.zoom_factor()
 
 	if _menu.visible:
+		var track := Conductor.current_track()
+		_music_text.text = "Sonando: %s · %.0f BPM" % [
+			track.title if track != null and Conductor.is_music_playing() else "nada (metrónomo)",
+			Conductor.params.bpm]
 		_stats_text.text = "FPS %d · beat %d · combo %d (mejor %d) · %d pts\nposición %v · calor %.0f%s · %s" % [
 			Engine.get_frames_per_second(), Conductor.beat_index(), _tracker.combo,
 			_tracker.best_combo, _tracker.score, _player.position.round(), _heat.heat,
@@ -785,6 +827,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			# Fin de partida: reintentar la misma seed.
 			if not is_playing():
 				regenerate()
+				Conductor.restart()
 
 
 # --- Partida: calor, game over y victoria --------------------------------------------
@@ -883,7 +926,7 @@ func _end_match() -> void:
 # --- Ritmo y recompensas -------------------------------------------------------------
 
 func _on_player_jumped() -> void:
-	var judgment := _tracker.register(&"jump")
+	var judgment := _tracker.register_move(&"jump")
 	match judgment:
 		ConductorClock.Judgment.PERFECT:
 			_player.boost_jump(player_params.jump_boost_perfect)
@@ -894,7 +937,7 @@ func _on_player_jumped() -> void:
 
 
 func _on_player_turned(_direction: float) -> void:
-	match _tracker.register(&"turn"):
+	match _tracker.register_move(&"turn"):
 		ConductorClock.Judgment.PERFECT:
 			_player.spin(player_params.turn_boost_perfect)
 		ConductorClock.Judgment.GOOD:
@@ -909,7 +952,7 @@ func _on_player_landed(impact_speed: float, forced: bool, fall_height: float) ->
 	if impact_speed < LAND_MIN_SPEED and not attacks:
 		return
 	# Aterrizar a tiempo siempre suma, pero solo una caída alta produce el ataque.
-	var judgment := _tracker.register(&"land", false)
+	var judgment := _tracker.register_move(&"land", false)
 	if not attacks:
 		return
 	match judgment:
@@ -921,10 +964,15 @@ func _on_player_landed(impact_speed: float, forced: bool, fall_height: float) ->
 			_impact(impact_fx.hard_landing_miss)
 
 
-## Aterrizaje de caída forzada: es intencional, así que se premia fuerte o se castiga.
-## Además es el stomp: golpea a las papas cerca de los pies con el mismo juicio.
+## Aterrizaje de caída forzada: es el stomp, golpea a las papas cerca de los pies con su juicio.
+## Con papas debajo cuenta como golpe; sin papas es un movimiento. Fallada castiga fuerte
+## (`slam_miss_heat`) para que no se abuse de ella.
 func _on_slam() -> void:
-	var judgment := _tracker.register(&"slam", true, player_params.slam_points_multiplier)
+	var judgment := Conductor.judge()
+	if _combat.stomp(judgment):
+		_tracker.register_judgment(&"slam", judgment, true, player_params.slam_points_multiplier)
+	else:
+		_tracker.register_move_judgment(&"slam", judgment)
 	_stomp_cloud(1.6 if judgment == ConductorClock.Judgment.PERFECT else 1.3)
 	match judgment:
 		ConductorClock.Judgment.PERFECT:
@@ -934,7 +982,6 @@ func _on_slam() -> void:
 		_:
 			_player.stumble()
 			_impact(impact_fx.slam_miss)
-	_combat.stomp(judgment)
 
 
 ## Nube del stomp (sprite del equipo) a los pies del jugador.
@@ -1051,14 +1098,20 @@ func _spawn_burst(strength: float) -> void:
 	add_child(burst)
 
 
-func _on_judged(action: StringName, judgment: int, _combo: int, points: int) -> void:
+func _on_judged(action: StringName, judgment: int, _combo: int, points: int, hit: bool) -> void:
 	var heat := 0.0
 	if is_playing() and combat.heat_enabled:
-		# Combate pesa 1 y moverse menos; lo demás (aterrizar, escaleras, puertas) solo enfría.
-		var is_combat := action in COMBAT_ACTIONS
-		var scale := 1.0 if is_combat else combat.movement_heat_scale
 		var before := _heat.heat
-		_heat.apply_judgment(judgment, scale, is_combat or action in MOVE_ACTIONS)
+		if judgment == ConductorClock.Judgment.MISS and action == &"slam":
+			_heat.change(combat.slam_miss_heat)
+		elif hit:
+			# Golpes: la fuente principal para enfriar (y fallarlos calienta de lleno).
+			_heat.apply_judgment(judgment)
+		elif judgment != ConductorClock.Judgment.MISS:
+			# Movimientos a tiempo: enfrían poco y con tope, nunca más que el calor pasivo.
+			_heat.cool_movement(judgment)
+		elif action in MOVE_ACTIONS:
+			_heat.apply_judgment(judgment, combat.movement_heat_scale)
 		heat = _heat.heat - before
 	# Los fallos de combate siempre se anuncian (son el castigo visible).
 	if judgment != ConductorClock.Judgment.MISS or action in COMBAT_ACTIONS:
