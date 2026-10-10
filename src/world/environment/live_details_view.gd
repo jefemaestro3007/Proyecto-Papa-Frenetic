@@ -2,31 +2,25 @@
 class_name LiveDetailsView
 extends Node2D
 ## Detalles animados de la azotea: balizas que laten con el beat, fuego en los barriles
-## y moscas zumbando. Separado de RooftopView para que lo estático no se redibuje cada frame.
+## y moscas (FliesView). Separado de RooftopView para que lo estático no se redibuje cada frame.
 
 const FIRE_OUTER := Color("ff5a1a")
 const FIRE_INNER := Color("ffd400")
-const MAX_FLY_ANCHORS := 200
 
 var _style: ArtStyle
 var _beacons := PackedVector2Array()
 var _fires: Array[Rect2] = []
-var _fly_anchors := PackedVector2Array()
-var _fly_phases := PackedFloat32Array()
-## Marca que atrae cada grupo de moscas (o -1 para barriles) y su peso, para mostrar
-## solo las moscas de marcas que el estilo actual hace visibles.
-var _fly_kinds := PackedInt32Array()
-var _fly_weights := PackedFloat32Array()
+var _flies: FliesView
 
 
 func setup(data: AzoteaMapData, style: ArtStyle) -> void:
 	_style = style
 	_beacons.clear()
 	_fires.clear()
-	_fly_anchors.clear()
-	_fly_phases.clear()
-	_fly_kinds.clear()
-	_fly_weights.clear()
+	if _flies == null:
+		_flies = FliesView.new()
+		add_child(_flies)
+	_flies.setup(style)
 	for prop in data.props:
 		match prop.type:
 			AzoteaMapData.Prop.Type.ANTENNA:
@@ -36,31 +30,9 @@ func setup(data: AzoteaMapData, style: ArtStyle) -> void:
 				_beacons.append(Vector2(prop.rect.end.x - 10.0, prop.rect.position.y))
 			AzoteaMapData.Prop.Type.BARREL:
 				_fires.append(prop.rect)
-				_add_fly_anchor(prop.rect.get_center() - Vector2(0.0, 50.0), prop.variant, -1, 0.0)
-	for mark in data.marks:
-		match mark.type:
-			MapMark.Type.BLOOD, MapMark.Type.BONES, MapMark.Type.RUBBLE:
-				_add_fly_anchor(mark.position + Vector2(0.0, -20.0), mark.variant, mark.type, mark.weight)
+				_flies.add_anchor(prop.rect.get_center() - Vector2(0.0, 50.0), prop.variant)
+	_flies.add_marks(data.marks)
 	queue_redraw()
-
-
-func _add_fly_anchor(point: Vector2, variant: int, kind: int, weight: float) -> void:
-	if _fly_anchors.size() < MAX_FLY_ANCHORS:
-		_fly_anchors.append(point)
-		_fly_phases.append(float(variant % 1000))
-		_fly_kinds.append(kind)
-		_fly_weights.append(weight)
-
-
-func _anchor_visible(index: int) -> bool:
-	match _fly_kinds[index]:
-		MapMark.Type.BLOOD:
-			return _fly_weights[index] < _style.blood_amount
-		MapMark.Type.BONES:
-			return _fly_weights[index] < _style.bones_amount
-		MapMark.Type.RUBBLE:
-			return _fly_weights[index] < _style.rubble_amount
-	return true
 
 
 func _process(_delta: float) -> void:
@@ -80,8 +52,6 @@ func _draw() -> void:
 	if _style.fires > 0.0:
 		for barrel in _fires:
 			_draw_fire(barrel, time, pulse)
-	if _style.flies > 0.0:
-		_draw_flies(time)
 
 
 ## Llamas: lenguas que oscilan, más altas en el beat, con resplandor.
@@ -99,21 +69,3 @@ func _draw_fire(barrel: Rect2, time: float, pulse: float) -> void:
 			var flame := PackedVector2Array([base + Vector2(offset - 9.0 * size_factor, 0.0), tip,
 					base + Vector2(offset + 9.0 * size_factor, 0.0)])
 			draw_colored_polygon(flame, color)
-
-
-## Moscas: puntos con alas que orbitan de forma errática alrededor de cada ancla.
-func _draw_flies(time: float) -> void:
-	var per_anchor := maxi(1, roundi(_style.flies * 4.0))
-	for a in _fly_anchors.size():
-		if not _anchor_visible(a):
-			continue
-		var anchor := _fly_anchors[a]
-		var phase := _fly_phases[a]
-		for f in per_anchor:
-			var fly_seed := phase + f * 17.3
-			var radius := 14.0 + fmod(fly_seed * 7.1, 18.0)
-			var pos := anchor + Vector2(sin(time * (5.0 + fmod(fly_seed, 3.0)) + fly_seed) * radius,
-					cos(time * (7.0 + fmod(fly_seed, 2.0)) + fly_seed * 1.7) * radius * 0.6)
-			var wing := 0.5 + 0.5 * sin(time * 60.0 + fly_seed)
-			draw_circle(pos + Vector2(0.0, -2.0), 2.2, Color(_style.edge, 0.35 * wing))
-			draw_circle(pos, 2.4, _style.outline)
