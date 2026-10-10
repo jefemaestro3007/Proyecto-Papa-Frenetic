@@ -9,7 +9,7 @@ var spawn: Vector2 = Vector2.ZERO
 ## Y por debajo de la cual se considera caída al vacío.
 var kill_y: float = 0.0
 var props: Array[Prop] = []
-var decals: Array[Decal] = []
+var marks: Array[Mark] = []
 var cables: Array[Cable] = []
 var far: SkylineData = SkylineData.new()
 var near: SkylineData = SkylineData.new()
@@ -41,7 +41,7 @@ class Prop:
 
 ## Marca sobre la fachada o el techo. `weight` (0..1) permite que cada estilo muestre
 ## solo una fracción (p. ej. sangre: weight < blood_amount) sin regenerar el mapa.
-class Decal:
+class Mark:
 	extends RefCounted
 	enum Type { BLOOD, CRACK, STAIN, RUBBLE }
 	var type: Type

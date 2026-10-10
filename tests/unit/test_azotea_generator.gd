@@ -63,10 +63,10 @@ func _test_details() -> void:
 			_check(prop.rect.position.x >= last_end.get(prop.roof_index, -INF),
 					"seed %d: objetos solapados" % s)
 			last_end[prop.roof_index] = prop.rect.end.x
-		for decal in data.decals:
+		for mark in data.marks:
 			var inside := false
 			for roof in data.roofs:
-				inside = inside or (decal.position.x >= roof.position.x and decal.position.x <= roof.end.x)
+				inside = inside or (mark.position.x >= roof.position.x and mark.position.x <= roof.end.x)
 			_check(inside, "seed %d: marca fuera de las azoteas" % s)
 		# Los detalles usan su propio RNG: la densidad no debe cambiar el trazado.
 		params.detail_density = 1.0
