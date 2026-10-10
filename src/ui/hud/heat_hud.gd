@@ -1,9 +1,8 @@
 class_name HeatHud
 extends Control
 ## HUD de la papa caliente: abajo a la derecha la papa bomba (HeatPotato) con el manómetro incrustado
-## y la tecla del dash (DashKey); aviso
-## "SOBRECALENTAMIENTO" con cuenta atrás de la mecha, viñeta roja que late con el beat, indicador
-## del dash y el panel de fin de partida (victoria / la papa explotó).
+## y el indicador del dash (DashKey); aviso "SOBRECALENTAMIENTO" con cuenta atrás de la mecha y
+## viñeta roja que late con el beat. El fin de partida usa las pantallas YOU WIN / YOU LOOSE (ZoneLevel).
 ## Va debajo del RhythmHud: la viñeta no tapa los textos de juicio.
 
 const SHAKE_PIXELS := 6.0
@@ -27,8 +26,6 @@ var dash_key: DashKey
 var _vignette: ColorRect
 ## Lo que tiembla con la tensión (la viñeta no: dejaría un borde vacío).
 var _shaken: Control
-var _panel: PanelContainer
-var _result_label: Label
 var _intensity := 0.0
 var _overheated := false
 var _beat_pulse := 0.0
@@ -73,23 +70,6 @@ func _ready() -> void:
 	alert = OverheatAlert.new()
 	_shaken.add_child(alert)
 
-	_panel = PanelContainer.new()
-	_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
-	_panel.custom_minimum_size = Vector2(760.0, 260.0)
-	var box := StyleBoxFlat.new()
-	box.bg_color = Color(FreneticPalette.NAVY_DARK, 0.92)
-	box.border_color = FreneticPalette.INK
-	box.set_border_width_all(6)
-	box.set_content_margin_all(28.0)
-	_panel.add_theme_stylebox_override("panel", box)
-	_panel.visible = false
-	add_child(_panel)
-	_result_label = _make_label(40)
-	_result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_result_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_panel.add_child(_result_label)
 
 
 func _process(delta: float) -> void:
@@ -138,35 +118,8 @@ func update_dash(enabled: bool, cooldown_left: float, cooldown_total: float, air
 	dash_key.set_state(cooldown_left, cooldown_total, airborne, facing)
 
 
-## Panel de fin de partida.
-func show_result(won: bool, seconds: float, heat: float, score: int, best_combo: int) -> void:
-	_panel.visible = true
-	var whole := maxi(0, floori(seconds))
-	var stats := "Tiempo %02d:%02d · Calor %d / 100 · %d pts · mejor combo x%d" % [
-		whole / 60, whole % 60, roundi(heat), score, best_combo]
-	if won:
-		_result_label.text = "¡SALIDA!\n%s\nEnter: otra vez · N: seed siguiente" % stats
-		_result_label.add_theme_color_override("font_color", FreneticPalette.YELLOW)
-	else:
-		_result_label.text = "LA PAPA EXPLOTÓ\n%s\nEnter: reintentar (misma seed) · N: seed siguiente" % stats
-		_result_label.add_theme_color_override("font_color", FreneticPalette.CREAM)
-
-
-func hide_result() -> void:
-	_panel.visible = false
-
-
 func reset() -> void:
-	hide_result()
 	alert.stop()
 	set_intensity(0.0, false)
 	set_heat(0.0)
 
-
-func _make_label(font_size: int) -> Label:
-	var label := Label.new()
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", FreneticPalette.CREAM)
-	label.add_theme_color_override("font_outline_color", FreneticPalette.INK)
-	label.add_theme_constant_override("outline_size", 10)
-	return label

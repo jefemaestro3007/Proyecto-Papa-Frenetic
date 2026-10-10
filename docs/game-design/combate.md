@@ -47,7 +47,7 @@ se agrieta y sale vapor), y a su izquierda el indicador del dash (`DashKey`: un 
 hacia donde sale el dash; todo verde cuando está listo, rojo al usarlo, con el contorno que se
 recarga de verde alrededor, y verde apagado en el aire). Desde 80 de calor la papa y el
 manómetro entran en alarma (vibración y halos rojos que laten con el beat); aviso "SOBRE / CALENTAMIENTO" letra a letra y cuenta
-atrás en display de segmentos (`OverheatAlert`, `MenacingText`, `SegmentFont`) y el panel de fin de partida. Los textos de juicio dicen la acción y el calor:
+atrás en display de segmentos (`OverheatAlert`, `MenacingText`, `SegmentFont`). El fin de partida usa las pantallas YOU WIN / YOU LOOSE (ver `menu.md`). Los textos de juicio dicen la acción y el calor:
 "STOMP ¡PERFECTO! +200 / −8 calor".
 
 Para probar: "Game over al explotar" desactivado deja que la papa explote sin terminar la
@@ -57,7 +57,7 @@ partida, y los botones "Calor 0 / 90 / 100" saltan a ese calor.
 
 `ZoneLevel` (`Match`): **jugando**, **victoria** (llegar a la salida: final de la última azotea
 o la salida de Oficinas) y **game over** (explotó la papa). Al terminar se congela el mundo y
-aparece el panel con tiempo, calor, puntaje y mejor combo. Regenerar o reintentar reinicia calor,
+aparece la pantalla YOU WIN o YOU LOOSE del diseño (ver `menu.md`). Regenerar o reintentar reinicia calor,
 mecha, puntaje y efectos.
 
 ## Ataques

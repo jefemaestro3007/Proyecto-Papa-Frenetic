@@ -12,12 +12,13 @@ config_version=5
 
 config/name="Proyecto Papa Frenetic"
 config/version="0.1.0"
-run/main_scene="res://src/main/main.tscn"
+run/main_scene="res://src/ui/menus/main_menu.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [autoload]
 
 Conductor="*res://src/core/autoloads/conductor.gd"
+Game="*res://src/core/autoloads/game.gd"
 
 [display]
 

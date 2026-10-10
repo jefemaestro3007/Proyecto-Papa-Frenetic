@@ -15,6 +15,9 @@ const PRESETS := "res://src/shared/resources/presets/"
 const DEFAULT_LOOK := "rojo_frenetico"
 const STYLES: Array[String] = ["default", "pixel", "isaac"]
 const STOMP_CLOUD := "res://assets/textures/sprites/fx/stomp_nube.png"
+## Botones de las pantallas YOU WIN / YOU LOOSE (coordenadas del PSD).
+const RESULT_MENU_BUTTON := Rect2(438, 702, 278, 58)
+const RESULT_RIGHT_BUTTON := Rect2(725, 700, 281, 60)
 
 const FAR_SCROLL := Vector2(0.15, 0.08)
 const NEAR_SCROLL := Vector2(0.4, 0.22)
@@ -59,6 +62,9 @@ var _tracker: RhythmTracker
 var _combat: CombatController
 var _hud: RhythmHud
 var _heat_hud: HeatHud
+## Pantalla de fin de partida (YOU WIN / YOU LOOSE del diseño), encima de todo.
+var _result_layer: CanvasLayer
+var _result: PsdScreen
 var _heat: HeatMeter
 var _feel: GameFeel
 var _match := Match.PLAYING
@@ -402,7 +408,8 @@ func _build_debug_menu() -> void:
 		_sections[title] = section
 		builders[title].call(section)
 	_menu.get_node("Tabs").current_tab = _initial_tab
-	_menu.visible = not _hide_menu
+	# Entrando desde el menú principal el menú de debug arranca cerrado (Tab lo abre).
+	_menu.visible = not _hide_menu and Game.level_index < 0
 
 
 func _build_style_section(section: DebugSection) -> void:
@@ -800,6 +807,7 @@ func _reset_match() -> void:
 	_heat.reset()
 	_feel.reset()
 	_heat_hud.reset()
+	_hide_result()
 	_tracker.reset()
 	_combat.active = true
 	_player.visible = true
@@ -859,7 +867,7 @@ func _on_exploded() -> void:
 	_match = Match.GAME_OVER
 	_end_match()
 	_player.visible = false
-	_heat_hud.show_result(false, _elapsed, _heat.heat, _tracker.score, _tracker.best_combo)
+	_show_result(false)
 
 
 ## Llamar desde la zona al llegar a la salida.
@@ -869,7 +877,43 @@ func finish_victory() -> void:
 	_match = Match.VICTORY
 	_end_match()
 	_heat_hud.show_overheat(false, 0.0)
-	_heat_hud.show_result(true, _elapsed, _heat.heat, _tracker.score, _tracker.best_combo)
+	_show_result(true)
+
+
+## Pantalla del diseño al terminar: YOU LOOSE (volver al menú o reintentar con la misma seed) o
+## YOU WIN (volver al menú o pasar al siguiente nivel; si no hay otro, la misma zona con otra seed).
+## Las coordenadas de los botones son las de las capas de los PSD.
+func _show_result(won: bool) -> void:
+	_hide_result()
+	if _result_layer == null:
+		_result_layer = CanvasLayer.new()
+		_result_layer.layer = 70
+		add_child(_result_layer)
+	_result = PsdScreen.new("ganaste" if won else "perdiste", Color(PsdScreen.BACKDROP, 0.82))
+	_result.add_button(RESULT_RIGHT_BUTTON, &"siguiente" if won else &"reintentar")
+	_result.add_button(RESULT_MENU_BUTTON, &"menu")
+	_result.action.connect(_on_result_action)
+	_result_layer.add_child(_result)
+	_result.focus_first()
+
+
+func _hide_result() -> void:
+	if _result != null:
+		_result.queue_free()
+		_result = null
+
+
+func _on_result_action(action_name: StringName) -> void:
+	match action_name:
+		&"menu":
+			Game.go_to_menu()
+		&"reintentar":
+			regenerate()
+		&"siguiente":
+			if Game.has_next_level():
+				Game.next_level()
+			else:
+				_zone_params().seed += 1
 
 
 ## Congela el mundo (jugador, enemigos, proyectiles) al terminar la partida.

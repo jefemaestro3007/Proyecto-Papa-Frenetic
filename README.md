@@ -68,7 +68,7 @@ explota. Los enemigos (común, tanque, voladora, embestidora, tiradora) se prese
 | Atacar | J o clic izquierdo |
 | Dash (en el suelo) | Shift (o K) |
 | Caída forzada / stomp (en el aire) | S (o ↓) |
-| Reintentar al terminar la partida | Enter |
+| Menú: elegir / activar / volver | Flechas o mouse / Enter, Espacio o J / Esc |
 | Escaleras, ascensores, puertas al fondo (Oficinas) | W / S (o ↑ / ↓) |
 | Menú de debug · cambiar estilo | Tab (o F1) · F2 |
 | Seed aleatoria / siguiente / anterior | R / N / P |

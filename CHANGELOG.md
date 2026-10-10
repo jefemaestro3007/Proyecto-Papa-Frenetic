@@ -7,6 +7,13 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added (menú)
+
+- Menú principal con las pantallas del equipo (START, NEW GAME, LEVEL SELECT, LOADING) como escena
+  de inicio; el nivel 1 es la Azotea. YOU LOOSE y YOU WIN reemplazan el panel de texto del fin de
+  partida (menú, reintentar, siguiente nivel). Herramienta `build_menu_screens.gd` que convierte los
+  PSD.
+
 ### Added (sprites)
 
 - HUD del calor: papa bomba en 5 etapas (dibujos del equipo) con el manómetro incrustado y alarma
