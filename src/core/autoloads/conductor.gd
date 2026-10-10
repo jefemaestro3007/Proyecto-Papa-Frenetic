@@ -37,6 +37,8 @@ var _track: MusicTrack
 ## Vueltas completas de la canción en bucle y última posición leída (para detectar la vuelta).
 var _loops := 0
 var _last_song_position := 0.0
+## Pausa del juego: la canción y el reloj se detienen donde iban.
+var _paused := false
 
 
 func _ready() -> void:
@@ -60,6 +62,7 @@ func _exit_tree() -> void:
 ## `null` (o la música desactivada) la apaga y el reloj sigue solo.
 func play_track(track: MusicTrack) -> void:
 	_track = track
+	set_paused(false)
 	_music.stop()
 	_music.stream = null
 	if track != null and track.stream != null and params.music_enabled:
@@ -72,6 +75,16 @@ func play_track(track: MusicTrack) -> void:
 			_music.play()
 	restart()
 	track_changed.emit(track)
+
+
+## Pausa o reanuda la canción y el reloj (menú de pausa).
+func set_paused(paused: bool) -> void:
+	_paused = paused
+	_music.stream_paused = paused
+
+
+func is_paused() -> bool:
+	return _paused
 
 
 func stop_music() -> void:
@@ -98,6 +111,8 @@ func restart() -> void:
 
 
 func _process(delta: float) -> void:
+	if _paused:
+		return
 	if not is_equal_approx(_bpm, params.bpm):
 		# Conserva la posición en el compás al cambiar de tempo.
 		var position := beat_position()

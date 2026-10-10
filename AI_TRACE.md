@@ -553,6 +553,52 @@ Notes: Los WAV no se commitean: siguen sin LFS como los de la música. Al volver
 
 ---
 
+Rama `feature/levels` (nace de `develop` en `eab85ca`).
+
+### Niveles 1 y 2 con subniveles y tutorial
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: Hacer una copia de develop para trabajar los niveles 1 y 2 y sus subniveles. Nivel 1: 1.1 tutorial (lo que se abre desde el nivel 1 de la interfaz), con un texto solo ahí sobre los movimientos básicos (A y D moverse, espacio saltar, clic golpear) y, al aparecer el primer enemigo, otro sobre el stomp, el ataque aéreo y el dash; dura como el prototipo actual. Después, automáticamente, 1.2: la misma azotea dos o tres veces más larga, con la música del nivel 1, con voladores, tiradores, chargers y normales. Nivel 2: 2.1 la torre de abajo hacia arriba, al menos 12 pisos, sin que vaya lagueado, con la neblina de la V; 2.2 un poco más largo, de arriba hacia abajo, con el filtro de The Binding of Isaac del menú de debug, con tiradores, tanques, normales y chargers; los dos con la canción del nivel 2. El juego ya es jugable. Durante el trabajo: no enfocarse en el rendimiento ahora, otra persona se encarga.
+Task: Armar los cuatro subniveles, el tutorial y el paso de uno a otro desde el menú.
+Type: CODE (AI) / LEVEL DESIGN / UX / TESTING / DOCS
+Files: `src/core/autoloads/game.gd`, `src/ui/menus/main_menu.gd`, `src/ui/hud/tutorial_hints.gd`, `src/world/levels/zone_level.gd`, `src/world/levels/azotea/{azotea.gd,azotea_tutorial.tscn,azotea_prueba.tscn}`, `src/world/levels/oficinas/{oficinas.gd,oficinas_subida.tscn,oficinas_bajada.tscn}`, `tests/integration/{test_campaign.gd,test_oficinas_traversal.gd}`, `tests/test_scenes/campaign.tscn`, `docs/game-design/menu.md`, `docs/development/testing.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: `Game.LEVELS` pasa a ser la lista de subniveles (nivel, nombre, escena): cada tarjeta del menú entra por el primero de su nivel y YOU WIN pasa al siguiente (1-1 → 1-2 → 2-1 → 2-2). `ZoneLevel` suma el grupo "Subnivel" (`tutorial`, `start_style`, `enemy_types`, `mixed_enemies`). 1-1: la azotea del prototipo con `TutorialHints` (básicos arriba al centro, sin placa, al menos 6 s; al acercarse la primera papa, stomp, ataque aéreo y dash). 1-2: 36 azoteas (~2,6 veces el tutorial) con los cuatro tipos mezclados. 2-1: 13 pisos de abajo hacia arriba con la vista de habitación (`room_only_view`, ahora exportada). 2-2: 14 pisos y 10 módulos de arriba hacia abajo con estilo Isaac. Jugando desde el menú se oculta la línea de ayuda de debug.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: Arreglo encontrado al probar: en Oficinas, `auto_next` cambiaba de seed a los 2,5 s de ganar y cerraba YOU WIN; ya no pasa en campaña. En el tutorial, la primera papa está a menos de 1000 px del inicio y tapaba enseguida los básicos; por eso el mínimo de 6 s. La pantalla 1 de LEVEL SELECT muestra el nivel 2 bloqueado. Rendimiento medido y dejado como pendiente a pedido del usuario: 1-1 56 FPS, 1-2 27, 2-1 36, 2-2 16. La causa es que `RooftopView`/`InteriorView` son un solo nodo que dibuja todo el mapa (sin él, 1-2 sube a 145). Se empezó a partirlos en trozos y se deshizo, anotado en `docs/game-design/menu.md`. `test_campaign` nuevo; `test_oficinas_traversal` recorre también los edificios de 2-1 y 2-2 (50/50). Todos los tests en verde; capturas con ventana de los cuatro subniveles.
+
+### Menú de pausa y progreso en LEVEL SELECT
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: Con los diseños LEVEL SELECT 2 y LEVEL SELECT 3 (PSD): agregar un menú de pausa con Esc para poder volver al menú principal, como el game over pero de pausa; en la selección de niveles, si ya se llegó a la zona de los edificios y se vuelve al menú, poder volver a empezar desde ahí; preparar el nivel 3, que un compañero va a mergear, para que se integre fácil y el menú funcione.
+Task: Pausa en juego, progreso guardado que desbloquea niveles en LEVEL SELECT y la tercera tarjeta lista.
+Type: CODE (AI) / UX / ART PIPELINE / TESTING / DOCS
+Files: `assets_src/ui/menu/seleccion_nivel_{2,3}.psd` (diseños del equipo, sin modificar), `assets/textures/ui/menu/seleccion_nivel_{2,3}.png` (+ `.import`), `src/core/autoloads/{game.gd,conductor.gd}`, `src/ui/menus/{main_menu.gd,psd_screen.gd,pause_art.gd}`, `src/world/levels/zone_level.gd`, `tests/integration/test_campaign.gd`, `docs/game-design/menu.md`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: Esc pausa el árbol y, con `Conductor.set_paused`, la canción y el beat. La pantalla PAUSE usa `PsdScreen` con `PauseArt` dibujado en código (no hay PSD de pausa), con los botones de YOU LOOSE / YOU WIN: CONTINUE (o Esc) sigue, BACK MENU vuelve al menú. `Game.unlocked_level` se guarda en `user://progreso.cfg` y entrar a un subnivel desbloquea su nivel. LEVEL SELECT usa `seleccion_nivel`, `_2` o `_3` según el progreso y pone ENTER solo en los niveles desbloqueados que tienen escena. La tercera tarjeta ya tiene su botón: el nivel 3 se conecta agregando sus subniveles a `Game.LEVELS` con `"nivel": 3`.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: La tarjeta del nivel 2 ya no deja entrar mientras está bloqueada (antes se había abierto para probar). Los PSD se convirtieron con `build_menu_screens.gd`; los PNG que ya existían quedaron iguales. `test_campaign` cubre la pausa con Esc real (nada avanza, ni el beat), el progreso con un archivo de prueba aparte y los botones de LEVEL SELECT. Capturas con ventana de PAUSE y de LEVEL SELECT 2. Todos los tests en verde. Sin push hasta que el usuario lo autorice.
+
+### Preparar feature/levels para el merge a develop
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "Prepárate para mergear con dev, con developer, pero aún no vamos a pushear. Vamos a asegurarnos primero de preparar el mergeo para poder hacer todo correctamente."
+Task: Commitear el trabajo de niveles e integrar `origin/develop` (efectos de sonido, PR #10) en `feature/levels` sin rebase, resolver conflictos y verificar.
+Type: PROCESS / DOCS / TESTING
+Files: `AI_TRACE.md`, `CHANGELOG.md`
+Change: Commit `707cc90` con los niveles, la pausa y el progreso. Merge de `origin/develop` (`6b9d691`): `zone_level.gd`, `testing.md` y el resto se combinaron solos. Los conflictos eran solo de texto: en CHANGELOG quedan las dos listas en `Added`, y en AI_TRACE el archivo de `develop` queda intacto con las entradas de `feature/levels` al final. Los `.wav.import` de los efectos, que Godot había generado sin seguimiento en esta copia, se borraron antes del merge para que entraran los de `develop`.
+Commit: PENDING (se commitea junto con esta entrada, en el commit de merge)
+Notes: Los efectos suenan desde un `SfxPlayer` hijo del nivel, así que también quedan en pausa con Esc. Sin push hasta que el usuario lo autorice.
+
+---
+
 Rama `feature/optimizacion` (nace de `develop`). Misma sesión de trabajo del 2026-10-10.
 
 ### Rendimiento independiente del tamaño del mapa

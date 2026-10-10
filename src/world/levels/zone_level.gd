@@ -5,7 +5,7 @@ extends Node2D
 ## modos gráficos (ArtStyle), post-proceso, HUD y menú de debug.
 ## Cada zona implementa solo lo suyo sobrescribiendo los métodos `_zone_*`.
 ## En juego: A/D mover, Espacio saltar, J/clic atacar, Shift dash, S en el aire caída forzada (stomp),
-## Tab/F1 menú de debug, Enter reintentar al terminar la partida,
+## Esc pausa, Tab/F1 menú de debug, Enter reintentar al terminar la partida,
 ## F2 cambia de estilo (Default / Pixel / Isaac), R/N/P seeds.
 
 const SKY_SHADER := preload("res://src/world/environment/shaders/sky.gdshader")
@@ -43,6 +43,17 @@ enum Match { PLAYING, VICTORY, GAME_OVER }
 ## Combate y enemigos traídos del prototipo (pestaña "Combate").
 @export var combat: CombatParams
 
+@export_group("Subnivel")
+## Muestra los textos del tutorial (solo el nivel 1-1).
+@export var tutorial := false
+## Estilo gráfico con el que arranca (`default`, `pixel`, `isaac`; vacío = default).
+@export var start_style := ""
+## Tipos de enemigo y orden en que se presentan (vacío = el reparto propio de la zona).
+@export var enemy_types: Array[StringName] = []
+## Todos los tipos mezclados desde el principio, sin presentarlos de a uno.
+@export var mixed_enemies := false
+@export_group("")
+
 @export_tool_button("Regenerar", "Reload") var regenerate_button := regenerate
 
 ## Recorrido automático (para capturas y pruebas); cada zona define cómo se mueve.
@@ -68,6 +79,7 @@ var _sfx: SfxPlayer
 ## Pantalla de fin de partida (YOU WIN / YOU LOOSE del diseño), encima de todo.
 var _result_layer: CanvasLayer
 var _result: PsdScreen
+var _pause_layer: CanvasLayer
 var _heat: HeatMeter
 var _feel: GameFeel
 var _match := Match.PLAYING
@@ -87,6 +99,7 @@ var _grunge_materials: Array[ShaderMaterial] = []
 var _sections := {}
 var _music_text: Label
 var _zoom_override := 0.0
+var _tutorial: TutorialHints
 ## Falso mientras _ready arma la zona: los cambios de parámetros no regeneran a mitad de camino.
 var _initialized := false
 
@@ -176,6 +189,8 @@ func _ready() -> void:
 		style = _load_preset("estilo", "default", ArtStyle.new())
 	if combat == null:
 		combat = _load_preset("combate", "base", CombatParams.new())
+	if not start_style.is_empty() and not Engine.is_editor_hint():
+		apply_style(start_style)
 	if not Engine.is_editor_hint():
 		_parse_args()
 		_build_runtime()
@@ -403,7 +418,11 @@ func _build_runtime() -> void:
 	help.add_theme_color_override("font_color", FreneticPalette.CREAM)
 	help.add_theme_color_override("font_outline_color", FreneticPalette.INK)
 	help.add_theme_constant_override("outline_size", 8)
+	help.visible = not Game.in_campaign()
 	ui_layer.add_child(help)
+	if tutorial:
+		_tutorial = TutorialHints.new()
+		ui_layer.add_child(_tutorial)
 	_menu = DebugMenu.new()
 	ui_layer.add_child(_menu)
 	_build_debug_menu()
@@ -427,7 +446,7 @@ func _build_debug_menu() -> void:
 		builders[title].call(section)
 	_menu.get_node("Tabs").current_tab = _initial_tab
 	# Entrando desde el menú principal el menú de debug arranca cerrado (Tab lo abre).
-	_menu.visible = not _hide_menu and Game.level_index < 0
+	_menu.visible = not _hide_menu and not Game.in_campaign()
 
 
 func _build_style_section(section: DebugSection) -> void:
@@ -784,6 +803,8 @@ func _process(delta: float) -> void:
 		_fell_into_void()
 	_camera.position = _zone_camera_target()
 	_update_heat(delta)
+	if _tutorial != null:
+		_tutorial.update(_player, _combat.enemies, is_playing())
 
 	var pulse := Conductor.pulse()
 	var heat := _tracker.heat()
@@ -837,6 +858,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			map.seed += 1
 		KEY_P:
 			map.seed = maxi(1, map.seed - 1)
+		KEY_ESCAPE:
+			if is_playing():
+				get_viewport().set_input_as_handled()
+				pause()
 		KEY_ENTER, KEY_KP_ENTER:
 			# Fin de partida: reintentar la misma seed.
 			if not is_playing():
@@ -859,6 +884,8 @@ func _reset_match() -> void:
 	_heat_hud.reset()
 	_hide_result()
 	_tracker.reset()
+	if _tutorial != null:
+		_tutorial.reset()
 	_combat.active = true
 	_player.visible = true
 	_player.process_mode = Node.PROCESS_MODE_INHERIT
@@ -968,6 +995,47 @@ func _on_result_action(action_name: StringName) -> void:
 				Conductor.restart()
 
 
+## Menú de pausa (Esc): congela el juego y la canción; CONTINUE o Esc sigue, BACK MENU vuelve al
+## menú principal.
+func pause() -> void:
+	if is_paused():
+		return
+	get_tree().paused = true
+	Conductor.set_paused(true)
+	_pause_layer = CanvasLayer.new()
+	_pause_layer.layer = 75
+	_pause_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_pause_layer)
+	var screen := PsdScreen.new("", Color(PsdScreen.BACKDROP, 0.82))
+	screen.add_art(PauseArt.new())
+	screen.add_button(PauseArt.CONTINUE_BUTTON, &"continuar")
+	screen.add_button(PauseArt.MENU_BUTTON, &"menu")
+	screen.escape_action = &"continuar"
+	screen.action.connect(_on_pause_action)
+	_pause_layer.add_child(screen)
+	screen.focus_first()
+
+
+func resume() -> void:
+	if not is_paused():
+		return
+	_pause_layer.queue_free()
+	_pause_layer = null
+	get_tree().paused = false
+	Conductor.set_paused(false)
+
+
+func is_paused() -> bool:
+	return _pause_layer != null
+
+
+func _on_pause_action(action_name: StringName) -> void:
+	if action_name == &"menu":
+		Game.go_to_menu()
+	else:
+		resume()
+
+
 ## Congela el mundo (jugador, enemigos, proyectiles) al terminar la partida.
 func _end_match() -> void:
 	_combat.active = false
@@ -1055,6 +1123,15 @@ func _impact(strength: float) -> void:
 	if strength >= 1.0:
 		_feel.add_trauma(0.25 * strength)
 		_feel.zoom_punch(0.015 * strength)
+
+
+## Tipo de papa en un punto del recorrido (`progress` de 0 a 1): el reparto del subnivel si tiene
+## uno (`enemy_types`), si no el de la zona. Con `mixed_enemies` cualquiera de los tipos, parejo.
+func _pick_enemy(zone_order: Array[StringName], progress: float, rng: RandomNumberGenerator) -> StringName:
+	var order := enemy_types if not enemy_types.is_empty() else zone_order
+	if mixed_enemies:
+		return order[rng.randi_range(0, order.size() - 1)]
+	return EnemyRoster.pick(order, progress, rng)
 
 
 ## Coloca un enemigo en su carril (solo en juego, no en el editor).

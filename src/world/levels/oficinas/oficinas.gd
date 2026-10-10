@@ -31,8 +31,8 @@ const ENEMY_SALT := 0x0f1c
 		if _graph != null:
 			_graph.visible = value
 
-## Solo se ve la habitación o pasillo donde está el personaje.
-var room_only_view := false
+## Solo se ve la habitación o pasillo donde está el personaje (neblina; V la alterna).
+@export var room_only_view := false
 ## Clic guía en el beat que suena desde la dirección hacia la que hay que ir.
 var guide_enabled := true
 var guide_volume_db := -4.0:
@@ -40,7 +40,7 @@ var guide_volume_db := -4.0:
 		guide_volume_db = value
 		if _guide != null:
 			_guide.volume_db = value
-## Al llegar a la salida, pasar solo a la seed siguiente.
+## Al llegar a la salida, pasar solo a la seed siguiente (nunca jugando desde el menú: ahí está YOU WIN).
 var auto_next := true
 ## Salidas alcanzadas desde que empezó la escena (lo usa el test de integración).
 var goals_reached := 0
@@ -193,7 +193,7 @@ func _spawn_enemies() -> void:
 				or chance > combat.enemy_density * 0.9:
 			continue
 		var progress := float(distance[node]) / farthest
-		var type := EnemyRoster.pick(EnemyRoster.OFICINAS, progress, rng)
+		var type := _pick_enemy(EnemyRoster.OFICINAS, progress, rng)
 		var rect := _data.module_rect(node.x, node.y)
 		var left := rect.position.x + OficinasMapData.WALL + 30.0
 		var right := rect.end.x - OficinasMapData.WALL - 30.0
@@ -634,7 +634,7 @@ func _process(delta: float) -> void:
 		_tracker.score += GOAL_BONUS
 		_hud.banner("¡SALIDA!  +%d" % GOAL_BONUS)
 		finish_victory()
-	elif _goal_done and auto_next:
+	elif _goal_done and auto_next and not Game.in_campaign():
 		_goal_timer += delta
 		if _goal_timer > NEXT_SEED_DELAY:
 			params.seed += 1

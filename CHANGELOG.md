@@ -24,6 +24,7 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - Tirones en Oficinas: la guía sonora buscaba el camino a la salida en cada beat (15 ms en
   edificios grandes); ahora sigue el plan guardado y solo replanea al salirse de él. El bot de
   recorrido guarda sus planes y las búsquedas en anchura usan un cursor en lugar de `pop_front()`.
+- En Oficinas, YOU WIN se cerraba solo a los 2,5 s porque la zona pasaba a otra seed.
 - Ventanas del skyline que quedaban flotando sobre edificios derrumbados.
 - HUD de ritmo con tamaño 0: el indicador de compás y los anuncios no se veían bien.
 - El hitstop desplazaba el beat ~1 tiempo al empezar (cambiaba la escala a mitad de frame);
@@ -31,6 +32,14 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Added
 
+- Niveles 1 y 2 con subniveles: 1-1 tutorial (textos de movimientos básicos y, con la primera papa,
+  de stomp, ataque aéreo y dash), 1-2 la azotea unas 2,6 veces más larga con los cuatro tipos
+  mezclados, 2-1 torre de 13 pisos hacia arriba con neblina de habitación y 2-2 torre de 14 pisos
+  hacia abajo con estilo Isaac. YOU WIN pasa al subnivel siguiente.
+- Menú de pausa con Esc (CONTINUE / BACK MENU) que también detiene la canción y el beat.
+- Progreso guardado: llegar a un nivel lo desbloquea en LEVEL SELECT (diseños con 1, 2 y 3
+  tarjetas); la tercera ya tiene su botón para cuando se agregue el nivel 3.
+- Test `test_campaign`; `test_oficinas_traversal` recorre también los edificios de 2-1 y 2-2.
 - Efectos de sonido (`SfxPlayer`, `SoundEffect`): golpe a una papa, stomp, daño recibido y fallo
   de ritmo, con variantes al azar; WAV recortados al importar. Volumen en la pestaña Ritmo. Test
   `test_sfx`.
