@@ -45,6 +45,13 @@ const STORE_NAMES: Array[String] = ["PAPAS & CO", "TODO A $990", "ZAPATERÍA EL 
 		"PERFUMES AROMA", "MASCOTAS FELICES", "ROPA DE CAMA", "RELOJERÍA TIC TAC"]
 const STORE_COLORS: Array[Color] = [Color("ffd400"), Color("4fb3c9"), Color("8fbf4d"), Color("ef6657"),
 		Color("eee6dc"), Color("c98bdb"), Color("f29b38")]
+const WALL_MARKS := {
+	MapMark.Type.CRACK: 0.25, MapMark.Type.STAIN: 0.2, MapMark.Type.BLOOD: 0.2, MapMark.Type.POSTER: 0.2,
+	MapMark.Type.GRAFFITI: 0.15,
+}
+const FLOOR_MARKS := {
+	MapMark.Type.PAPERS: 0.35, MapMark.Type.RUBBLE: 0.25, MapMark.Type.BLOOD: 0.25, MapMark.Type.BONES: 0.15,
+}
 const PRICES: Array[String] = ["$990", "$1.490", "$2x1", "$590", "-30%", "$3.990", "LLEVE 3", "$790"]
 
 
@@ -61,6 +68,7 @@ static func generate(params: BienestarParams) -> BienestarMapData:
 	else:
 		_build_supermarket(data, params, rng, detail)
 	_build_lanes(data)
+	_build_marks(data, params, detail)
 	data.bounds = _bounds(data)
 	return data
 
@@ -503,6 +511,26 @@ static func _build_slabs(data: BienestarMapData, width: float) -> void:
 
 
 # --- Común -------------------------------------------------------------------------------
+
+## Marcas por sección (más con más ruina): en la pared del fondo, lejos del piso y del techo, y en
+## el piso, fuera de los sólidos. Cada estilo decide cuántas se ven (`weight`).
+static func _build_marks(data: BienestarMapData, params: BienestarParams, rng: RandomNumberGenerator) -> void:
+	for span in data.sections:
+		var floor := data.floors[span.floor]
+		var count := roundi((span.x1 - span.x0) / 400.0 * (0.5 + params.ruin))
+		for k in count:
+			var type: MapMark.Type = _weighted(rng, WALL_MARKS, -1)
+			var x := rng.randf_range(span.x0 + 60.0, span.x1 - 60.0)
+			var y := rng.randf_range(floor.ceiling + 80.0, floor.y - 90.0)
+			data.wall_marks.append(MapMark.new(type, Vector2(x, y), rng.randf_range(0.7, 1.3), rng.randf(), rng.randi()))
+		for k in roundi(count * 0.7):
+			var type: MapMark.Type = _weighted(rng, FLOOR_MARKS, -1)
+			var x := rng.randf_range(span.x0 + 60.0, span.x1 - 60.0)
+			if floor.has_hole(x) or data.solids.any(func(r: Rect2) -> bool:
+					return x > r.position.x - 60.0 and x < r.end.x + 60.0 and absf(r.end.y - floor.y) < 1.0):
+				continue
+			data.floor_marks.append(MapMark.new(type, Vector2(x, floor.y), rng.randf_range(0.6, 1.1), rng.randf(), rng.randi()))
+
 
 static func _solid(data: BienestarMapData, rect: Rect2, kind: Block.Kind, variant: int) -> void:
 	data.solids.append(rect)

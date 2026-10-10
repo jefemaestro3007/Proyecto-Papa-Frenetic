@@ -55,4 +55,6 @@ Lo que depende de la cámara se redibuja cada frame, pero solo lo que está en p
 - La geometría de juego (pisos, sólidos, plataformas) es plana y exacta; la perspectiva es solo
   dibujo.
 - Las alturas respetan el salto: obstáculos ≤ 150 px, vigas de rack a 180 px (salto base 216 px).
-- Los estilos (Default, Pixel, Isaac) se aplican con las primitivas de `StyledCanvas`.
+- Los estilos (Default, Pixel, Isaac) se aplican con las primitivas de `StyledCanvas` (trazo a
+  mano, sombras, ladrillos, borde de luz) y con el material `ruin_grunge` compartido (manchas y
+  semitono); las marcas del mapa (`MapMark`) van en un plano de piso aparte y en la pared del fondo.

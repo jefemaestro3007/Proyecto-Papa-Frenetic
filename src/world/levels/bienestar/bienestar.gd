@@ -34,6 +34,9 @@ var _depth_front: StoreDepthView
 var _fixtures: StoreFixturesView
 ## Planos estáticos a profundidad fija (pared, frentes de góndolas y freezers), en trozos.
 var _backdrops: Array[ChunkedView] = []
+## Textura sucia del estilo (manchas, motas, semitono), compartida por todas las vistas de la tienda.
+var _grunge: ShaderMaterial
+var _marks_view: ChunkedView
 var _bot: BienestarBot
 var _state := State.FREE
 var _ride: BienestarMapData.Escalator
@@ -90,10 +93,12 @@ func _zone_generate() -> void:
 	# lo animado del fondo (freezers abiertos, escaleras, losas, carteles) y el plano jugable.
 	var live := _world if _player != null else null
 	_backdrops.clear()
+	_grunge = _make_grunge()
 	_add_backdrop(_data.depth, StoreBackdrop.Kind.WALL, -30)
 	_depth_back = StoreDepthView.new()
 	_depth_back.setup(_data, live, params, style, StoreDepthView.Pass.BACK)
 	_depth_back.z_index = -26
+	_depth_back.material = _grunge
 	_generated.add_child(_depth_back)
 	if not _data.gondolas.is_empty():
 		_add_backdrop(StoreDepthView.GONDOLA_FRONT, StoreBackdrop.Kind.GONDOLAS, -25)
@@ -102,8 +107,25 @@ func _zone_generate() -> void:
 	_depth_front = StoreDepthView.new()
 	_depth_front.setup(_data, live, params, style, StoreDepthView.Pass.FRONT)
 	_depth_front.z_index = -22
+	_depth_front.material = _grunge
 	_generated.add_child(_depth_front)
+	# Marcas del piso (estáticas, en trozos) y las moscas que las rondan (Isaac).
+	_marks_view = ChunkedView.new()
+	_marks_view.build(func() -> StoreMarksView:
+		var view := StoreMarksView.new()
+		view.setup(_data.floor_marks, style)
+		return view, _data.bounds, 1)
+	_marks_view.material = _grunge
+	_marks_view.z_index = -3
+	_generated.add_child(_marks_view)
+	_backdrops.append(_marks_view)
+	var flies := FliesView.new()
+	flies.setup(style)
+	flies.add_marks(_data.floor_marks)
+	flies.z_index = 3
+	_generated.add_child(flies)
 	_fixtures = StoreFixturesView.new()
+	_fixtures.material = _grunge
 	_fixtures.setup(_data, _world if _player != null else null, params, style)
 	_generated.add_child(_fixtures)
 	_generated.add_child(_make_colliders(_data.slabs + _data.solids))
@@ -126,6 +148,7 @@ func _add_backdrop(depth: float, kind: StoreBackdrop.Kind, z: int) -> void:
 		var backdrop := StoreBackdrop.new()
 		backdrop.setup(_data, params, style, kind)
 		return backdrop, _data.bounds, 1)
+	view.material = _grunge
 	plane.add_child(view)
 	_generated.add_child(plane)
 	_backdrops.append(view)
@@ -168,6 +191,8 @@ func _zone_style_changed() -> void:
 	if _fixtures != null:
 		for view in _backdrops:
 			view.redraw()
+		_grunge.set_shader_parameter("dirt", style.grime)
+		_grunge.set_shader_parameter("halftone_strength", style.halftone)
 
 
 func _zone_spawn() -> Vector2:

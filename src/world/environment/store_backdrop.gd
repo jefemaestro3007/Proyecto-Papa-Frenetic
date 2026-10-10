@@ -73,10 +73,59 @@ func _draw_wall_span(span: BienestarMapData.SectionSpan) -> void:
 		x = maxf(x, opening.y)
 	if x < x1:
 		draw_rect(Rect2(x, top, x1 - x, y - top), _style.wall_paper)
+	if _style.bricks > 0.0:
+		_draw_bricks(Rect2(x0, top, x1 - x0, y - top - 50.0), span.floor)
 	draw_rect(Rect2(x0, y - 50.0, x1 - x0, 50.0), _style.structure_dark)
+	for corner: Vector2 in [Vector2(x0, top), Vector2(x1, top)]:
+		_maybe_cobweb(corner, 1.0 if corner.x == x0 else -1.0, 60.0, int(corner.x) + span.floor * 7)
+	for mark in _data.wall_marks:
+		if mark.position.x >= x0 and mark.position.x < x1 and mark.position.y > top and mark.position.y < y:
+			_draw_wall_mark(mark)
 	if not _data.mall:
 		var band := y - (y - top) * 0.62
 		draw_rect(Rect2(x0, band - 26.0, x1 - x0, 26.0), Color(_style.accent, 0.55))
+
+
+## Ladrillos trabados en la pared (estilos que los usan: Pixel, Isaac).
+func _draw_bricks(area: Rect2, f: int) -> void:
+	var color := Color(_style.structure_dark, _style.bricks * 0.6)
+	var brick := Vector2(46.0, 22.0)
+	var row := 0
+	var y := area.position.y + 6.0
+	var lines := PackedVector2Array()
+	while y < area.end.y:
+		lines.append_array([Vector2(area.position.x, y), Vector2(area.end.x, y)])
+		var x := area.position.x + (brick.x * 0.5 if (row + f) % 2 == 1 else 0.0)
+		while x < area.end.x:
+			lines.append_array([Vector2(x, y), Vector2(x, minf(y + brick.y, area.end.y))])
+			x += brick.x
+		y += brick.y
+		row += 1
+	if not lines.is_empty():
+		draw_multiline(lines, color, 2.0)
+
+
+## Marca en la pared del fondo; cada estilo muestra la fracción que le corresponde (`weight`).
+func _draw_wall_mark(mark: MapMark) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = mark.variant
+	match mark.type:
+		MapMark.Type.CRACK:
+			if mark.weight < _style.crack_amount:
+				_draw_crack(mark.position, 80.0 * mark.size, rng)
+		MapMark.Type.STAIN:
+			if mark.weight < _style.stain_amount:
+				var radius := Vector2(60.0, 40.0) * mark.size
+				_fill(_ellipse(mark.position, radius, 16, 0.25, rng), Color(_style.structure_dark, 0.45))
+		MapMark.Type.BLOOD:
+			if mark.weight < _style.blood_amount:
+				_draw_splatter(mark.position, 24.0 * mark.size, rng)
+		MapMark.Type.POSTER:
+			if mark.weight < _style.poster_amount:
+				_draw_poster(mark.position, mark.size * 0.8, rng)
+		MapMark.Type.GRAFFITI:
+			if mark.weight < _style.graffiti_amount:
+				_draw_graffiti(mark.position, mark.size * 0.8, rng)
 
 
 ## Cabecera: estantes con productos de frente.
@@ -84,8 +133,8 @@ func _draw_gondola_front(gondola: BienestarMapData.Gondola) -> void:
 	var y := _data.surface_y(gondola.floor)
 	var height := gondola.height * (0.55 if gondola.fallen else 1.0)
 	var rect := Rect2(gondola.x0, y - height, gondola.x1 - gondola.x0, height)
-	draw_rect(rect, _style.furniture)
-	draw_rect(rect, _style.outline, false, maxf(_style.outline_width * 0.6, 1.5))
+	_box(rect, _style.furniture, gondola.variant)
+	_maybe_cobweb(rect.position, 1.0, 34.0, gondola.variant + 3)
 	var face := PackedVector2Array([rect.position, Vector2(rect.end.x, rect.position.y), rect.end,
 			Vector2(rect.position.x, rect.end.y)])
 	var shelves := 4
@@ -107,8 +156,7 @@ func _draw_gondola_front(gondola: BienestarMapData.Gondola) -> void:
 func _draw_freezer_front(freezer: BienestarMapData.Freezer) -> void:
 	var rect := freezer.rect
 	var body := _style.paper.lerp(GLASS, 0.35)
-	draw_rect(rect, body)
-	draw_rect(rect, _style.outline, false, maxf(_style.outline_width * 0.6, 1.5))
+	_box(rect, body, freezer.variant)
 	var face := PackedVector2Array([rect.position, Vector2(rect.end.x, rect.position.y), rect.end,
 			Vector2(rect.position.x, rect.end.y)])
 	_fill_sub(face, 0.06, 0.04, 0.94, 0.14, Color("4fb3c9"))
@@ -231,6 +279,7 @@ func _draw_store(store: BienestarMapData.Store, depth: float) -> void:
 	var c := _p(front.end, depth)
 	var d := _p(Vector2(front.position.x, front.end.y), depth)
 	var face := PackedVector2Array([a, b, c, d])
+	_box(Rect2(a, c - a), _style.wall_paper.lightened(0.06), store.variant)
 	# Letrero con el nombre y vidriera (o cortina baja si está cerrado).
 	_fill_sub(face, 0.0, 0.0, 1.0, 0.16, store.color.darkened(0.15))
 	_quad_outline(face[0], face[1], face[2], face[3], _style.outline, 2.0)

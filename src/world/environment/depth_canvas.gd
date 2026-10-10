@@ -88,7 +88,7 @@ func _quad_outline(a: Vector2, b: Vector2, c: Vector2, d: Vector2, color: Color,
 ## ve y el techo (o la base) si corresponde, y devuelve el frente proyectado para que quien llama
 ## lo decore. `side`/`top` son los colores de esas caras; el frente se pinta con `front`.
 func _prism(rect: Rect2, d0: float, d1: float, front: Color, side: Color, top: Color, outline := true,
-		draw_front := true) -> PackedVector2Array:
+		draw_front := true, variant := 0) -> PackedVector2Array:
 	var tl := rect.position
 	var tr := Vector2(rect.end.x, rect.position.y)
 	var br := rect.end
@@ -105,8 +105,42 @@ func _prism(rect: Rect2, d0: float, d1: float, front: Color, side: Color, top: C
 		_face(_p(bl, d0), _p(br, d0), _p(br, d1), _p(bl, d1), side.darkened(0.2), ink, width, outline)
 	var face := PackedVector2Array([_p(tl, d0), _p(tr, d0), _p(br, d0), _p(bl, d0)])
 	if draw_front:
-		_face(face[0], face[1], face[2], face[3], front, ink, width, outline)
+		_styled_front(rect, d0, front, variant if variant != 0 else int(rect.position.x * 13.0 + rect.position.y * 7.0), outline)
 	return face
+
+
+## Frente de un prisma con los rasgos del estilo, como `StyledCanvas._box`: trazo a mano (el
+## temblor se calcula sobre el rectángulo sin proyectar, así no tiembla al moverse la cámara),
+## sombra proyectada, sombreado por caras y borde de luz.
+func _styled_front(rect: Rect2, d: float, fill: Color, variant: int, outline := true) -> void:
+	var points := _rect_points(rect)
+	if _style.wobble > 0.0:
+		points = _wobbled(points, variant)
+	for i in points.size():
+		points[i] = _p(points[i], d)
+	var scale := 1.0 - d
+	if _style.drop_shadows:
+		var shadow := points.duplicate()
+		for i in shadow.size():
+			shadow[i] += Vector2(6.0, 6.0) * scale
+		_fill(shadow, Color(_style.outline, 0.35))
+	_fill(points, fill)
+	if outline and _style.outline_width > 0.0:
+		var closed := points.duplicate()
+		closed.append(points[0])
+		draw_polyline(closed, _style.outline, maxf(_style.outline_width * scale, 1.0), true)
+	var inner := Rect2(_p(rect.position, d), rect.size * scale).grow(-_style.outline_width * 0.5 * scale)
+	if inner.size.x <= 2.0 or inner.size.y <= 2.0:
+		return
+	if _style.cel_shading > 0.0:
+		var strip := clampf(inner.size.x * 0.2, 3.0, 26.0)
+		draw_rect(Rect2(inner.position, Vector2(strip, inner.size.y)), Color(fill.lightened(0.35), _style.cel_shading * 0.8))
+		draw_rect(Rect2(Vector2(inner.end.x - strip, inner.position.y), Vector2(strip, inner.size.y)),
+				Color(fill.darkened(0.4), _style.cel_shading * 0.8))
+	if _style.rim_light:
+		var width := maxf(_style.outline_width * 0.5, 2.0)
+		draw_line(inner.position + Vector2(0.0, width * 0.5), Vector2(inner.end.x, inner.position.y + width * 0.5),
+				Color(_style.edge, 0.7), width)
 
 
 func _face(a: Vector2, b: Vector2, c: Vector2, d: Vector2, color: Color, ink: Color, width: float, outline: bool) -> void:

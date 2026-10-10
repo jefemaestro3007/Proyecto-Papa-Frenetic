@@ -84,6 +84,13 @@ cliente → globos → guardia → promotora → reponedor.
   techo, paredes de los extremos, costados de góndolas y freezers, escaleras, sólidos en prisma,
   racks, cortinas, carteles. Solo lo que está en pantalla (`SpatialIndex`); baldosas y tubos en una
   sola llamada.
+- **Estilos (Default / Pixel / Isaac)**: un material `ruin_grunge` compartido (manchas y semitono)
+  se aplica a todas las vistas de la tienda; el generador siembra marcas de pared (grietas,
+  manchas, sangre, afiches, grafitis) y de piso (papeles, escombros, huesos, sangre) que cada estilo
+  muestra en su medida (`MapMark.weight`), con telarañas en las esquinas (Pixel). Los frentes usan
+  las primitivas de `StyledCanvas` (trazo a mano y sombras proyectadas en Isaac; ladrillos, borde de
+  luz y caras sombreadas en Pixel) y las moscas (`FliesView`) rondan las marcas del piso. El
+  mobiliario jugable se dibuja **delante** de las papas.
 
 Benchmark (ventana 1920×1080): supermercado de 8 o 24 secciones ≈ 6 ms por frame; centro
 comercial de 7 secciones × 3 pisos o 20 × 5 ≈ 8-10 ms. No crece con el tamaño.

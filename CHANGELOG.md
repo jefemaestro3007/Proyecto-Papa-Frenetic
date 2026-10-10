@@ -43,6 +43,12 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
   2-2) con la canción del centro comercial. Bot de recorrido, tests del generador, de las
   mecánicas y de recorrido; benchmark de ambas tiendas (no crece con el tamaño).
 
+- El nivel 3 usa los estilos **Default / Pixel / Isaac**: textura sucia compartida
+  (`ruin_grunge`), marcas de pared (grietas, manchas, sangre, afiches, grafitis) y de piso
+  (papeles, escombros, huesos, sangre), telarañas, trazo a mano, sombras proyectadas, ladrillos y
+  borde de luz (Pixel) y moscas que rondan las marcas (Isaac). El mobiliario jugable pasa a
+  dibujarse delante de las papas.
+
 - Papas vestidas de Bienestar U (nivel 3), sin enemigos nuevos: los tipos de siempre con
   accesorios dibujados en código y habilidades propias. Cliente (deja sus compras y el piso
   resbala), promotora (muestras en llamas: arde unos beats y deja fuego), reponedor (lanza el

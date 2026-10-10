@@ -32,7 +32,7 @@ func setup(data: BienestarMapData, world: BienestarWorld, params: BienestarParam
 	_world = world
 	_params = params
 	_style = style
-	z_index = 2
+	z_index = -2
 	for index: SpatialIndex in [_blocks, _racks, _props, _wet, _shutters]:
 		index.clear()
 	for i in data.blocks.size():

@@ -34,6 +34,11 @@ var signs: Array[HangingSign] = []
 ## Tramos del techo por donde se ve el cielo (x inicial, x final) por piso: Vector3(piso, x0, x1).
 var skylights: Array[Vector3] = []
 var sections: Array[SectionSpan] = []
+## Marcas que cada estilo muestra en su medida (MapMark.weight): en la pared del fondo (grietas,
+## manchas, sangre, afiches, grafitis; en coordenadas del plano de la pared) y en el piso del plano
+## jugable (papeles, escombros, huesos, charcos de sangre).
+var wall_marks: Array[MapMark] = []
+var floor_marks: Array[MapMark] = []
 ## Carriles de las papas: Vector3(piso, izquierda, derecha).
 var lanes: Array[Vector3] = []
 var spawn := Vector2.ZERO
