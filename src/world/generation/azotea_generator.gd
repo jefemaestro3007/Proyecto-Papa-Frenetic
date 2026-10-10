@@ -156,9 +156,11 @@ static func _build_skyline(params: AzoteaParams, rng: RandomNumberGenerator, fie
 		var shaped := (field.get_noise_1d(x + field_offset) + 1.0) * 0.5
 		var h := lerpf(height_range.x, height_range.y, lerpf(rng.randf(), shaped, 0.6))
 		var top := base_y - h
+		var outline := PackedVector2Array()
 		if w >= 8.0:
-			layer.buildings.append(_ruined_outline(rng, x, x + w, top, bottom, h, params.ruin))
-		_add_windows(layer, rng, x, w, top, base_y, params.broken_windows)
+			outline = _ruined_outline(rng, x, x + w, top, bottom, h, params.ruin)
+			layer.buildings.append(outline)
+		_add_windows(layer, rng, outline, x, w, top, base_y, params.broken_windows)
 		# Edificios pegados o con un callejón estrecho.
 		x += w + (rng.randf_range(0.0, 30.0) if rng.randf() < 0.3 else 0.0)
 	return layer
@@ -215,8 +217,11 @@ static func _add_rooftop_prop(pts: PackedVector2Array, rng: RandomNumberGenerato
 		pts.insert(i + k, prop[k])
 
 
-static func _add_windows(layer: AzoteaMapData.SkylineData, rng: RandomNumberGenerator, x: float,
-		w: float, top: float, base_y: float, broken: float) -> void:
+## Rejilla de ventanas; solo se conservan las que caen por completo dentro de la silueta
+## (en edificios derrumbados no quedan ventanas flotando en el cielo).
+static func _add_windows(layer: AzoteaMapData.SkylineData, rng: RandomNumberGenerator,
+		outline: PackedVector2Array, x: float, w: float, top: float, base_y: float, broken: float) -> void:
+	const INSET := 3.0
 	const CELL := Vector2(24.0, 30.0)
 	const SIZE := Vector2(12.0, 16.0)
 	var cols := int((w - 16.0) / CELL.x)
@@ -228,5 +233,15 @@ static func _add_windows(layer: AzoteaMapData.SkylineData, rng: RandomNumberGene
 		for c in cols:
 			if rng.randf() < broken:
 				continue
-			var pos := Vector2(x + margin + c * CELL.x + 6.0, top + 40.0 + r * CELL.y)
-			layer.windows.append(Rect2(pos, SIZE))
+			var rect := Rect2(Vector2(x + margin + c * CELL.x + 6.0, top + 40.0 + r * CELL.y), SIZE)
+			if _rect_inside(rect.grow(INSET), outline):
+				layer.windows.append(rect)
+
+
+static func _rect_inside(rect: Rect2, polygon: PackedVector2Array) -> bool:
+	if polygon.is_empty():
+		return false
+	# Lo que queda del rectángulo al restarle la silueta: vacío = está completamente dentro.
+	var corners := PackedVector2Array([rect.position, Vector2(rect.end.x, rect.position.y), rect.end,
+			Vector2(rect.position.x, rect.end.y)])
+	return Geometry2D.clip_polygons(corners, polygon).is_empty()
