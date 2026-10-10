@@ -12,12 +12,13 @@ godot --path . res://src/world/levels/oficinas/oficinas.tscn
 
 | Acción | Tecla |
 |---|---|
-| Mover / saltar | ←/→ · Espacio |
-| Caída forzada (en el aire) | ↓ |
-| Subir una escalera (al pie) / bajarla (arriba) | ↑ / ↓ |
-| Llamar el ascensor (frente a su puerta) | ↑ |
-| En la cabina: elegir hacia dónde / salir | ↑ ↓ (mantener sigue de piso en piso) / ← → |
-| Entrar a una puerta al fondo / salir del área | ↑ |
+| Mover / saltar | A/D (o ←/→) · Espacio |
+| Atacar | J o clic izquierdo |
+| Caída forzada (en el aire) | S (o ↓) |
+| Subir una escalera (al pie) / bajarla (arriba) | W / S |
+| Llamar el ascensor (frente a su puerta) | W |
+| En la cabina: elegir hacia dónde / salir | W S (mantener sigue de piso en piso) / A D |
+| Entrar a una puerta al fondo / salir del área | W |
 | Vista solo de la habitación actual | V |
 | Grafo de recorrido (depuración) | G |
 | Menú de debug · cambiar estilo | Tab · F2 |
@@ -26,7 +27,7 @@ godot --path . res://src/world/levels/oficinas/oficinas.tscn
 
 - **Puertas entre módulos**: se abren solas al acercarse, en el beat. Las que tienen candado
   de color piden la llave de ese color.
-- **Escaleras de fondo**: pasar por delante no las usa; ↑ al pie sube, ↓ arriba baja. Se apilan
+- **Escaleras de fondo**: pasar por delante no las usa; W al pie sube, S arriba baja. Se apilan
   en núcleos (tramos en zigzag), como en un edificio real.
 - **Ascensores de fondo, cerrados**: la cabina llega en ≤ 2 s y abre en el beat; el viaje dura
   ≤ 1,5 s y mientras tanto solo se ve la cabina. Tipos: local (para en cada piso), expreso

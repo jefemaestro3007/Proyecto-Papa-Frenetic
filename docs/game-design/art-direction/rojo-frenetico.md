@@ -85,7 +85,7 @@ combo, multiplicador y puntaje.
 | Saltar | Salto más alto (×1.18 / ×1.08) y chispa |
 | Girar | Giro de 360° e impulso de velocidad |
 | Aterrizar | Suma combo (nunca lo rompe); si es una caída alta, además ataca |
-| Caída forzada (↓ en el aire) | A tiempo: estallido máximo y puntos ×2. Fuera: rompe combo y aturde |
+| Caída forzada (S en el aire) | A tiempo: estallido máximo y puntos ×2. Fuera: rompe combo y aturde |
 | Combo | Sol más grande, más destello, multiplicador hasta ×4 |
 
 Fallar una acción intencional (saltar/girar/caída forzada) rompe el combo, y 4 beats

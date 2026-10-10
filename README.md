@@ -61,9 +61,10 @@ girar y aterrizar en el beat suma combo.
 
 | Acción | Tecla |
 |---|---|
-| Mover / saltar | ←/→ · Espacio |
-| Caída forzada (en el aire) | ↓ |
-| Escaleras, ascensores, puertas al fondo (Oficinas) | ↑ / ↓ |
+| Mover / saltar | A/D (o ←/→) · Espacio |
+| Atacar | J o clic izquierdo |
+| Caída forzada (en el aire) | S (o ↓) |
+| Escaleras, ascensores, puertas al fondo (Oficinas) | W / S (o ↑ / ↓) |
 | Menú de debug · cambiar estilo | Tab (o F1) · F2 |
 | Seed aleatoria / siguiente / anterior | R / N / P |
 | Vista de habitación · grafo de recorrido (Oficinas) | V · G |

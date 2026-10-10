@@ -6,6 +6,10 @@ este proyecto: nuestro movimiento no cambia, el ritmo usa el `Conductor` y el co
 Del prototipo **no** se trae el sistema de "papa caliente" (calor, mecha, game over): fallar o
 recibir un golpe rompe el combo y aturde.
 
+Controles del juego: **A/D** moverse, **Espacio** saltar, **W/S** arriba/abajo (escaleras,
+ascensores, puertas al fondo; **S en el aire** = caída forzada), **J** o clic izquierdo atacar.
+Las flechas funcionan como alternativa a WASD.
+
 Todo lo integrado desde el prototipo tiene su propia pestaña en el menú de debug:
 **Combate** (`CombatParams`, presets en `src/shared/resources/presets/combate/`).
 
