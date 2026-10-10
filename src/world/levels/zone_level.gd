@@ -29,6 +29,12 @@ const LAND_MIN_SPEED := 400.0
 
 ## Recorrido automático (para capturas y pruebas); cada zona define cómo se mueve.
 var autorun := false
+## Acercamiento de la cámara: más alto = se ve menos del mapa, más grande.
+var camera_zoom := 1.0:
+	set(value):
+		camera_zoom = clampf(value, 0.4, 2.5)
+		if _camera != null:
+			_camera.zoom = Vector2.ONE * camera_zoom
 
 var _generated: Node2D
 var _player: PlayerPrototype
@@ -50,6 +56,7 @@ var _style_signature := 0
 var _skyline_views: Array[SkylineView] = []
 var _grunge_materials: Array[ShaderMaterial] = []
 var _sections := {}
+var _zoom_override := 0.0
 
 
 # --- Ganchos de cada zona ------------------------------------------------------------
@@ -92,6 +99,11 @@ func _zone_camera_target() -> Vector2:
 	return _player.position
 
 
+## Acercamiento inicial de la cámara en esta zona.
+func _zone_default_zoom() -> float:
+	return 1.0
+
+
 ## Se llama cuando cambia cualquier valor del estilo: redibujar lo estático.
 func _zone_style_changed() -> void:
 	pass
@@ -102,7 +114,7 @@ func _zone_autorun(_delta: float) -> void:
 
 
 func _zone_help_text() -> String:
-	return "←/→ mover · Espacio saltar · ↓ caída forzada · Tab menú · F2 estilo · R/N/P seed"
+	return "←/→ mover · Espacio saltar · ↓ en el aire caída forzada · Tab menú · F2 estilo · R/N/P seed"
 
 
 # --- Ciclo de vida -------------------------------------------------------------------
@@ -138,6 +150,8 @@ func _parse_args() -> void:
 				_zone_params().set(pair[0], str_to_var(pair[1]))
 		elif arg.begins_with("--debug-tab="):
 			_initial_tab = arg.trim_prefix("--debug-tab=").to_int()
+		elif arg.begins_with("--zoom="):
+			_zoom_override = arg.trim_prefix("--zoom=").to_float()
 		elif arg == "--hide-menu":
 			_hide_menu = true
 		elif arg.begins_with("--style="):
@@ -288,6 +302,7 @@ func _build_runtime() -> void:
 	_camera.position_smoothing_enabled = true
 	_camera.position_smoothing_speed = 6.0
 	add_child(_camera)
+	camera_zoom = _zoom_override if _zoom_override > 0.0 else _zone_default_zoom()
 
 	var post_layer := CanvasLayer.new()
 	post_layer.layer = 50
@@ -545,6 +560,8 @@ func _build_rhythm_section(section: DebugSection) -> void:
 func _build_system_section(section: DebugSection) -> void:
 	section.add_group("Estado")
 	_stats_text = section.add_text()
+	section.add_group("Cámara")
+	section.add_slider(self, &"camera_zoom", "Zoom (más = se ve menos)", 0.4, 2.5, 0.05)
 	section.add_group("Pruebas")
 	section.add_toggle(self, &"autorun", "Recorrido automático")
 	section.add_slider(Engine, &"time_scale", "Escala de tiempo", 0.1, 2.0, 0.05)
