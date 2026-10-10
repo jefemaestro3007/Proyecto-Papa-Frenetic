@@ -211,3 +211,37 @@ Files: `AI_TRACE.md`
 Change: Se comprobó que `develop` solo tiene los PR #1 y #2, que la rama tiene 11 commits que no están en `develop` y que 4 de ellos (`f84e8cc`..`fcaa7ed`) no estaban pusheados. Se creó este archivo.
 Commit: PENDING (se commitea junto con este archivo; el hash no puede ir dentro de su propio commit)
 Notes: Sin push, PR ni merge.
+
+---
+
+Rama `feature/real-music` (nace de `feature/rhythm-combat-restored` con `origin/develop`
+mezclado, porque necesita el combate y la música de `develop`). Sesión de Claude Code del
+2026-10-10 (participación de IA verificada).
+
+### Restaurar feature/rhythm-combat y verificar que se ejecuta
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (autor de Git: 14mn0t4b0t)
+Team: Frenetic Studios
+AI: Claude (Claude Code, modelo claude-opus-5-5)
+Prompt: Buscar el "commit anti santiago" en `feature/rhythm-combat`, verificar que el commit anterior tiene el trabajo terminado, "Crea otra rama que sea como feature/rhythm-combat restored", "revisa que se pueda ejecutar y todo este bien, no puedo ejecutarlo" y luego "pushea la rama de rhythm-combat-restored para que otros vayan trabajando".
+Task: Crear `feature/rhythm-combat-restored` en `b550e05` (sin los commits posteriores, que no se habían acordado), importar, abrir el editor, correr tests y escenas, y pushearla.
+Type: PROCESS / TESTING
+Files: Ninguno.
+Change: Rama nueva sin cambios de código. 6 tests unitarios, `test_combat_match` y `test_oficinas_traversal` (48/48) en verde; Azotea y Oficinas corren sin errores.
+Commit: N/A (`b550e05`, pusheada a `origin/feature/rhythm-combat-restored`)
+Notes: Quedan detalles visuales menores sin arreglar: textos flotantes que se superponen, "DASH: solo en suelo" cortado abajo a la derecha, indicador de compás pegado al borde.
+
+### Música real sincronizada con el Conductor
+
+Timestamp: N/A (commit de Git: 2026-10-10T07:51:33-05:00)
+Participant: N/A (autor de Git: 14mn0t4b0t)
+Team: Frenetic Studios
+AI: Claude (Claude Code, modelo claude-opus-5-5)
+Prompt: "Vamos a integrar audio de verdad con ritmo de verdad, en dev se integro hace poco la musica de verdad, quiero comprobar la jugabilidad antes de continuar".
+Task: Medir BPM y primer beat de las canciones de `develop` (análisis de onsets con ffmpeg + numpy), reproducirlas en bucle y hacer que el reloj del `Conductor` siga la posición de reproducción; canción por zona y controles en la pestaña Ritmo.
+Type: CODE (AI) / TESTING / DOCS
+Files: `src/core/autoloads/conductor.gd`, `src/features/rhythm/{music_track,rhythm_params}.gd`, `src/shared/resources/music/{nivel_uno,industrial,centro_comercial}.tres`, `src/world/levels/{zone_level,azotea/azotea,oficinas/oficinas}.gd`, `assets/audio/music/*.wav.import`, `tests/unit/test_music.gd`, `docs/architecture/overview.md`, `docs/development/testing.md`
+Change: Nivel uno 177 BPM (Azotea), Industrial 175 BPM (Oficinas), Centro comercial 140 BPM (sin zona); las tres empiezan en el beat. El reloj corrige suave hacia el audio y nunca retrocede; en headless no suena pero usa el tempo de la canción.
+Commit: `3a79924` (merge de `origin/develop`: `46b8a9f`)
+Notes: Sincronía medida con ventana real: el reloj va a menos de un frame de la música y el bucle no repite beats. El BPM de `MenuSongStart.wav` (≈191) no está confirmado. Los `.wav` de `develop` se subieron sin Git LFS aunque `.gitattributes` lo pide; no se tocaron.
