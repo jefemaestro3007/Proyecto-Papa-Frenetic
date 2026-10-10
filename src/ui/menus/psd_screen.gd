@@ -1,0 +1,70 @@
+class_name PsdScreen
+extends Control
+## Pantalla de menú armada con una imagen del diseño (exportada de los PSD por
+## `tools/scripts/build_menu_screens.gd`, 1440×1024) escalada para entrar en la ventana y centrada,
+## sobre un fondo. Los botones son zonas en las mismas coordenadas del PSD: se resaltan al pasar
+## el mouse o al elegirlos con el teclado, y Enter, Espacio, J o el clic los activan.
+
+signal action(name: StringName)
+
+const DESIGN_SIZE := Vector2(1440.0, 1024.0)
+const TEXTURES := "res://assets/textures/ui/menu/"
+## Fondo de las pantallas (el gris del diseño).
+const BACKDROP := Color("222222")
+
+var _background: ColorRect
+var _canvas: Control
+var _buttons: Array[MenuHotspot] = []
+
+
+## `background` puede ser translúcido (p. ej. para mostrar el juego detrás).
+func _init(texture_name: String, background: Color = BACKDROP) -> void:
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_background = ColorRect.new()
+	_background.color = background
+	_background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(_background)
+	_canvas = Control.new()
+	_canvas.size = DESIGN_SIZE
+	_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_canvas)
+	add_layer(texture_name)
+	resized.connect(_fit)
+
+
+func _ready() -> void:
+	_fit()
+
+
+## Agrega una imagen encima (del mismo tamaño de diseño). Devuelve el TextureRect para animarlo.
+func add_layer(texture_name: String) -> TextureRect:
+	var layer := TextureRect.new()
+	var path := TEXTURES + texture_name + ".png"
+	if ResourceLoader.exists(path):
+		layer.texture = load(path)
+	layer.size = DESIGN_SIZE
+	layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_canvas.add_child(layer)
+	return layer
+
+
+## Zona clicable en coordenadas del PSD. La primera que se agrega toma el foco del teclado.
+func add_button(rect: Rect2, action_name: StringName) -> MenuHotspot:
+	var button := MenuHotspot.new()
+	button.position = rect.position
+	button.size = rect.size
+	button.pressed.connect(func() -> void: action.emit(action_name))
+	_canvas.add_child(button)
+	_buttons.append(button)
+	return button
+
+
+func focus_first() -> void:
+	if not _buttons.is_empty():
+		_buttons[0].grab_focus()
+
+
+func _fit() -> void:
+	var scale := minf(size.x / DESIGN_SIZE.x, size.y / DESIGN_SIZE.y)
+	_canvas.scale = Vector2.ONE * scale
+	_canvas.position = (size - DESIGN_SIZE * scale) * 0.5

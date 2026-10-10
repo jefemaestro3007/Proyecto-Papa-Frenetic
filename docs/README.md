@@ -11,3 +11,4 @@
 | [development/gitflow.md](development/gitflow.md) | Flujo de ramas, commits y releases. |
 | [development/testing.md](development/testing.md) | Tests unitarios, de integración y capturas. |
 | [development/sprites.md](development/sprites.md) | Sprites del jugador, enemigos y efectos: herramientas y mapa de poses. |
+| [game-design/menu.md](game-design/menu.md) | Menú principal, selección de nivel, carga y pantallas YOU WIN / YOU LOOSE. |

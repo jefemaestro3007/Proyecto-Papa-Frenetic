@@ -499,3 +499,36 @@ Files: `src/world/levels/zone_level.gd`, `CHANGELOG.md`, `AI_TRACE.md`
 Change: Merge (no rebase, la rama ya estaba pusheada). `_on_slam` queda con la lógica de `develop` (juicio con `Conductor.judge()`, golpe solo si `stomp` alcanzó papas, si no cuenta como movimiento) más la nube del stomp de sprites. CHANGELOG: los sprites pasan a la sección `Added` única. AI_TRACE: se conservan las entradas de ambas ramas, primero las de sprites y luego las de `develop`.
 Commit: PENDING (se commitea junto con esta entrada, en el commit de merge)
 Notes: Los objetos LFS de los sprites se bajaron con la API de LFS por `curl` porque `git-lfs` recibía "connection reset"; se verificó el sha256 de los 61. Importación sin errores; 7 tests unitarios, `test_combat_match`, `test_rhythm_rewards` y `test_oficinas_traversal` en verde; Azotea y Oficinas corren con ventana sin errores. Sin push hasta que el usuario lo autorice.
+
+---
+
+Rama `feature/ui-menu` (nace de `feature/sprites`). La entrada siguiente estaba en la rama antes
+del merge de `develop`; se mueve al final para que el archivo de `develop` quede intacto.
+
+### Menú principal y pantallas YOU WIN / YOU LOOSE
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (usuario de Git: Andrés Valencia)
+Team: Frenetic Studios
+AI: Claude
+Prompt: Copiar feature/sprites a una rama nueva para la UI y el menú principal (feature/ui-menu). Con los assets del menú (LEVEL SELECT, LOADING, NEW GAME, START, YOU LOOSE y YOU WIN en PSD, y START en SVG): antes de iniciar la partida mostrar este menú y permitir iniciar el nivel 1, que es la azotea; mostrar YOU LOSE cuando el jugador muere, en lugar del texto actual, y YOU WIN cuando pasa el nivel, desde donde se pueda pasar al siguiente.
+Task: Integrar el menú y las pantallas de fin de partida.
+Type: CODE (AI) / UX / ART PIPELINE / DOCS
+Files: `assets_src/ui/menu/*` (diseños del equipo, sin modificar), `assets/textures/ui/menu/*.png` (+ `.import`), `tools/scripts/build_menu_screens.gd`, `src/core/autoloads/game.gd`, `src/ui/menus/{main_menu.gd,main_menu.tscn,psd_screen.gd,menu_hotspot.gd}`, `src/world/levels/zone_level.gd`, `src/ui/hud/heat_hud.gd`, `project.godot`, `README.md`, `CHANGELOG.md`, `docs/README.md`, `docs/game-design/{menu,combate}.md`, `AI_TRACE.md`
+Change: Herramienta que decodifica los PSD sin dependencias externas (cabecera, capas, PackBits) y compone las capas visibles, porque los textos y botones exportados desde Figma no venían en la imagen compuesta. También exporta aparte las tres papas de LOADING e imprime los rectángulos de las capas, que se usan para los botones. Autoload `Game` con la lista de niveles (nivel 1 = Azotea) y la navegación. El menú es ahora la escena principal: START → NEW GAME → LEVEL SELECT (ENTER del nivel 1) → LOADING (carga en segundo plano, con las papas apareciendo y un mínimo de 1,5 s) → nivel; Esc vuelve. Los botones invisibles van sobre los dibujos y se resaltan con el mouse o el foco; se activan con clic, Enter, Espacio o J. En `ZoneLevel`, YOU LOOSE (BACK MENU / TRY AGAIN?) y YOU WIN (BACK MENU / NEXT LEVEL; sin otro nivel, la misma zona con otra seed) reemplazan el panel de texto, sobre el juego oscurecido. Entrando desde el menú, el menú de debug arranca cerrado.
+Commit: PENDING (se commitea junto con esta entrada)
+Notes: La primera conversión usaba solo la imagen compuesta del PSD y salía sin textos; se pasó a componer las capas. Se recorrió el flujo completo con capturas: START, NEW GAME, LEVEL SELECT, LOADING, partida, YOU LOOSE, TRY AGAIN (la partida se reinicia) y YOU WIN. El SVG de START no se usa porque el PSD trae lo mismo. `test_controls`, `test_presets`, `test_heat_meter`, `test_combat_match` y `test_oficinas_traversal` (8 casos) en verde.
+
+### Preparar feature/ui-menu para el merge a develop
+
+Timestamp: N/A (timestamp oficial no disponible)
+Participant: N/A (autor de Git: 14mn0t4b0t)
+Team: Frenetic Studios
+AI: Claude
+Prompt: "Ya quedo, se elimino la rama de sprite, y segumos con la de menus".
+Task: Integrar `origin/develop` en `feature/ui-menu` sin rebase, resolver conflictos y verificar el menú con la música real.
+Type: PROCESS / CODE (AI) / DOCS / TESTING
+Files: `src/world/levels/zone_level.gd`, `CHANGELOG.md`, `AI_TRACE.md`
+Change: Merge `3814f28` (no rebase, la rama ya estaba pusheada). CHANGELOG: el menú pasa a la sección `Added` única. AI_TRACE: el archivo de `develop` queda intacto y la entrada del menú se mueve al final. Arreglo: TRY AGAIN y NEXT LEVEL (cuando no hay otro nivel) regeneraban la zona sin reiniciar la canción; ahora llaman a `Conductor.restart()`, igual que Enter.
+Commit: `3814f28` (merge); el arreglo, PENDING (se commitea junto con esta entrada)
+Notes: Objetos LFS del menú bajados con `curl` por el mismo "connection reset" de `git-lfs`; sha256 verificado. Importación sin errores; 7 tests unitarios, `test_combat_match`, `test_rhythm_rewards` y `test_oficinas_traversal` en verde. Chequeo temporal con ventana (borrado después): menú → carga → Azotea con música → YOU WIN → TRY AGAIN reinicia la canción → YOU LOOSE → menú, con la música detenida. Sin push hasta que el usuario lo autorice.
