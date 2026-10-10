@@ -14,6 +14,8 @@ const SIZE := Vector2(44.0, 88.0)
 
 var params := PlayerParams.new()
 var facing := 1.0
+## Movido por la zona (escaleras, ascensor): sin física ni colisión.
+var scripted := false
 
 var _was_on_floor := true
 var _air_top_y := 0.0
@@ -25,6 +27,7 @@ var _spin_left := 0.0
 var _boost := 1.0
 var _boost_left := 0.0
 var _stumble_left := 0.0
+var _collision: CollisionShape2D
 
 
 func _ready() -> void:
@@ -33,10 +36,10 @@ func _ready() -> void:
 	var shape := CapsuleShape2D.new()
 	shape.radius = SIZE.x * 0.5
 	shape.height = SIZE.y
-	var collision := CollisionShape2D.new()
-	collision.shape = shape
-	collision.position.y = -SIZE.y * 0.5
-	add_child(collision)
+	_collision = CollisionShape2D.new()
+	_collision.shape = shape
+	_collision.position.y = -SIZE.y * 0.5
+	add_child(_collision)
 
 
 ## Multiplica el impulso del salto en curso (llamar dentro de `jumped`).
@@ -66,11 +69,30 @@ func reset_state() -> void:
 	_buffer_left = 0.0
 
 
+## La zona toma el control (escaleras, ascensor): sin física ni colisión hasta `end_scripted`.
+func begin_scripted() -> void:
+	scripted = true
+	velocity = Vector2.ZERO
+	_fast_falling = false
+	_collision.disabled = true
+
+
+func end_scripted(at: Vector2) -> void:
+	position = at
+	scripted = false
+	velocity = Vector2.ZERO
+	_collision.disabled = false
+	_was_on_floor = true
+	_air_top_y = at.y
+
+
 func is_fast_falling() -> bool:
 	return _fast_falling
 
 
 func _physics_process(delta: float) -> void:
+	if scripted:
+		return
 	var blocked := _text_field_focused()
 	var fall_speed := velocity.y
 	var on_floor := is_on_floor()
