@@ -114,7 +114,8 @@ static func _place_marks(data: AzoteaMapData, rng: RandomNumberGenerator, roof: 
 		var x := rng.randf_range(roof.position.x + 30.0, roof.end.x - 30.0)
 		var y := roof.position.y
 		if not AzoteaMapData.Mark.on_roof(type):
-			y += rng.randf_range(60.0, 480.0)
+			# Franja de fachada que la cámara suele mostrar bajo el borde.
+			y += rng.randf_range(50.0, 260.0)
 		data.marks.append(AzoteaMapData.Mark.new(type, Vector2(x, y), rng.randf_range(0.6, 1.4),
 				rng.randf(), rng.randi()))
 
