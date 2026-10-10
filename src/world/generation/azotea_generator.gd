@@ -41,14 +41,14 @@ const PROP_SIZES := {
 	AzoteaMapData.Prop.Type.PIPE_RUN: [Vector2(150.0, 30.0), Vector2(300.0, 44.0)],
 }
 const MARK_WEIGHTS := {
-	AzoteaMapData.Mark.Type.BLOOD: 0.18,
-	AzoteaMapData.Mark.Type.CRACK: 0.18,
-	AzoteaMapData.Mark.Type.STAIN: 0.14,
-	AzoteaMapData.Mark.Type.RUBBLE: 0.12,
-	AzoteaMapData.Mark.Type.POSTER: 0.12,
-	AzoteaMapData.Mark.Type.GRAFFITI: 0.1,
-	AzoteaMapData.Mark.Type.WALL_UNIT: 0.08,
-	AzoteaMapData.Mark.Type.BONES: 0.08,
+	MapMark.Type.BLOOD: 0.18,
+	MapMark.Type.CRACK: 0.18,
+	MapMark.Type.STAIN: 0.14,
+	MapMark.Type.RUBBLE: 0.12,
+	MapMark.Type.POSTER: 0.12,
+	MapMark.Type.GRAFFITI: 0.1,
+	MapMark.Type.WALL_UNIT: 0.08,
+	MapMark.Type.BONES: 0.08,
 }
 
 
@@ -65,8 +65,10 @@ static func generate(params: AzoteaParams) -> AzoteaMapData:
 
 	var data := AzoteaMapData.new()
 	_build_roofs(data, params, rng, field)
-	data.far = _build_skyline(params, rng, field, 690.0, Vector2(160.0, 470.0), Vector2(90.0, 240.0), 0.0)
-	data.near = _build_skyline(params, rng, field, 760.0, Vector2(90.0, 330.0), Vector2(140.0, 320.0), 5000.0)
+	data.far = build_skyline(rng, field, params.skyline_width, params.ruin, params.broken_windows,
+			690.0, Vector2(160.0, 470.0), Vector2(90.0, 240.0), 0.0)
+	data.near = build_skyline(rng, field, params.skyline_width, params.ruin, params.broken_windows,
+			760.0, Vector2(90.0, 330.0), Vector2(140.0, 320.0), 5000.0)
 	_build_details(data, params)
 	return data
 
@@ -110,13 +112,13 @@ static func _place_props(data: AzoteaMapData, rng: RandomNumberGenerator, roof: 
 ## Marcas: escombros sobre el techo; sangre, grietas y manchas en la fachada.
 static func _place_marks(data: AzoteaMapData, rng: RandomNumberGenerator, roof: Rect2, max_count: int) -> void:
 	for i in rng.randi_range(max_count / 2, max_count):
-		var type: AzoteaMapData.Mark.Type = _weighted_pick(rng, MARK_WEIGHTS)
+		var type: MapMark.Type = _weighted_pick(rng, MARK_WEIGHTS)
 		var x := rng.randf_range(roof.position.x + 30.0, roof.end.x - 30.0)
 		var y := roof.position.y
-		if not AzoteaMapData.Mark.on_roof(type):
+		if not MapMark.on_floor(type):
 			# Franja de fachada que la cámara suele mostrar bajo el borde.
 			y += rng.randf_range(50.0, 260.0)
-		data.marks.append(AzoteaMapData.Mark.new(type, Vector2(x, y), rng.randf_range(0.6, 1.4),
+		data.marks.append(MapMark.new(type, Vector2(x, y), rng.randf_range(0.6, 1.4),
 				rng.randf(), rng.randi()))
 
 
@@ -158,10 +160,12 @@ static func _build_roofs(data: AzoteaMapData, params: AzoteaParams, rng: RandomN
 	data.kill_y = lowest + 900.0
 
 
-static func _build_skyline(params: AzoteaParams, rng: RandomNumberGenerator, field: FastNoiseLite,
-		base_y: float, height_range: Vector2, width_range: Vector2, field_offset: float) -> AzoteaMapData.SkylineData:
+## Capa de skyline en ruinas; la usan todas las zonas que ven la ciudad de fondo.
+static func build_skyline(rng: RandomNumberGenerator, field: FastNoiseLite, width: float, ruin: float,
+		broken_windows: float, base_y: float, height_range: Vector2, width_range: Vector2,
+		field_offset: float) -> AzoteaMapData.SkylineData:
 	var layer := AzoteaMapData.SkylineData.new()
-	layer.width = params.skyline_width
+	layer.width = width
 	var bottom := base_y + 900.0
 	var x := 0.0
 	while x < layer.width:
@@ -171,9 +175,9 @@ static func _build_skyline(params: AzoteaParams, rng: RandomNumberGenerator, fie
 		var top := base_y - h
 		var outline := PackedVector2Array()
 		if w >= 8.0:
-			outline = _ruined_outline(rng, x, x + w, top, bottom, h, params.ruin)
+			outline = _ruined_outline(rng, x, x + w, top, bottom, h, ruin)
 			layer.buildings.append(outline)
-		_add_windows(layer, rng, outline, x, w, top, base_y, params.broken_windows)
+		_add_windows(layer, rng, outline, x, w, top, base_y, broken_windows)
 		# Edificios pegados o con un callejón estrecho.
 		x += w + (rng.randf_range(0.0, 30.0) if rng.randf() < 0.3 else 0.0)
 	return layer

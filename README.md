@@ -42,5 +42,33 @@ docs/           # documentación del proyecto
 ## Ejecución
 
 ```bash
-godot --path .
+godot --path .                                                   # escena principal
+godot --path . res://src/world/levels/azotea/azotea.tscn         # zona Azotea
+godot --path . res://src/world/levels/oficinas/oficinas.tscn     # zona Oficinas
 ```
+
+## Zonas jugables
+
+| Zona | Qué es |
+|---|---|
+| **Azotea** | Azoteas en ruinas de izquierda a derecha, con skyline de fondo. |
+| **Oficinas** | Edificio abandonado: escaleras y ascensores de fondo, puertas con llave, habitaciones y pasillos al fondo; recorrido garantizado y no lineal. |
+
+Ambas tienen tres modos gráficos (Default, Pixel e Isaac, con F2) y juego al ritmo: saltar,
+girar y aterrizar en el beat suma combo.
+
+## Controles
+
+| Acción | Tecla |
+|---|---|
+| Mover / saltar | ←/→ · Espacio |
+| Caída forzada (en el aire) | ↓ |
+| Escaleras, ascensores, puertas al fondo (Oficinas) | ↑ / ↓ |
+| Menú de debug · cambiar estilo | Tab (o F1) · F2 |
+| Seed aleatoria / siguiente / anterior | R / N / P |
+| Vista de habitación · grafo de recorrido (Oficinas) | V · G |
+
+## Documentación y tests
+
+Índice en [`docs/README.md`](docs/README.md); tests en
+[`docs/development/testing.md`](docs/development/testing.md).
